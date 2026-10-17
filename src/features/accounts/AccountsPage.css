@@ -1,0 +1,66 @@
+.accounts-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-8) var(--space-8);
+}
+
+.accounts-page__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.accounts-page__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: space-between;
+  align-items: center;
+  min-height: 44px;
+}
+
+.accounts-page__account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.accounts-page__message {
+  padding: var(--space-6) 0;
+  color: var(--muted);
+}
+
+.accounts-page__empty {
+  max-width: 480px;
+  margin: 10vh auto 0;
+  text-align: center;
+}
+
+.accounts-page__empty h1 {
+  margin: 0 0 var(--space-2);
+}
+
+.accounts-page__empty p {
+  margin: 0 0 var(--space-6);
+  color: var(--muted);
+}
+
+.accounts-page__empty-actions,
+.accounts-page__empty .account-name-form {
+  justify-content: center;
+}
+
+.accounts-page__empty-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+@media (max-width: 720px) {
+  .accounts-page {
+    padding: var(--space-4);
+  }
+}

@@ -1,0 +1,39 @@
+.category-row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: background 80ms ease;
+}
+
+.category-row:hover {
+  background: var(--surface-hover);
+}
+
+.category-row--selected {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.category-row__swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.category-row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-row__usage {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
