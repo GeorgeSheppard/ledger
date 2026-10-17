@@ -15,28 +15,30 @@ import { DeleteConfirm } from '../accounts/DeleteConfirm';
 import { CategoryEditor } from './CategoryEditor';
 import { CategoryRow } from './CategoryRow';
 import { useCategoriesWithUsage, useCategoryActions } from './useCategoriesData';
-import './CategoriesPage.css';
+import { Page } from '../../ui/Page';
 
 /** `/categories`: add, rename, recolour, reorder and delete categories. */
 export function CategoriesPage() {
   const query = useCategoriesWithUsage();
   return (
-    <div className="categories-page">
-      <header className="categories-page__header">
-        <h1>Categories</h1>
-        <p>
-          Stored in the <code>{CATEGORIES_TAB}</code> tab of your sheet. Renaming a category updates
-          every transaction that uses it.
-        </p>
-      </header>
-      {query.status === 'loading' && <p className="categories-page__message">Loading…</p>}
+    <Page
+      title="Categories"
+      className="max-w-3xl"
+      description={
+        <>
+          Stored in the <code className="font-mono">{CATEGORIES_TAB}</code> tab of your sheet.
+          Renaming a category updates every transaction that uses it.
+        </>
+      }
+    >
+      {query.status === 'loading' && <p className="text-sm text-muted">Loading…</p>}
       {query.status === 'error' && (
-        <p className="categories-page__message">Could not load categories: {query.error.message}</p>
+        <p className="text-sm text-muted">Could not load categories: {query.error.message}</p>
       )}
       {query.status === 'ready' && (
         <CategoryList categories={query.data.categories} usage={query.data.usage} />
       )}
-    </div>
+    </Page>
   );
 }
 
@@ -128,8 +130,8 @@ function CategoryList({
   const selectedUsage = selected ? usageOf(usage, selected.name) : 0;
 
   return (
-    <section className="category-list" aria-label="Categories">
-      <div className="category-list__toolbar">
+    <section className="flex flex-col" aria-label="Categories">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <ActionButton
           shortcut="categories.new"
           variant="primary"
@@ -153,7 +155,7 @@ function CategoryList({
         >
           Delete
         </ActionButton>
-        <span className="category-list__hint">
+        <span className="ml-auto inline-flex items-center gap-1.5 text-[0.8125rem] text-muted max-md:hidden">
           <Kbd shortcut="categories.down" />
           <Kbd shortcut="categories.up" />
           move
@@ -164,15 +166,15 @@ function CategoryList({
       </div>
 
       {writeError && (
-        <p className="category-list__error" role="alert">
+        <p className="mb-3 rounded-lg bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
           Could not save: {writeError}
         </p>
       )}
 
-      <div className="category-list__body" role="table" ref={listRef}>
+      <div className="flex flex-col" role="table" ref={listRef}>
         {mode.kind === 'new' && editorFor()}
         {categories.length === 0 && mode.kind !== 'new' && (
-          <div className="category-list__empty">
+          <div className="flex items-center justify-center gap-1.5 p-8 text-muted">
             No categories yet. Press <Kbd shortcut="categories.new" /> to add one.
           </div>
         )}

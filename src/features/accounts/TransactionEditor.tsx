@@ -3,9 +3,10 @@ import type { Category } from '../../lib/domain/types';
 import { formatAmount } from '../../lib/transactions/amount';
 import type { DraftErrors, DraftField, TransactionDraft } from '../../lib/transactions/draft';
 import { ActionButton } from '../../ui/ActionButton';
+import { cn } from '../../ui/cn';
+import { TextInput } from '../../ui/TextInput';
 import { CategoryPicker } from '../categories/CategoryPicker';
-import './inlineField.css';
-import './TransactionEditor.css';
+import { EDITOR_FOOTER, EDITOR_PANEL, TRANSACTION_GRID } from './rowStyles';
 
 interface TransactionEditorProps {
   draft: TransactionDraft;
@@ -51,17 +52,15 @@ export function TransactionEditor({
   return (
     <form
       ref={formRef}
-      className={['transaction-editor', isNew && 'transaction-editor--new']
-        .filter(Boolean)
-        .join(' ')}
+      className={EDITOR_PANEL}
+      data-editor={isNew ? 'new' : 'edit'}
       aria-label={isNew ? 'New transaction' : 'Edit transaction'}
       onSubmit={(event) => event.preventDefault()}
     >
-      <div className="transaction-editor__fields">
+      <div className={cn(TRANSACTION_GRID, 'items-center px-3 py-2 max-md:grid-cols-2')}>
         <Cell field="date">
-          <input
+          <TextInput
             type="date"
-            className="inline-field"
             aria-label="Date"
             aria-invalid={!!errors.date || undefined}
             value={draft.date}
@@ -77,8 +76,7 @@ export function TransactionEditor({
           />
         </Cell>
         <Cell field="note">
-          <input
-            className="inline-field"
+          <TextInput
             aria-label="Note"
             placeholder="What was it?"
             value={draft.note}
@@ -86,8 +84,8 @@ export function TransactionEditor({
           />
         </Cell>
         <Cell field="amount">
-          <input
-            className="inline-field inline-field--numeric"
+          <TextInput
+            className="text-right tabular-nums"
             aria-label="Amount"
             inputMode="decimal"
             placeholder="-0.00"
@@ -96,17 +94,23 @@ export function TransactionEditor({
             onChange={(e) => set('amount')(e.target.value)}
           />
         </Cell>
-        <div className="transaction-editor__total" aria-label="Total">
+        <div
+          className="text-right text-sm text-muted tabular-nums max-md:hidden"
+          aria-label="Total"
+        >
           {total === undefined ? '' : formatAmount(total)}
         </div>
       </div>
-      <div className="transaction-editor__footer">
-        <p className="transaction-editor__message" role={errorList.length ? 'alert' : undefined}>
+      <div className={EDITOR_FOOTER}>
+        <p
+          className={cn('text-[0.8125rem] text-muted', errorList.length && 'text-negative')}
+          role={errorList.length ? 'alert' : undefined}
+        >
           {errorList.length
             ? errorList.join('. ')
             : 'Negative amounts are money out, positive is money in.'}
         </p>
-        <div className="transaction-editor__actions">
+        <div className="flex gap-2">
           <ActionButton shortcut="transactions.cancel" variant="ghost" onAction={onCancel}>
             Cancel
           </ActionButton>
@@ -127,7 +131,7 @@ export function TransactionEditor({
 
 function Cell({ field, children }: { field: DraftField; children: ReactNode }) {
   return (
-    <div className="transaction-editor__cell" data-field={field}>
+    <div data-field={field} className={cn(field === 'note' && 'max-md:col-span-2')}>
       {children}
     </div>
   );

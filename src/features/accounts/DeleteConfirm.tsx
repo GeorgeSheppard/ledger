@@ -1,6 +1,5 @@
 import type { ShortcutId } from '../../lib/shortcuts/bindings';
 import { ActionButton } from '../../ui/ActionButton';
-import './DeleteConfirm.css';
 
 interface DeleteConfirmProps {
   message: string;
@@ -22,9 +21,13 @@ export function DeleteConfirm({
   onCancel,
 }: DeleteConfirmProps) {
   return (
-    <div className="delete-confirm" role="alertdialog" aria-label="Confirm delete">
-      <span className="delete-confirm__message">{message}</span>
-      <div className="delete-confirm__actions">
+    <div
+      className="mt-0.5 mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-negative/40 bg-negative/10 px-3 py-2"
+      role="alertdialog"
+      aria-label="Confirm delete"
+    >
+      <span className="text-sm">{message}</span>
+      <div className="flex gap-2">
         <ActionButton shortcut={cancelShortcut} variant="ghost" onAction={onCancel}>
           Cancel
         </ActionButton>

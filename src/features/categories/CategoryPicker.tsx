@@ -6,8 +6,10 @@ import {
   validateCategoryName,
 } from '../../lib/categories/categories';
 import type { Category } from '../../lib/domain/types';
-import '../accounts/inlineField.css';
-import './CategoryPicker.css';
+import { cn } from '../../ui/cn';
+import { TextInput } from '../../ui/TextInput';
+
+const OPTION = 'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm';
 
 type Option =
   { kind: 'none' } | { kind: 'category'; category: Category } | { kind: 'create'; name: string };
@@ -108,23 +110,17 @@ export function CategoryPicker({
   const shownColor = value.trim() && !open ? categoryColor(categories, value) : undefined;
 
   return (
-    <div className="category-picker">
+    <div className="relative min-w-0">
       {shownColor && (
         <span
-          className="category-picker__dot"
+          className="pointer-events-none absolute top-1/2 left-2.5 size-2 -translate-y-1/2 rounded-full"
           style={{ background: shownColor }}
           aria-hidden="true"
         />
       )}
-      <input
+      <TextInput
         ref={inputRef}
-        className={[
-          'inline-field',
-          'category-picker__input',
-          shownColor && 'category-picker__input--with-dot',
-        ]
-          .filter(Boolean)
-          .join(' ')}
+        className={cn(shownColor && 'pl-6')}
         role="combobox"
         aria-label={ariaLabel}
         aria-expanded={open}
@@ -154,31 +150,31 @@ export function CategoryPicker({
         onKeyDown={onKeyDown}
       />
       {open && (
-        <ul id={listId} role="listbox" className="category-picker__list">
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute top-full left-0 z-20 mt-1 max-h-64 w-max max-w-72 min-w-full overflow-y-auto rounded-lg border border-line bg-surface p-1 shadow-lg"
+        >
           {options.map((option, i) => (
             <li
               key={option.kind === 'category' ? option.category.name : option.kind}
               id={`${listId}-${i}`}
               role="option"
               aria-selected={i === active}
-              className={[
-                'category-picker__option',
-                i === active && 'category-picker__option--active',
-                option.kind === 'create' && 'category-picker__option--create',
-              ]
-                .filter(Boolean)
-                .join(' ')}
+              className={cn(
+                OPTION,
+                i === active && 'bg-surface-hover',
+                option.kind === 'create' && 'text-accent'
+              )}
               onMouseDown={(event) => event.preventDefault()}
               onMouseEnter={() => setActive(i)}
               onClick={() => void pick(option)}
             >
-              {option.kind === 'none' && (
-                <span className="category-picker__muted">No category</span>
-              )}
+              {option.kind === 'none' && <span className="text-muted">No category</span>}
               {option.kind === 'category' && (
                 <>
                   <span
-                    className="category-picker__swatch"
+                    className="size-2.5 flex-none rounded-full"
                     style={{ background: option.category.color }}
                     aria-hidden="true"
                   />
@@ -187,7 +183,7 @@ export function CategoryPicker({
               )}
               {option.kind === 'create' && (
                 <>
-                  <span className="category-picker__plus" aria-hidden="true">
+                  <span className="w-2.5 text-center font-semibold" aria-hidden="true">
                     +
                   </span>
                   Add “{option.name}”
@@ -196,7 +192,7 @@ export function CategoryPicker({
             </li>
           ))}
           {options.length === 0 && (
-            <li className="category-picker__option category-picker__muted">No matches</li>
+            <li className={cn(OPTION, 'cursor-default text-muted')}>No matches</li>
           )}
         </ul>
       )}

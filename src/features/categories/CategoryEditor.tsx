@@ -3,8 +3,9 @@ import { validateCategoryName } from '../../lib/categories/categories';
 import type { Category } from '../../lib/domain/types';
 import { ActionButton } from '../../ui/ActionButton';
 import { ColorPicker } from './ColorPicker';
-import '../accounts/inlineField.css';
-import './CategoryEditor.css';
+import { cn } from '../../ui/cn';
+import { TextInput } from '../../ui/TextInput';
+import { EDITOR_FOOTER, EDITOR_PANEL } from '../accounts/rowStyles';
 
 interface CategoryEditorProps {
   categories: Category[];
@@ -41,18 +42,18 @@ export function CategoryEditor({
 
   return (
     <form
-      className="category-editor"
+      className={EDITOR_PANEL}
       aria-label={original ? `Edit ${original.name}` : 'New category'}
       onSubmit={(event) => event.preventDefault()}
     >
-      <div className="category-editor__fields">
+      <div className="flex flex-wrap items-center gap-3 p-3">
         <span
-          className="category-editor__preview"
+          className="size-3.5 flex-none rounded-full"
           style={{ background: color }}
           aria-hidden="true"
         />
-        <input
-          className="inline-field category-editor__name"
+        <TextInput
+          className="max-w-80 flex-[1_1_200px]"
           aria-label="Category name"
           aria-invalid={!!error || undefined}
           placeholder="Category name"
@@ -65,14 +66,17 @@ export function CategoryEditor({
         />
         <ColorPicker value={color} onChange={setColor} />
       </div>
-      <div className="category-editor__footer">
-        <p className="category-editor__message" role={error ? 'alert' : undefined}>
+      <div className={EDITOR_FOOTER}>
+        <p
+          className={cn('text-[0.8125rem] text-muted', error && 'text-negative')}
+          role={error ? 'alert' : undefined}
+        >
           {error ??
             (renaming
               ? `Renaming updates ${usage} ${usage === 1 ? 'transaction' : 'transactions'} in your sheet.`
               : 'Colours are used in charts and category chips.')}
         </p>
-        <div className="category-editor__actions">
+        <div className="flex gap-2">
           <ActionButton shortcut="categories.cancel" variant="ghost" onAction={onCancel}>
             Cancel
           </ActionButton>

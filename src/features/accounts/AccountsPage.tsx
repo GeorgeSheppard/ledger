@@ -9,7 +9,8 @@ import { AccountSummary } from './AccountSummary';
 import { AccountSwitcher } from './AccountSwitcher';
 import { TransactionTable } from './TransactionTable';
 import { useAccountActions, useAccountsAndCategories, useTransactions } from './useAccountsData';
-import './AccountsPage.css';
+import { Card } from '../../ui/Card';
+import { Page } from '../../ui/Page';
 
 type NameForm = { kind: 'new' } | { kind: 'rename'; account: Account } | null;
 
@@ -27,9 +28,18 @@ export function AccountsPage() {
   const actions = useAccountActions();
   const [nameForm, setNameForm] = useState<NameForm>(null);
 
-  if (meta.status === 'loading') return <PageMessage>Loading accounts…</PageMessage>;
+  if (meta.status === 'loading')
+    return (
+      <Page title="Accounts">
+        <PageMessage>Loading accounts…</PageMessage>
+      </Page>
+    );
   if (meta.status === 'error')
-    return <PageMessage>Could not load accounts: {meta.error.message}</PageMessage>;
+    return (
+      <Page title="Accounts">
+        <PageMessage>Could not load accounts: {meta.error.message}</PageMessage>
+      </Page>
+    );
 
   const { categories } = meta.data;
   const first = meta.data.accounts[0];
@@ -59,114 +69,114 @@ export function AccountsPage() {
 
   if (!account) {
     return (
-      <div className="accounts-page">
-        <div className="accounts-page__empty">
-          <h1>{accountId === undefined ? 'No accounts yet' : 'Account not found'}</h1>
-          <p>
-            Each account is a tab in your spreadsheet with Date, Category, Amount, Note and Total
-            columns.
-          </p>
-          {newForm || (
-            <div className="accounts-page__empty-actions">
-              <ActionButton
-                shortcut="accounts.new"
-                variant="primary"
-                onAction={() => setNameForm({ kind: 'new' })}
-              >
-                New account
-              </ActionButton>
-              {first && (
-                <ActionButton shortcut="accounts.next" onAction={() => go(first)}>
-                  Open {first.name}
-                </ActionButton>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  const several = meta.data.accounts.length > 1;
-
-  return (
-    <div className="accounts-page">
-      <header className="accounts-page__header">
-        <div className="accounts-page__title-row">
-          {nameForm ? (
-            nameForm.kind === 'new' ? (
-              newForm
-            ) : (
-              <AccountNameForm
-                accounts={meta.data.accounts}
-                account={nameForm.account}
-                onSubmit={(name) => renameAccount(nameForm.account, name)}
-                onCancel={() => setNameForm(null)}
-              />
-            )
-          ) : (
-            <AccountSwitcher
-              accounts={meta.data.accounts}
-              current={account}
-              onSelect={go}
-              onNew={() => setNameForm({ kind: 'new' })}
-            />
-          )}
-          <div className="accounts-page__account-actions">
-            <ActionButton
-              shortcut="accounts.previous"
-              variant="ghost"
-              disabled={!several || !!nameForm}
-              aria-label="Previous account"
-              onAction={() => go(adjacentAccount(meta.data.accounts, account.id, -1))}
-            >
-              ‹
-            </ActionButton>
-            <ActionButton
-              shortcut="accounts.next"
-              variant="ghost"
-              disabled={!several || !!nameForm}
-              aria-label="Next account"
-              onAction={() => go(adjacentAccount(meta.data.accounts, account.id, 1))}
-            >
-              ›
-            </ActionButton>
-            <ActionButton
-              shortcut="accounts.rename"
-              variant="ghost"
-              disabled={!!nameForm}
-              onAction={() => setNameForm({ kind: 'rename', account })}
-            >
-              Rename
-            </ActionButton>
+      <Page
+        title={accountId === undefined ? 'No accounts yet' : 'Account not found'}
+        description="Each account is a tab in your spreadsheet with Date, Category, Amount, Note and Total columns."
+      >
+        {newForm || (
+          <div className="flex gap-2">
             <ActionButton
               shortcut="accounts.new"
-              disabled={!!nameForm}
+              variant="primary"
               onAction={() => setNameForm({ kind: 'new' })}
             >
               New account
             </ActionButton>
+            {first && (
+              <ActionButton shortcut="accounts.next" onAction={() => go(first)}>
+                Open {first.name}
+              </ActionButton>
+            )}
           </div>
-        </div>
-        {transactions.status === 'ready' && <AccountSummary transactions={transactions.data} />}
-      </header>
+        )}
+      </Page>
+    );
+  }
+
+  const several = meta.data.accounts.length > 1;
+  const editingName = !!nameForm;
+
+  return (
+    <Page
+      title={account.name}
+      actions={
+        <>
+          <AccountSwitcher
+            accounts={meta.data.accounts}
+            current={account}
+            onSelect={go}
+            onNew={() => setNameForm({ kind: 'new' })}
+          />
+          <ActionButton
+            shortcut="accounts.previous"
+            variant="ghost"
+            disabled={!several || editingName}
+            aria-label="Previous account"
+            onAction={() => go(adjacentAccount(meta.data.accounts, account.id, -1))}
+          >
+            ‹
+          </ActionButton>
+          <ActionButton
+            shortcut="accounts.next"
+            variant="ghost"
+            disabled={!several || editingName}
+            aria-label="Next account"
+            onAction={() => go(adjacentAccount(meta.data.accounts, account.id, 1))}
+          >
+            ›
+          </ActionButton>
+          <ActionButton
+            shortcut="accounts.rename"
+            variant="ghost"
+            disabled={editingName}
+            onAction={() => setNameForm({ kind: 'rename', account })}
+          >
+            Rename
+          </ActionButton>
+          <ActionButton
+            shortcut="accounts.new"
+            disabled={editingName}
+            onAction={() => setNameForm({ kind: 'new' })}
+          >
+            New account
+          </ActionButton>
+        </>
+      }
+    >
+      {nameForm && (
+        <Card className="px-4 py-3">
+          {nameForm.kind === 'new' ? (
+            newForm
+          ) : (
+            <AccountNameForm
+              accounts={meta.data.accounts}
+              account={nameForm.account}
+              onSubmit={(name) => renameAccount(nameForm.account, name)}
+              onCancel={() => setNameForm(null)}
+            />
+          )}
+        </Card>
+      )}
 
       {transactions.status === 'loading' && <PageMessage>Loading transactions…</PageMessage>}
       {transactions.status === 'error' && (
         <PageMessage>Could not load transactions: {transactions.error.message}</PageMessage>
       )}
       {transactions.status === 'ready' && (
-        <TransactionTable
-          key={account.id}
-          account={account}
-          transactions={transactions.data}
-          categories={categories}
-        />
+        <>
+          <AccountSummary transactions={transactions.data} />
+          <TransactionTable
+            key={account.id}
+            account={account}
+            transactions={transactions.data}
+            categories={categories}
+          />
+        </>
       )}
-    </div>
+    </Page>
   );
 }
 
 function PageMessage({ children }: { children: ReactNode }) {
-  return <p className="accounts-page__message">{children}</p>;
+  return <p className="text-sm text-muted">{children}</p>;
 }

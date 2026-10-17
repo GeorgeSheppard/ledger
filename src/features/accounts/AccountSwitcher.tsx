@@ -3,7 +3,9 @@ import { filterAccounts } from '../../lib/accounts/accounts';
 import type { Account } from '../../lib/domain/types';
 import { ActionButton } from '../../ui/ActionButton';
 import { Kbd } from '../../ui/Kbd';
-import './AccountSwitcher.css';
+import { cn } from '../../ui/cn';
+
+const OPTION = 'flex items-center justify-between rounded-md px-2.5 py-2 text-sm';
 
 interface AccountSwitcherProps {
   accounts: Account[];
@@ -12,7 +14,7 @@ interface AccountSwitcherProps {
   onNew(): void;
 }
 
-/** The account name as a menu button. `/` opens it; type to filter, arrows and Enter to switch. */
+/** Menu for jumping to another account. `/` opens it; type to filter, arrows and Enter to switch. */
 export function AccountSwitcher({ accounts, current, onSelect, onNew }: AccountSwitcherProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -62,24 +64,23 @@ export function AccountSwitcher({ accounts, current, onSelect, onNew }: AccountS
   };
 
   return (
-    <div className="account-switcher" ref={rootRef}>
+    <div className="relative" ref={rootRef}>
       <ActionButton
         shortcut="accounts.switch"
         variant="ghost"
-        className="account-switcher__trigger"
         aria-haspopup="listbox"
         aria-expanded={open}
         onAction={() => (open ? setOpen(false) : show())}
       >
-        <span className="account-switcher__name">{current.name}</span>
-        <span className="account-switcher__chevron" aria-hidden="true">
+        Switch account
+        <span className="ml-1.5 text-xs text-muted" aria-hidden="true">
           ▾
         </span>
       </ActionButton>
       {open && (
-        <div className="account-switcher__panel">
+        <div className="absolute top-full right-0 z-30 mt-1.5 w-72 rounded-xl border border-line bg-surface p-1.5 shadow-xl">
           <input
-            className="account-switcher__search"
+            className="h-9 w-full border-b border-line bg-transparent px-2.5 text-sm text-fg outline-none placeholder:text-muted/70"
             aria-label="Find account"
             aria-controls={listId}
             aria-activedescendant={matches[active] ? `${listId}-${matches[active].id}` : undefined}
@@ -92,40 +93,37 @@ export function AccountSwitcher({ accounts, current, onSelect, onNew }: AccountS
             }}
             onKeyDown={onKeyDown}
           />
-          <ul id={listId} role="listbox" className="account-switcher__list">
+          <ul id={listId} role="listbox" className="my-1.5 max-h-72 overflow-y-auto">
             {matches.map((account, i) => (
               <li
                 key={account.id}
                 id={`${listId}-${account.id}`}
                 role="option"
                 aria-selected={i === active}
-                className={[
-                  'account-switcher__option',
-                  i === active && 'account-switcher__option--active',
-                  account.id === current.id && 'account-switcher__option--current',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
+                className={cn(
+                  OPTION,
+                  'cursor-pointer',
+                  i === active && 'bg-surface-hover',
+                  account.id === current.id && 'font-semibold'
+                )}
                 onMouseEnter={() => setActive(i)}
                 onClick={() => choose(account)}
               >
                 {account.name}
                 {account.id === current.id && (
-                  <span className="account-switcher__check" aria-label="current">
+                  <span className="text-accent" aria-label="current">
                     ✓
                   </span>
                 )}
               </li>
             ))}
             {matches.length === 0 && (
-              <li className="account-switcher__option account-switcher__empty">
-                No accounts match
-              </li>
+              <li className={cn(OPTION, 'text-muted')}>No accounts match</li>
             )}
           </ul>
           <button
             type="button"
-            className="account-switcher__new"
+            className="flex w-full cursor-pointer items-center justify-between border-t border-line px-2.5 pt-2 pb-1 text-sm text-accent hover:text-accent-hover"
             onClick={() => {
               setOpen(false);
               onNew();

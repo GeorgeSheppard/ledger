@@ -25,7 +25,8 @@ import { DeleteConfirm } from './DeleteConfirm';
 import { TransactionEditor } from './TransactionEditor';
 import { TransactionRow } from './TransactionRow';
 import { useAccountActions } from './useAccountsData';
-import './TransactionTable.css';
+import { cn } from '../../ui/cn';
+import { TRANSACTION_GRID } from './rowStyles';
 
 interface TransactionTableProps {
   account: Account;
@@ -178,8 +179,8 @@ export function TransactionTable({ account, transactions, categories }: Transact
   );
 
   return (
-    <section className="transaction-table" aria-label={`${account.name} transactions`}>
-      <div className="transaction-table__toolbar">
+    <section className="flex min-w-0 flex-col" aria-label={`${account.name} transactions`}>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <ActionButton
           shortcut="transactions.new"
           variant="primary"
@@ -203,7 +204,7 @@ export function TransactionTable({ account, transactions, categories }: Transact
         >
           Delete
         </ActionButton>
-        <span className="transaction-table__hint">
+        <span className="ml-auto inline-flex items-center gap-1.5 text-[0.8125rem] text-muted max-md:hidden">
           <Kbd shortcut="transactions.down" />
           <Kbd shortcut="transactions.up" />
           to move
@@ -211,40 +212,49 @@ export function TransactionTable({ account, transactions, categories }: Transact
       </div>
 
       {writeError && (
-        <p className="transaction-table__error" role="alert">
+        <p className="mb-3 rounded-lg bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
           Could not save: {writeError}
         </p>
       )}
 
-      <div className="transaction-table__head" role="row">
+      <div
+        className={cn(
+          TRANSACTION_GRID,
+          'border-b border-line px-3 pb-2 text-xs font-semibold tracking-wide text-muted uppercase max-md:hidden'
+        )}
+        role="row"
+      >
         <span role="columnheader">Date</span>
         <span role="columnheader">Category</span>
         <span role="columnheader">Note</span>
-        <span role="columnheader" className="transaction-table__numeric">
+        <span role="columnheader" className="text-right">
           Amount
         </span>
-        <span role="columnheader" className="transaction-table__numeric">
+        <span role="columnheader" className="text-right">
           Total
         </span>
       </div>
 
-      <div className="transaction-table__body" role="rowgroup" ref={listRef}>
+      <div className="flex flex-col pt-2" role="rowgroup" ref={listRef}>
         {mode.kind === 'new' && editor}
         {ordered.length === 0 && mode.kind !== 'new' && (
-          <div className="transaction-table__empty">
+          <div className="flex flex-col items-center gap-1 px-4 py-8 text-center text-muted">
             <p>No transactions in {account.name} yet.</p>
-            <p>
+            <p className="inline-flex items-center gap-1.5">
               Press <Kbd shortcut="transactions.new" /> to add the first one.
             </p>
           </div>
         )}
         {groups.map((group) => (
-          <div key={group.key} className="transaction-table__group" role="presentation">
-            <div className="transaction-table__month" role="presentation">
-              <span className="transaction-table__month-name">{formatMonth(group.key)}</span>
-              <span className="transaction-table__month-totals">
+          <div key={group.key} className="group" role="presentation">
+            <div
+              className="sticky top-0 z-1 mt-4 flex items-baseline justify-between bg-canvas px-3 py-2 text-[0.8125rem] group-first:mt-0"
+              role="presentation"
+            >
+              <span className="font-semibold">{formatMonth(group.key)}</span>
+              <span className="flex gap-3 text-xs text-muted tabular-nums">
                 {group.moneyIn > 0 && (
-                  <span className="transaction-table__in">
+                  <span className="text-positive">
                     {formatAmount(group.moneyIn, { signed: true })}
                   </span>
                 )}
@@ -269,7 +279,7 @@ export function TransactionTable({ account, transactions, categories }: Transact
               );
               if (mode.kind === 'confirm-delete' && mode.id === transaction.id)
                 return (
-                  <div key={transaction.id} className="transaction-table__confirming">
+                  <div key={transaction.id}>
                     {row}
                     <DeleteConfirm
                       message="Delete this transaction? The row is removed from the sheet."

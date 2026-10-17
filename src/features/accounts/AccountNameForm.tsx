@@ -1,8 +1,7 @@
 import { useState, type KeyboardEvent } from 'react';
 import { validateAccountName } from '../../lib/accounts/accounts';
 import type { Account } from '../../lib/domain/types';
-import './inlineField.css';
-import './AccountNameForm.css';
+import { TextInput } from '../../ui/TextInput';
 
 interface AccountNameFormProps {
   accounts: Account[];
@@ -39,14 +38,14 @@ export function AccountNameForm({ accounts, account, onSubmit, onCancel }: Accou
 
   return (
     <form
-      className="account-name-form"
+      className="flex flex-wrap items-center gap-3"
       onSubmit={(event) => {
         event.preventDefault();
         void submit();
       }}
     >
-      <input
-        className="inline-field account-name-form__input"
+      <TextInput
+        className="h-9 w-80 max-w-full"
         aria-label={account ? 'Account name' : 'New account name'}
         aria-invalid={!!error || undefined}
         placeholder="e.g. Credit card"
@@ -60,17 +59,15 @@ export function AccountNameForm({ accounts, account, onSubmit, onCancel }: Accou
         onKeyDown={onKeyDown}
         onBlur={() => !saving && !name.trim() && onCancel()}
       />
-      <span className="key-hint">
-        {error ? (
-          <span className="account-name-form__error" role="alert">
-            {error}
-          </span>
-        ) : (
-          <>
-            <kbd>↵</kbd> {account ? 'rename' : 'create'} <kbd>Esc</kbd> cancel
-          </>
-        )}
-      </span>
+      {error ? (
+        <span className="text-sm text-negative" role="alert">
+          {error}
+        </span>
+      ) : (
+        <span className="text-sm text-muted">
+          Enter to {account ? 'rename' : 'create'}, Esc to cancel
+        </span>
+      )}
     </form>
   );
 }
