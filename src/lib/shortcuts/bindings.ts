@@ -70,6 +70,11 @@ export const SHORTCUTS = {
     scope: 'import',
     allowInInputs: true,
   },
+  'import.account': { keys: 'a', description: 'Choose account to import into', scope: 'import' },
+  'import.mapping': { keys: 'm', description: 'Edit column mapping', scope: 'import' },
+  'import.invert': { keys: 'i', description: 'Flip amount signs', scope: 'import' },
+  'import.filter': { keys: 'f', description: 'Cycle preview filter', scope: 'import' },
+  'import.reset': { keys: 'x', description: 'Start over with another file', scope: 'import' },
 } as const satisfies Record<string, ShortcutBinding>;
 
 export type ShortcutId = keyof typeof SHORTCUTS;
