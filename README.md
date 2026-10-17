@@ -1,17 +1,19 @@
 # Finance
 
-The frontend for [finance.georgesheppard.dev](https://finance.georgesheppard.dev). Currently just an
-"under construction" page.
+The frontend for [finance.georgesheppard.dev](https://finance.georgesheppard.dev): a personal finance
+app whose data lives in the user's own Google Sheet. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+for the structure and conventions.
 
 ## Stack
 
-- **React 19 + Vite + TypeScript**
+- **React 19 + Vite + TypeScript**, React Router, Vitest
 
 ## Development
 
 ```sh
 pnpm install
-pnpm dev          # http://localhost:5173
+pnpm dev          # http://localhost:5173, uses demo data
+pnpm test         # unit tests
 pnpm lint         # typecheck + eslint
 pnpm format       # prettier
 pnpm build
