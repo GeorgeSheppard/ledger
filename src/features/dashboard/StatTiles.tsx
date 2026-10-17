@@ -1,4 +1,7 @@
+import type { ReactNode } from 'react';
 import type { Dashboard } from '../../lib/metrics/dashboard';
+import { Card } from '../../ui/Card';
+import { cn } from '../../ui/cn';
 import { formatChange, formatMonthShort, formatPercent, formatWhole } from './format';
 
 interface DeltaProps {
@@ -6,64 +9,79 @@ interface DeltaProps {
   /** Whether an increase is good news (net worth) or bad news (spending). */
   upIsGood: boolean;
   suffix: string;
-  format?: (amount: number) => string;
 }
 
-function Delta({ amount, upIsGood, suffix, format = formatWhole }: DeltaProps) {
-  const tone = amount === 0 ? 'neutral' : amount > 0 === upIsGood ? 'good' : 'bad';
+function Delta({ amount, upIsGood, suffix }: DeltaProps) {
+  const good = amount !== 0 && amount > 0 === upIsGood;
+  const bad = amount !== 0 && !good;
   return (
-    <div className={`stat-tile__delta stat-tile__delta--${tone}`}>
+    <div className={cn('text-sm text-muted', good && 'text-positive', bad && 'text-negative')}>
       <span aria-hidden>{amount > 0 ? '▲' : amount < 0 ? '▼' : '•'}</span>{' '}
-      {formatChange(amount, format)} <span className="stat-tile__delta-suffix">{suffix}</span>
+      {formatChange(amount, formatWhole)} <span className="text-muted">{suffix}</span>
     </div>
+  );
+}
+
+interface TileProps {
+  label: string;
+  value: string;
+  footer?: ReactNode;
+  hero?: boolean;
+}
+
+function Tile({ label, value, footer, hero }: TileProps) {
+  return (
+    <Card className={cn('flex flex-col gap-1 p-4', hero && 'col-span-2')}>
+      <div className="text-sm text-muted">{label}</div>
+      <div
+        className={cn('font-semibold', hero ? 'text-5xl leading-tight tracking-tight' : 'text-2xl')}
+      >
+        {value}
+      </div>
+      {typeof footer === 'string' ? <div className="text-sm text-muted">{footer}</div> : footer}
+    </Card>
   );
 }
 
 /** The headline numbers for the latest month. */
 export function StatTiles({ dashboard }: { dashboard: Dashboard }) {
   const { latest } = dashboard;
-  const previousMonth = dashboard.months.length > 1 ? dashboard.months.at(-2)! : null;
+  const month = formatMonthShort(latest.month);
+  const previousMonth = dashboard.months.at(-2);
   const vsLast = previousMonth ? `vs ${formatMonthShort(previousMonth)}` : 'vs last month';
-  const monthName = formatMonthShort(latest.month);
 
   return (
-    <section className="stat-tiles" aria-label="Summary">
-      <div className="stat-tile stat-tile--hero">
-        <div className="stat-tile__label">Net worth</div>
-        <div className="stat-tile__value">{formatWhole(latest.netWorth)}</div>
-        <Delta
-          amount={latest.netWorthChange}
-          upIsGood
-          suffix={`in ${formatMonthShort(latest.month)}`}
-        />
-      </div>
-      <div className="stat-tile">
-        <div className="stat-tile__label">Spending in {monthName}</div>
-        <div className="stat-tile__value">{formatWhole(latest.spending)}</div>
-        {latest.previousSpending !== null && (
-          <Delta
-            amount={latest.spending - latest.previousSpending}
-            upIsGood={false}
-            suffix={vsLast}
-          />
-        )}
-      </div>
-      <div className="stat-tile">
-        <div className="stat-tile__label">Income in {monthName}</div>
-        <div className="stat-tile__value">{formatWhole(latest.income)}</div>
-      </div>
-      <div className="stat-tile">
-        <div className="stat-tile__label">Saved</div>
-        <div className="stat-tile__value">
-          {latest.savingsRate === null ? '—' : formatPercent(latest.savingsRate)}
-        </div>
-        <div className="stat-tile__note">of income in {formatMonthShort(latest.month)}</div>
-      </div>
-      <div className="stat-tile">
-        <div className="stat-tile__label">Average monthly spending</div>
-        <div className="stat-tile__value">{formatWhole(latest.averageSpending)}</div>
-        <div className="stat-tile__note">over {dashboard.months.length} months</div>
-      </div>
+    <section className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6" aria-label="Summary">
+      <Tile
+        hero
+        label="Net worth"
+        value={formatWhole(latest.netWorth)}
+        footer={<Delta amount={latest.netWorthChange} upIsGood suffix={`in ${month}`} />}
+      />
+      <Tile
+        label={`Spending in ${month}`}
+        value={formatWhole(latest.spending)}
+        footer={
+          latest.previousSpending !== null && (
+            <Delta
+              amount={latest.spending - latest.previousSpending}
+              upIsGood={false}
+              suffix={vsLast}
+            />
+          )
+        }
+      />
+      <Tile label={`Income in ${month}`} value={formatWhole(latest.income)} />
+      <Tile
+        label="Saved"
+        value={latest.savingsRate === null ? '—' : formatPercent(latest.savingsRate)}
+        footer={`of income in ${month}`}
+      />
+      <Tile
+        label="Average monthly spending"
+        value={formatWhole(latest.averageSpending)}
+        footer={`over ${dashboard.months.length} months`}
+      />
     </section>
   );
 }

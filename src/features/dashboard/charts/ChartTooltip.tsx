@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { cn } from '../../../ui/cn';
+import { Swatch } from './ChartLegend';
 
 export interface TooltipRow {
   label: string;
@@ -22,21 +24,29 @@ export function ChartTooltip({ title, rows, x, y, chartWidth }: ChartTooltipProp
   const flip = x > chartWidth * 0.6;
   return (
     <div
-      className={`chart-tooltip${flip ? ' chart-tooltip--flip' : ''}`}
+      className={cn(
+        'pointer-events-none absolute z-10 min-w-44 rounded-lg border border-line bg-surface px-3 py-2 text-sm shadow-lg',
+        flip
+          ? '-translate-x-[calc(100%+14px)] -translate-y-1/2'
+          : 'translate-x-3.5 -translate-y-1/2'
+      )}
       style={{ left: x, top: y }}
       role="status"
     >
-      <div className="chart-tooltip__title">{title}</div>
+      <div className="mb-1 font-semibold">{title}</div>
       {rows.map((row) => (
         <div
           key={row.label}
-          className={`chart-tooltip__row${row.emphasis ? ' chart-tooltip__row--emphasis' : ''}`}
+          className={cn(
+            'flex justify-between gap-4',
+            row.emphasis ? 'font-semibold text-fg' : 'text-muted'
+          )}
         >
-          <span className="chart-tooltip__label">
-            {row.color && <span className="chart-swatch" style={{ background: row.color }} />}
+          <span className="flex items-center gap-1.5">
+            {row.color && <Swatch color={row.color} />}
             {row.label}
           </span>
-          <span className="chart-tooltip__value">{row.value}</span>
+          <span className="tabular-nums">{row.value}</span>
         </div>
       ))}
     </div>

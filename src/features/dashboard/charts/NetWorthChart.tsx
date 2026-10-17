@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { cn } from '../../../ui/cn';
 import type { Account } from '../../../lib/domain/types';
 import type { NetWorthPoint } from '../../../lib/metrics/netWorth';
 import { formatMoney, formatMonthLong, formatWhole } from '../format';
 import { MonthAxis, YGrid } from './Axes';
 import { ChartTooltip } from './ChartTooltip';
 import { linearScale } from './scale';
+import { CHART_CLASSES } from './theme';
 import { useElementWidth } from './useElementWidth';
 
 const HEIGHT = 240;
@@ -43,8 +45,9 @@ export function NetWorthChart({ points, accounts }: NetWorthChartProps) {
   const active = hover === null ? null : focus;
 
   return (
-    <div className="chart" ref={ref}>
+    <div className={CHART_CLASSES.frame} ref={ref}>
       <svg
+        className={CHART_CLASSES.svg}
         width={width}
         height={HEIGHT}
         role="img"
@@ -53,11 +56,16 @@ export function NetWorthChart({ points, accounts }: NetWorthChartProps) {
       >
         <YGrid y={y} left={left} right={right} />
         <MonthAxis months={points.map((p) => p.month)} x={x} y={HEIGHT - 6} width={right - left} />
-        <path className="net-worth-chart__area" d={area} />
-        <path className="net-worth-chart__line" d={line} />
+        <path className="pointer-events-none fill-accent/10" d={area} />
+        <path
+          className="pointer-events-none fill-none stroke-accent stroke-2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          d={line}
+        />
         {hover !== null && (
           <line
-            className="chart-crosshair"
+            className={CHART_CLASSES.crosshair}
             x1={x(hover)}
             x2={x(hover)}
             y1={MARGIN.top}
@@ -65,20 +73,25 @@ export function NetWorthChart({ points, accounts }: NetWorthChartProps) {
           />
         )}
         <circle
-          className="chart-dot net-worth-chart__dot"
+          className={cn(CHART_CLASSES.dot, 'fill-accent')}
           cx={x(hover ?? last)}
           cy={y(focus.total)}
           r={4.5}
         />
         {hover === null && (
-          <text className="chart-value-label" x={x(last) + 10} y={y(lastPoint.total)} dy="0.32em">
+          <text
+            className={CHART_CLASSES.valueLabel}
+            x={x(last) + 10}
+            y={y(lastPoint.total)}
+            dy="0.32em"
+          >
             {formatWhole(lastPoint.total)}
           </text>
         )}
         {points.map((p, i) => (
           <rect
             key={p.month}
-            className="chart-hit"
+            className={CHART_CLASSES.hit}
             x={x(i) - Math.max(step, 24) / 2}
             y={MARGIN.top}
             width={Math.max(step, 24)}

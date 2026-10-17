@@ -4,15 +4,12 @@ import { formatChange, formatMoney, formatMonthLong } from '../format';
 import { MonthAxis, YGrid } from './Axes';
 import { ChartTooltip } from './ChartTooltip';
 import { bandCenter, barPath, linearScale } from './scale';
+import { CHART_CLASSES, INCOME_COLOR, NET_COLOR, SPENDING_COLOR } from './theme';
 import { useElementWidth } from './useElementWidth';
 
 const HEIGHT = 240;
 const MARGIN = { top: 16, right: 16, bottom: 28, left: 48 };
 const MAX_BAR = 24;
-
-export const INCOME_COLOR = 'var(--chart-income)';
-export const SPENDING_COLOR = 'var(--chart-spending)';
-export const NET_COLOR = 'var(--text)';
 
 /** Income above the zero line, spending below it, and the month's net as a dot, on one axis. */
 export function CashFlowChart({ flows }: { flows: MonthCashFlow[] }) {
@@ -34,8 +31,9 @@ export function CashFlowChart({ flows }: { flows: MonthCashFlow[] }) {
   const hovered = hover === null ? undefined : flows[hover];
 
   return (
-    <div className="chart" ref={ref}>
+    <div className={CHART_CLASSES.frame} ref={ref}>
       <svg
+        className={CHART_CLASSES.svg}
         width={width}
         height={HEIGHT}
         role="img"
@@ -45,7 +43,7 @@ export function CashFlowChart({ flows }: { flows: MonthCashFlow[] }) {
         <YGrid y={y} left={left} right={right} />
         <MonthAxis months={flows.map((f) => f.month)} x={x} y={HEIGHT - 6} width={right - left} />
         {flows.map((flow, i) => (
-          <g key={flow.month} className={hover !== null && hover !== i ? 'chart-dim' : undefined}>
+          <g key={flow.month} className={hover !== null && hover !== i ? 'opacity-40' : undefined}>
             {flow.income > 0 && (
               <path
                 d={barPath(x(i) - barWidth / 2, barWidth, zero - 1, y(flow.income))}
@@ -58,9 +56,15 @@ export function CashFlowChart({ flows }: { flows: MonthCashFlow[] }) {
                 fill={SPENDING_COLOR}
               />
             )}
-            <circle className="chart-dot" cx={x(i)} cy={y(flow.net)} r={4.5} fill={NET_COLOR} />
+            <circle
+              className={CHART_CLASSES.dot}
+              cx={x(i)}
+              cy={y(flow.net)}
+              r={4.5}
+              fill={NET_COLOR}
+            />
             <rect
-              className="chart-hit"
+              className={CHART_CLASSES.hit}
               x={x(i) - slot / 2}
               y={MARGIN.top}
               width={slot}

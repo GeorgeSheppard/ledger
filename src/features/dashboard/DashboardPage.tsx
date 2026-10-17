@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { paths } from '../../app/paths';
 import {
@@ -9,16 +9,19 @@ import {
 import type { ShortcutId } from '../../lib/shortcuts/bindings';
 import { useLedgerQuery } from '../../state/ledgerData';
 import { ActionButton } from '../../ui/ActionButton';
+import { Card } from '../../ui/Card';
+import { cn } from '../../ui/cn';
+import { Page } from '../../ui/Page';
 import { AccountBalances } from './AccountBalances';
 import { CategoryBreakdown } from './CategoryBreakdown';
-import { CashFlowChart, INCOME_COLOR, NET_COLOR, SPENDING_COLOR } from './charts/CashFlowChart';
+import { CashFlowChart } from './charts/CashFlowChart';
 import { ChartLegend } from './charts/ChartLegend';
 import { NetWorthChart } from './charts/NetWorthChart';
 import { SpendingChart } from './charts/SpendingChart';
+import { FALLBACK_COLOR, INCOME_COLOR, NET_COLOR, SPENDING_COLOR } from './charts/theme';
 import { formatMonthLong } from './format';
 import { loadDashboardData } from './loadLedgers';
 import { StatTiles } from './StatTiles';
-import './DashboardPage.css';
 
 const RANGES: { range: DashboardRange; label: string; shortcut: ShortcutId }[] = [
   { range: 3, label: '3M', shortcut: 'dashboard.range3' },
@@ -27,8 +30,25 @@ const RANGES: { range: DashboardRange; label: string; shortcut: ShortcutId }[] =
   { range: 'all', label: 'All', shortcut: 'dashboard.rangeAll' },
 ];
 
-/** Used for categories missing from the category list, and for uncategorised spending. */
-const FALLBACK_COLOR = 'var(--chart-uncategorised)';
+interface PanelProps {
+  title: string;
+  /** Shown at the right of the title. */
+  aside?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}
+
+function Panel({ title, aside, className, children }: PanelProps) {
+  return (
+    <Card className={cn('min-w-0 p-6', className)}>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">{title}</h2>
+        {aside}
+      </div>
+      {children}
+    </Card>
+  );
+}
 
 /** The signed-in homepage: net worth, spending and cash flow across every account. */
 export function DashboardPage() {
@@ -50,42 +70,37 @@ export function DashboardPage() {
   const selectedIndex = selectedMonth ? months.indexOf(selectedMonth) : -1;
   const stepMonth = (by: number) => setPickedMonth(months[selectedIndex + by] ?? null);
 
-  if (query.status === 'loading')
-    return <div className="dashboard dashboard__status">Loading…</div>;
+  if (query.status === 'loading') return <Page title="Dashboard" description="Loading…" />;
   if (query.status === 'error')
     return (
-      <div className="dashboard dashboard__status" role="alert">
-        Could not load your spreadsheet: {query.error.message}
-      </div>
+      <Page title="Dashboard">
+        <p role="alert" className="text-sm text-negative">
+          Could not load your spreadsheet: {query.error.message}
+        </p>
+      </Page>
     );
 
   if (!dashboard || !selectedMonth)
     return (
-      <div className="dashboard">
-        <h1 className="dashboard__title">Dashboard</h1>
-        <div className="dashboard__panel dashboard__empty">
+      <Page title="Dashboard">
+        <Card className="p-6 text-sm text-muted">
           <p>No transactions yet. Add some to an account or import a CSV to see your charts.</p>
-          <p>
+          <p className="mt-2">
             <Link to={paths.accounts}>Go to accounts</Link> ·{' '}
             <Link to={paths.import}>Import CSV</Link>
           </p>
-        </div>
-      </div>
+        </Card>
+      </Page>
     );
 
   const accounts = query.data.ledgers.map((l) => l.account);
 
   return (
-    <div className="dashboard">
-      <header className="dashboard__header">
-        <div>
-          <h1 className="dashboard__title">Dashboard</h1>
-          <p className="dashboard__subtitle">
-            {formatMonthLong(months[0] ?? selectedMonth)} to{' '}
-            {formatMonthLong(dashboard.latest.month)}
-          </p>
-        </div>
-        <div className="dashboard__ranges" role="group" aria-label="Time range">
+    <Page
+      title="Dashboard"
+      description={`${formatMonthLong(months[0] ?? selectedMonth)} to ${formatMonthLong(dashboard.latest.month)}`}
+      actions={
+        <div className="flex gap-1" role="group" aria-label="Time range">
           {RANGES.map((option) => (
             <ActionButton
               key={option.label}
@@ -98,26 +113,23 @@ export function DashboardPage() {
             </ActionButton>
           ))}
         </div>
-      </header>
-
+      }
+    >
       <StatTiles dashboard={dashboard} />
 
-      <div className="dashboard__grid dashboard__grid--wide-left">
-        <section className="dashboard__panel">
-          <h2 className="dashboard__panel-title">Net worth</h2>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Panel title="Net worth" className="lg:col-span-2">
           <NetWorthChart points={dashboard.netWorth} accounts={accounts} />
-        </section>
-        <section className="dashboard__panel">
-          <h2 className="dashboard__panel-title">Accounts</h2>
+        </Panel>
+        <Panel title="Accounts">
           <AccountBalances accounts={dashboard.accounts} />
-        </section>
+        </Panel>
       </div>
 
-      <section className="dashboard__panel">
-        <div className="dashboard__panel-header">
-          <h2 className="dashboard__panel-title">Spending by category</h2>
-          <span className="dashboard__hint">Select a month to see its breakdown</span>
-        </div>
+      <Panel
+        title="Spending by category"
+        aside={<span className="text-sm text-muted">Select a month to see its breakdown</span>}
+      >
         <ChartLegend items={dashboard.categories.map((c) => ({ label: c, color: colorOf(c) }))} />
         <SpendingChart
           flows={dashboard.cashFlow}
@@ -126,13 +138,13 @@ export function DashboardPage() {
           selectedMonth={selectedMonth}
           onSelectMonth={setPickedMonth}
         />
-      </section>
+      </Panel>
 
-      <div className="dashboard__grid">
-        <section className="dashboard__panel">
-          <div className="dashboard__panel-header">
-            <h2 className="dashboard__panel-title">{formatMonthLong(selectedMonth)}</h2>
-            <div className="dashboard__month-nav">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Panel
+          title={formatMonthLong(selectedMonth)}
+          aside={
+            <div className="flex gap-1">
               <ActionButton
                 shortcut="dashboard.previousMonth"
                 variant="ghost"
@@ -150,11 +162,11 @@ export function DashboardPage() {
                 Next
               </ActionButton>
             </div>
-          </div>
+          }
+        >
           <CategoryBreakdown rows={categoryBreakdown(dashboard, selectedMonth)} colorOf={colorOf} />
-        </section>
-        <section className="dashboard__panel">
-          <h2 className="dashboard__panel-title">Income and spending</h2>
+        </Panel>
+        <Panel title="Income and spending">
           <ChartLegend
             items={[
               { label: 'Income', color: INCOME_COLOR },
@@ -163,8 +175,8 @@ export function DashboardPage() {
             ]}
           />
           <CashFlowChart flows={dashboard.cashFlow} />
-        </section>
+        </Panel>
       </div>
-    </div>
+    </Page>
   );
 }

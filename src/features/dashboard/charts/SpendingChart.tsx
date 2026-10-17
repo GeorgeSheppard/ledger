@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { cn } from '../../../ui/cn';
 import type { MonthCashFlow } from '../../../lib/metrics/cashFlow';
 import type { MonthKey } from '../../../lib/metrics/months';
 import { formatMoney, formatMonthLong } from '../format';
 import { MonthAxis, YGrid } from './Axes';
 import { ChartTooltip } from './ChartTooltip';
 import { bandCenter, barPath, linearScale } from './scale';
+import { CHART_CLASSES } from './theme';
 import { useElementWidth } from './useElementWidth';
 
 const HEIGHT = 260;
@@ -48,8 +50,9 @@ export function SpendingChart({
   const hovered = hover && flows[hover.month];
 
   return (
-    <div className="chart" ref={ref}>
+    <div className={CHART_CLASSES.frame} ref={ref}>
       <svg
+        className={CHART_CLASSES.svg}
         width={width}
         height={HEIGHT}
         role="img"
@@ -65,11 +68,15 @@ export function SpendingChart({
           return (
             <g
               key={flow.month}
-              className={`spending-chart__column${selected ? ' spending-chart__column--selected' : ''}`}
+              className="group cursor-pointer"
               onClick={() => onSelectMonth(flow.month)}
             >
               <rect
-                className="spending-chart__band"
+                className={cn(
+                  selected
+                    ? 'fill-surface-hover stroke-line'
+                    : 'fill-transparent group-hover:fill-surface-hover'
+                )}
                 x={x(i) - slot / 2}
                 y={MARGIN.top}
                 width={slot}
@@ -92,7 +99,6 @@ export function SpendingChart({
                         : `M${x(i) - barWidth / 2},${start} H${x(i) + barWidth / 2} V${end} H${x(i) - barWidth / 2} Z`
                     }
                     fill={colorOf(category)}
-                    className="spending-chart__segment"
                     onMouseEnter={() => setHover({ month: i, category })}
                   />
                 );
