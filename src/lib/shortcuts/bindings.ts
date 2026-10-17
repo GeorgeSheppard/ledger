@@ -6,7 +6,8 @@
  * Add new shortcuts to the section for your feature. `bindings.test.ts` fails on duplicates.
  */
 
-export type ShortcutScope = 'global' | 'transactions' | 'accounts' | 'categories' | 'import';
+export type ShortcutScope =
+  'global' | 'landing' | 'connect' | 'transactions' | 'accounts' | 'categories' | 'import';
 
 export interface ShortcutBinding {
   keys: string;
@@ -23,6 +24,13 @@ export const SHORTCUTS = {
   'nav.categories': { keys: 'g c', description: 'Go to categories', scope: 'global' },
   'nav.import': { keys: 'g i', description: 'Go to CSV import', scope: 'global' },
   'help.toggle': { keys: '?', description: 'Show keyboard shortcuts', scope: 'global' },
+
+  // Landing and connect (step 1)
+  'landing.signIn': { keys: 'enter', description: 'Sign in with Google', scope: 'landing' },
+  'connect.pick': { keys: 'o', description: 'Open an existing spreadsheet', scope: 'connect' },
+  'connect.create': { keys: 'c', description: 'Create a new spreadsheet', scope: 'connect' },
+  'connect.back': { keys: 'escape', description: 'Back to your dashboard', scope: 'connect' },
+  'connect.signOut': { keys: 'shift+q', description: 'Sign out', scope: 'connect' },
 
   // Accounts and transactions (step 2)
   'accounts.switch': { keys: '/', description: 'Switch account', scope: 'accounts' },

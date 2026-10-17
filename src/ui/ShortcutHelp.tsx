@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import { SHORTCUTS, type ShortcutId, type ShortcutScope } from '../lib/shortcuts/bindings';
 import { Kbd } from './Kbd';
 
-const SCOPE_LABELS: Record<ShortcutScope, string> = {
+/** Scopes listed in the overlay. Pages outside the app shell (landing, connect) are left out. */
+const SCOPE_LABELS: Partial<Record<ShortcutScope, string>> = {
   global: 'Everywhere',
   accounts: 'Accounts',
   transactions: 'Transactions',
