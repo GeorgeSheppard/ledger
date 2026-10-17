@@ -1,0 +1,31 @@
+.kbd {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.kbd__chord {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.kbd__then {
+  margin: 0 2px;
+  font-size: 0.75em;
+  color: var(--muted);
+}
+
+.kbd kbd {
+  min-width: 1.4em;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.75em;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--muted);
+  background: var(--surface);
+}
