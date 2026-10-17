@@ -1,5 +1,6 @@
 import type { LedgerRepository } from '../../lib/data/repository';
 import { useLedgerQuery } from '../../state/ledgerData';
+import { Page } from '../../ui/Page';
 
 const loadAccounts = (repository: LedgerRepository) => repository.listAccounts();
 
@@ -10,8 +11,7 @@ const loadAccounts = (repository: LedgerRepository) => repository.listAccounts()
 export function AccountsPage() {
   const accounts = useLedgerQuery(loadAccounts);
   return (
-    <div className="placeholder">
-      <h1>Accounts</h1>
+    <Page title="Accounts">
       {accounts.status === 'ready' && (
         <ul>
           {accounts.data.map((account) => (
@@ -19,6 +19,6 @@ export function AccountsPage() {
           ))}
         </ul>
       )}
-    </div>
+    </Page>
   );
 }

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { SHORTCUTS, type ShortcutId, type ShortcutScope } from '../lib/shortcuts/bindings';
 import { Kbd } from './Kbd';
-import './ShortcutHelp.css';
 
 const SCOPE_LABELS: Record<ShortcutScope, string> = {
   global: 'Everywhere',
@@ -24,22 +23,24 @@ export function ShortcutHelp({ onClose }: { onClose(): void }) {
   return (
     <dialog
       ref={dialog}
-      className="shortcut-help"
       onClose={onClose}
       aria-label="Keyboard shortcuts"
+      className="m-auto max-h-[80dvh] w-[min(480px,calc(100vw-32px))] rounded-xl border border-line bg-surface p-6 text-fg outline-none backdrop:bg-black/40"
     >
-      <h2>Keyboard shortcuts</h2>
+      <h2 className="mb-4 text-lg font-semibold">Keyboard shortcuts</h2>
       {scopes.map((scope) => (
         <section key={scope}>
-          <h3>{SCOPE_LABELS[scope]}</h3>
+          <h3 className="mt-4 mb-2 text-xs font-medium tracking-wide text-muted uppercase">
+            {SCOPE_LABELS[scope]}
+          </h3>
           <dl>
             {ids
               .filter((id) => SHORTCUTS[id].scope === scope)
               .map((id) => (
-                <div key={id} className="shortcut-help__row">
+                <div key={id} className="flex justify-between py-1 text-sm">
                   <dt>{SHORTCUTS[id].description}</dt>
                   <dd>
-                    <Kbd shortcut={id} />
+                    <Kbd shortcut={id} className="text-muted" />
                   </dd>
                 </div>
               ))}

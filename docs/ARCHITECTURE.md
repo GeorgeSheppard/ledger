@@ -17,9 +17,8 @@ writes it from the browser. There is no backend.
    credentials.
 4. **Every action has a shortcut, shown next to its button.** Shortcuts are declared once in
    `src/lib/shortcuts/bindings.ts`; buttons are `<ActionButton shortcut="…">`.
-5. **Styling** uses plain CSS files next to components, with the variables in
-   `src/styles/tokens.css`. Class names are BEM-style and prefixed with the component name
-   (`.transaction-row__amount`).
+5. **Styling is Tailwind only.** See [Styling](#styling) below. No `.css` files besides
+   `src/styles/global.css`.
 
 ## File structure
 
@@ -37,12 +36,14 @@ src/
     ledgerData.tsx             useRepository(), useLedgerQuery(), useLedgerMutation()
     shortcuts.tsx              ShortcutProvider, useShortcut(id, handler)
   ui/                          shared presentational components, no data access
-    ActionButton.tsx           button + its shortcut
+    ActionButton.tsx           button + its shortcut (variants: primary, secondary, ghost, danger)
+    Page.tsx                   page frame: title, description, header actions
+    Card.tsx                   bordered surface for tables, charts, forms
     Kbd.tsx                    renders a shortcut's keys
     ShortcutHelp.tsx           `?` overlay listing every shortcut
+    cn.ts                      class name joiner (clsx + tailwind-merge)
   styles/
-    tokens.css                 colours, spacing, radii (light + dark)
-    global.css
+    global.css                 Tailwind import, design tokens (light + dark), base styles
   lib/                         pure TypeScript, unit tested
     domain/types.ts            Account, Transaction, TransactionInput, Category, SpreadsheetRef
     data/repository.ts         LedgerRepository interface
@@ -63,6 +64,40 @@ src/
     dashboard/                 charts
     import/                    CSV drag and drop, mapping, review
 ```
+
+## Styling
+
+Tailwind CSS v4, configured in `src/styles/global.css`. Keep the look consistent by reaching for the
+same few pieces everywhere:
+
+- **Colours come only from the theme tokens**, which switch automatically for dark mode. Never use
+  raw hex values or Tailwind palette colours like `bg-gray-100` or `text-red-500`.
+
+  | Token                   | Use for                             | Example classes                              |
+  | ----------------------- | ----------------------------------- | -------------------------------------------- |
+  | `canvas`                | page background                     | `bg-canvas`                                  |
+  | `surface`               | cards, sidebar, inputs, dialogs     | `bg-surface`, `hover:bg-surface-hover`       |
+  | `line`                  | every border and divider            | `border-line`, `divide-line`                 |
+  | `fg` / `muted`          | primary / secondary text            | `text-fg`, `text-muted`                      |
+  | `accent`                | primary actions, focus rings, links | `bg-accent text-accent-fg`, `outline-accent` |
+  | `positive` / `negative` | money in / money out, errors        | `text-positive`, `text-negative`             |
+
+  Category colours come from the data (`Category.color`) and are applied with `style`, not classes.
+
+- **Spacing, radii and type** use Tailwind's default scale. House defaults: page padding via
+  `<Page>`; `gap-6` between page sections; `rounded-xl` for cards and dialogs, `rounded-lg` for
+  buttons, inputs and rows; `text-sm` for UI and table text; `text-2xl font-semibold` only for page
+  titles (via `<Page>`), `text-lg font-semibold` for card titles.
+- **Numbers** (amounts, totals, chart labels) use `tabular-nums`; amounts are coloured with
+  `text-positive` / `text-negative`.
+- **Use the shared components** before writing new markup: `<Page>` for every page, `<Card>` for
+  grouped content, `<ActionButton>` for every action. If two features need the same styled element
+  (an input, a select, a badge), add it to `src/ui/` rather than copying classes.
+- **Composing classes:** use `cn(...)` from `src/ui/cn.ts` for conditional classes and for letting a
+  `className` prop override defaults. Components that render a root element accept `className`.
+- **Interactive states:** `hover:bg-surface-hover`, `focus-visible:outline-2
+focus-visible:outline-offset-2 focus-visible:outline-accent`, `disabled:opacity-50`.
+- Prettier sorts Tailwind classes (`prettier-plugin-tailwindcss`); run `pnpm format`.
 
 ## Sheet format
 
