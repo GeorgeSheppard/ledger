@@ -38,34 +38,39 @@ This takes about ten minutes, once.
 `drive.file` is a "non-sensitive" scope, so you can later click **Publish app** on the Audience page
 to let anyone sign in, without Google's verification review.
 
-## 4. Create the OAuth client ID
+## 4. Create the OAuth client IDs
+
+Make two clients, one for development and one for production, so each only works on its own
+addresses. Both live in the same Google Cloud project.
 
 1. Open **APIs & Services → Credentials** (or **Google Auth Platform → Clients**).
 2. Click **Create credentials → OAuth client ID** (or **Create client**).
-3. **Application type:** Web application. **Name:** `Ledger web`.
-4. Under **Authorised JavaScript origins**, click **Add URI** and add each origin the app runs on:
-   - `http://localhost:5173` (local development)
-   - `https://finance.georgesheppard.dev` (production)
-   - any preview URL you want to sign in on, e.g.
-     `https://<branch>-ledger.georgesheppard98.workers.dev` (Google does not accept wildcards, so
-     add each one you need)
+3. **Application type:** Web application. **Name:** `Ledger dev`.
+4. Under **Authorised JavaScript origins**, click **Add URI** and add `http://localhost:5173`.
 5. Leave **Authorised redirect URIs** empty (the token flow uses a popup, not redirects).
 6. Click **Create** and copy the **Client ID**. It looks like
    `123456789012-abc...apps.googleusercontent.com`. The number at the start is your project
    number, which Ledger also uses for the Picker.
+7. Repeat for **Name:** `Ledger prod`, with these origins:
+   - `https://finance.georgesheppard.dev`
+   - any preview URL you want to sign in on, e.g.
+     `https://<branch>-ledger.georgesheppard98.workers.dev` (Google does not accept wildcards, so
+     add each one you need)
 
 Origins can take a few minutes to start working after you save them.
 
-## 5. Create the API key (for the Picker)
+## 5. Create the API keys (for the Picker)
+
+Again make two, `Ledger dev` and `Ledger prod`. For each:
 
 1. Still on **Credentials**, click **Create credentials → API key**. Copy the key.
-2. Click **Edit API key** (or open the key from the list).
+2. Click **Edit API key** (or open the key from the list) and set its **Name**.
 3. Under **Application restrictions**, choose **Websites** and add:
-   - `http://localhost:5173/*`
-   - `https://finance.georgesheppard.dev/*`
-   - `https://*.georgesheppard98.workers.dev/*` (API keys do accept wildcards)
-   - `https://docs.google.com/*` (the Picker runs in an iframe on docs.google.com; without this it
-     shows "The API developer key is invalid")
+   - dev: `http://localhost:5173/*`
+   - prod: `https://finance.georgesheppard.dev/*` and `https://*.georgesheppard98.workers.dev/*`
+     (API keys do accept wildcards)
+   - both: `https://docs.google.com/*` (the Picker runs in an iframe on docs.google.com; without
+     this it shows "The API developer key is invalid")
 4. Under **API restrictions**, choose **Restrict key** and select **Google Picker API** and
    **Google Drive API**, as Google's
    [Picker guide](https://developers.google.com/workspace/drive/picker/guides/web-picker-sample)
@@ -74,21 +79,11 @@ Origins can take a few minutes to start working after you save them.
 
 ## 6. Configure Ledger
 
-**Locally:** copy `.env.example` to `.env.local` (ignored by git) and fill in:
+The client ID and API key are stored in Infisical, one set per environment, and injected at build
+time. Follow [SECRETS.md](SECRETS.md).
 
-```sh
-VITE_DATA_SOURCE=google
-VITE_GOOGLE_CLIENT_ID=<the client ID from step 4>
-VITE_GOOGLE_API_KEY=<the API key from step 5>
-```
-
-Then `pnpm dev` and open <http://localhost:5173>. Leave `VITE_DATA_SOURCE` unset (or `memory`) to
-work with demo data instead.
-
-**In production (Cloudflare):** these are build-time variables, so add the same three as
-**build variables** on the Worker (Workers & Pages → `ledger` → Settings → Build → Variables and
-secrets), then redeploy. They are not secret, but keeping them out of the repo makes it easy to use
-different keys for previews.
+If you would rather not use Infisical for a quick local test, copy `.env.example` to `.env.local`
+(ignored by git), fill it in, and run `pnpm dev`.
 
 ## Troubleshooting
 
