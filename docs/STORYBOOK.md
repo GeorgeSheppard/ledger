@@ -66,6 +66,7 @@ For any change a user can see:
 
    `![Sankey](https://github.com/GeorgeSheppard/ledger/blob/<that-sha>/<branch-name>/after.png?raw=true)`.
    Keep it to the few images that matter (a PR needs a handful, not every story).
+
 4. Put a **Before** / **After** pair in the description where something changed, and say which story
    id each came from so it can be reproduced.
 
