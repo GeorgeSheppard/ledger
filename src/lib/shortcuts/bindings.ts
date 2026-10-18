@@ -107,7 +107,7 @@ export const SHORTCUTS = {
   'transactions.new': { keys: 'n', description: 'New transaction', scope: 'transactions' },
   'transactions.down': { keys: 'j', description: 'Next row', scope: 'transactions' },
   'transactions.up': { keys: 'k', description: 'Previous row', scope: 'transactions' },
-  'transactions.edit': { keys: 'enter', description: 'Edit row', scope: 'transactions' },
+  'transactions.edit': { keys: 'enter', description: 'Edit selected row', scope: 'transactions' },
   'transactions.save': {
     keys: 'mod+enter',
     description: 'Save row',
@@ -122,9 +122,21 @@ export const SHORTCUTS = {
   },
   'transactions.delete': {
     keys: 'mod+backspace',
-    description: 'Delete row',
+    description: 'Delete selected rows',
     scope: 'transactions',
   },
+  // The Delete key (and Backspace, which is what Delete is called on a Mac) do the same.
+  'transactions.deleteKey': {
+    keys: 'delete',
+    description: 'Delete selected rows',
+    scope: 'transactions',
+  },
+  'transactions.deleteBackspace': {
+    keys: 'backspace',
+    description: 'Delete selected rows',
+    scope: 'transactions',
+  },
+  'transactions.search': { keys: 'f', description: 'Search transactions', scope: 'transactions' },
 
   // Paychecks
   'paychecks.new': { keys: 'n', description: 'New paycheck', scope: 'paychecks' },

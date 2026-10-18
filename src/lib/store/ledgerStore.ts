@@ -206,6 +206,10 @@ export class LedgerStore implements LedgerRepository {
     this.apply(edit.deleteTransaction(this.current, accountId, row));
   }
 
+  async deleteTransactions(accountId: number, rows: number[]): Promise<void> {
+    this.apply(edit.deleteTransactions(this.current, accountId, rows));
+  }
+
   async listCategories(): Promise<Category[]> {
     return structuredClone(this.snapshot.categories);
   }

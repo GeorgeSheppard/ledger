@@ -1,4 +1,5 @@
 import type { TransactionInput } from '../../../lib/domain/types';
+import { transactionKey } from '../../../lib/transactions/duplicates';
 
 /**
  * Deciding which imported rows are already in the account. A row counts as existing when an
@@ -10,10 +11,6 @@ import type { TransactionInput } from '../../../lib/domain/types';
 export type ReconcileStatus = 'new' | 'existing';
 
 type Comparable = Pick<TransactionInput, 'date' | 'amount' | 'note'>;
-
-export function transactionKey({ date, amount, note }: Comparable): string {
-  return `${date}|${Math.round(amount * 100)}|${note.trim().replace(/\s+/g, ' ').toLowerCase()}`;
-}
 
 /** The status of each incoming row, in the same order. */
 export function reconcile(

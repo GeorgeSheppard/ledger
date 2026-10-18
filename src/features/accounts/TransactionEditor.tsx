@@ -58,6 +58,7 @@ export function TransactionEditor({
       onSubmit={(event) => event.preventDefault()}
     >
       <div className={cn(TRANSACTION_GRID, 'items-center px-3 py-2 max-md:grid-cols-2')}>
+        <span className="max-md:hidden" aria-hidden="true" />
         <Cell field="date">
           <TextInput
             type="date"
@@ -100,6 +101,7 @@ export function TransactionEditor({
         >
           {total === undefined ? '' : formatAmount(total)}
         </div>
+        <span className="max-md:hidden" aria-hidden="true" />
       </div>
       <div className={EDITOR_FOOTER}>
         <p
