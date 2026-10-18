@@ -27,11 +27,11 @@ describe('store schemas', () => {
     expect(cachedLedgerSchema.safeParse(undefined).success).toBe(false);
   });
 
-  it('repairs an invalid category colour', () => {
+  it('blanks an invalid category colour', () => {
     const parsed = ledgerDataSchema.parse({
       ...data,
       categories: [{ name: 'Food', color: 'red' }],
     });
-    expect(parsed.categories[0]?.color).toBe('#8b8d98');
+    expect(parsed.categories[0]?.color).toBe('');
   });
 });

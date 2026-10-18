@@ -18,7 +18,7 @@ writes it from the browser. There is no backend.
    `useRepository()` (a `LedgerStore`, which implements `LedgerRepository`), both in
    `src/state/ledgerData.tsx`. In dev the store is backed by `MemoryRemote` seeded with demo data,
    so every feature can be built without Google credentials. See [Data flow](#data-flow).
-5. **Every action has a shortcut, shown next to its button.** Shortcuts are declared once in
+5. **Frequent actions have a shortcut, shown next to the button; rare ones have none.** Shortcuts are declared once in
    `src/lib/shortcuts/bindings.ts`; buttons are `<ActionButton shortcut="…">`.
 6. **Styling is Tailwind only.** See [Styling](#styling) below. No `.css` files besides
    `src/styles/global.css`.

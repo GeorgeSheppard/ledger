@@ -2,7 +2,6 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 
 import { filterAccounts } from '../../lib/accounts/accounts';
 import type { Account } from '../../lib/domain/types';
 import { ActionButton } from '../../ui/ActionButton';
-import { Kbd } from '../../ui/Kbd';
 import { cn } from '../../ui/cn';
 
 const OPTION = 'flex items-center justify-between rounded-md px-2.5 py-2 text-sm';
@@ -131,14 +130,13 @@ export function AccountSwitcher({
           </ul>
           <button
             type="button"
-            className="flex w-full cursor-pointer items-center justify-between border-t border-line px-2.5 pt-2 pb-1 text-sm text-accent hover:text-accent-hover"
+            className="flex w-full cursor-pointer items-center border-t border-line px-2.5 pt-2 pb-1 text-sm text-accent hover:text-accent-hover"
             onClick={() => {
               setOpen(false);
               onNew();
             }}
           >
             <span>+ New account</span>
-            <Kbd shortcut="accounts.new" />
           </button>
         </div>
       )}

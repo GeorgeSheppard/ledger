@@ -112,8 +112,8 @@ describe('rowsToCategories', () => {
   it('skips blank names and replaces invalid colours', () => {
     expect(rowsToCategories([['Rent', '#D9534F'], [''], ['Food', 'red'], ['  Fun  ']])).toEqual([
       { name: 'Rent', color: '#D9534F' },
-      { name: 'Food', color: '#8b8d98' },
-      { name: 'Fun', color: '#8b8d98' },
+      { name: 'Food', color: '' },
+      { name: 'Fun', color: '' },
     ]);
   });
 });

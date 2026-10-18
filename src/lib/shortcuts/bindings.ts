@@ -34,11 +34,6 @@ export const SHORTCUTS = {
   'nav.accounts': { keys: 'mod+a', description: 'Go to accounts', scope: 'global' },
   'nav.categories': { keys: 'mod+k', description: 'Go to categories', scope: 'global' },
   'nav.paychecks': { keys: 'mod+y', description: 'Go to paychecks', scope: 'global' },
-  'nav.switchSpreadsheet': {
-    keys: 'mod+o',
-    description: 'Switch spreadsheet',
-    scope: 'global',
-  },
   'help.toggle': { keys: '?', description: 'Show keyboard shortcuts', scope: 'global' },
   'sync.save': {
     keys: 'mod+s',
@@ -120,14 +115,6 @@ export const SHORTCUTS = {
 
   // Accounts and transactions (step 2)
   'accounts.switch': { keys: '/', description: 'Switch account', scope: 'accounts' },
-  'accounts.previous': { keys: '[', description: 'Previous account', scope: 'accounts' },
-  'accounts.next': { keys: ']', description: 'Next account', scope: 'accounts' },
-  'accounts.new': { keys: 'shift+n', description: 'New account', scope: 'accounts' },
-  'accounts.rename': { keys: 'r', description: 'Rename account', scope: 'accounts' },
-  'accounts.down': { keys: 'j', description: 'Next account in list', scope: 'accounts' },
-  'accounts.up': { keys: 'k', description: 'Previous account in list', scope: 'accounts' },
-  'accounts.open': { keys: 'enter', description: 'Open selected account', scope: 'accounts' },
-  'accounts.import': { keys: 'i', description: 'Import data into this account', scope: 'accounts' },
   'transactions.new': { keys: 'n', description: 'New transaction', scope: 'transactions' },
   'transactions.down': { keys: 'j', description: 'Next row', scope: 'transactions' },
   'transactions.up': { keys: 'k', description: 'Previous row', scope: 'transactions' },

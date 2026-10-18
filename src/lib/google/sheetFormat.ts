@@ -136,7 +136,10 @@ export function headerRow(columns: readonly string[] = ACCOUNT_COLUMNS): RowData
   };
 }
 
-/** `_Categories` values (from row 2, columns A–B) as categories. Blank names are skipped. */
+/**
+ * `_Categories` values (from row 2, columns A–B) as categories. Blank names are skipped. A missing
+ * or invalid colour comes back as `''`; the store gives those a palette colour when it opens.
+ */
 export function rowsToCategories(values: readonly (readonly unknown[])[]): Category[] {
   return values
     .map((cells) => ({ name: textCell(cells[0]), color: textCell(cells[1]) }))

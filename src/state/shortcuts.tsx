@@ -104,13 +104,13 @@ function useRegistry(): ShortcutRegistry {
 }
 
 /** Runs `handler` when the shortcut is pressed, while this component is mounted and `enabled`. */
-export function useShortcut(id: ShortcutId, handler: Handler, enabled = true) {
+export function useShortcut(id: ShortcutId | undefined, handler: Handler, enabled = true) {
   const { register } = useRegistry();
   const ref = useRef(handler);
   useEffect(() => {
     ref.current = handler;
   });
-  useEffect(() => (enabled ? register(id, ref) : undefined), [id, enabled, register]);
+  useEffect(() => (enabled && id ? register(id, ref) : undefined), [id, enabled, register]);
 }
 
 export function useIsMac(): boolean {

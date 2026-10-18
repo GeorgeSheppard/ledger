@@ -37,12 +37,11 @@ export const transactionSchema = transactionInputSchema.extend({
 });
 
 export const HEX_COLOR = /^#[0-9a-f]{6}$/i;
-export const FALLBACK_COLOR = '#8b8d98';
 
 export const categorySchema = z.object({
   name: z.string(),
-  /** Hex colour used in charts and chips, e.g. `#4f7cff`. A missing or invalid one is grey. */
-  color: z.string().regex(HEX_COLOR).catch(FALLBACK_COLOR),
+  /** Hex colour used in charts and chips, e.g. `#4f7cff`. `''` means none yet; the store assigns one. */
+  color: z.union([z.string().regex(HEX_COLOR), z.literal('')]).catch(''),
 });
 
 /** The spreadsheet the user has connected. */
