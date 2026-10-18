@@ -55,7 +55,6 @@ src/
     store/                     LedgerStore (working copy, autosave), LedgerRemote, IndexedDB cache
     shortcuts/                 key parsing and formatting, the bindings table
     transactions/              running totals, sorting, selection, validation, formatting
-    virtual/                   windowing maths for long lists (which items to render)
     categories/                category list operations
     google/                    Sheets API client and the sheet format parser (shared by Google and .xlsx)
     files/                     ExcelJS loading shared by reading and writing .xlsx files
