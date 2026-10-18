@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from './cn';
 
 export interface MenuItem {
@@ -27,13 +28,47 @@ export function Menu({ label, items, children, className }: MenuProps) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const [place, setPlace] = useState<{ top?: number; bottom?: number; right: number }>();
   const listId = useId();
+
+  // The list is portaled to <body> and positioned against the viewport: inside a virtualised row
+  // (which has a transform, so its own stacking context) later rows would paint over it, and the
+  // scroll container would clip it.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const rect = button.current!.getBoundingClientRect();
+    const height = list.current?.offsetHeight ?? 0;
+    const flip = rect.bottom + height + 8 > window.innerHeight && rect.top > height + 8;
+    setPlace({
+      right: window.innerWidth - rect.right,
+      ...(flip ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }),
+    });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    root.current?.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')?.focus();
+    const dismiss = () => setOpen(false);
+    // Only a width change moves the button horizontally; a height change (e.g. the mobile address
+    // bar) leaves the right-anchored list where it is.
+    const width = window.innerWidth;
+    const resized = () => {
+      if (window.innerWidth !== width) dismiss();
+    };
+    window.addEventListener('scroll', dismiss, true);
+    window.addEventListener('resize', resized);
+    return () => {
+      window.removeEventListener('scroll', dismiss, true);
+      window.removeEventListener('resize', resized);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    list.current?.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')?.focus();
     const away = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (!root.current?.contains(target) && !list.current?.contains(target)) setOpen(false);
     };
     document.addEventListener('pointerdown', away);
     return () => document.removeEventListener('pointerdown', away);
@@ -59,7 +94,7 @@ export function Menu({ label, items, children, className }: MenuProps) {
     }
     if (event.key === 'Enter' || event.key === ' ') return;
     const enabled = [
-      ...(root.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? []),
+      ...(list.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? []),
     ];
     const index = enabled.indexOf(document.activeElement as HTMLElement);
     if (event.key === 'ArrowDown') enabled[(index + 1) % enabled.length]?.focus();
@@ -82,40 +117,46 @@ export function Menu({ label, items, children, className }: MenuProps) {
         className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
         onClick={(event) => {
           event.stopPropagation();
+          setPlace(undefined);
           setOpen((o) => !o);
         }}
       >
         {children ?? <MoreIcon />}
       </button>
-      {open && (
-        <div
-          id={listId}
-          role="menu"
-          aria-label={label}
-          className="absolute top-full right-0 z-20 mt-1 min-w-56 rounded-lg border border-line bg-surface p-1 shadow-lg"
-        >
-          {items.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              role="menuitem"
-              disabled={item.disabled}
-              className={cn(
-                'block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left text-sm transition-colors focus:bg-surface-hover focus:outline-none hover:enabled:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50',
-                item.danger && 'text-negative',
-                item.separated && 'mt-1 border-t border-line pt-2'
-              )}
-              onClick={(event) => {
-                event.stopPropagation();
-                setOpen(false);
-                item.onSelect();
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {open &&
+        createPortal(
+          <div
+            ref={list}
+            id={listId}
+            role="menu"
+            aria-label={label}
+            className="fixed z-50 min-w-56 rounded-lg border border-line bg-surface p-1 shadow-lg"
+            style={{ ...place, visibility: place ? undefined : 'hidden' }}
+            onKeyDown={onKeyDown}
+          >
+            {items.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                role="menuitem"
+                disabled={item.disabled}
+                className={cn(
+                  'block w-full cursor-pointer rounded-md px-2.5 py-1.5 text-left text-sm transition-colors focus:bg-surface-hover focus:outline-none hover:enabled:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50',
+                  item.danger && 'text-negative',
+                  item.separated && 'mt-1 border-t border-line pt-2'
+                )}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setOpen(false);
+                  item.onSelect();
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
