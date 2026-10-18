@@ -1,22 +1,23 @@
 import type { Account, TransactionInput } from '../../../lib/domain/types';
 import {
   ACCOUNT_COLUMNS,
-  CATEGORIES_TAB,
   DASHBOARD_TAB,
+  METADATA_TAB,
   PAYCHECKS_TAB,
 } from '../../../lib/domain/types';
 import {
-  categoryRow,
   dashboardRow,
   headerRow,
+  METADATA_COLUMNS,
+  metadataEntries,
+  metadataRow,
   paychecksRow,
   transactionRow,
 } from '../../../lib/google/sheetFormat';
 import type { GridRange, SheetsRequest } from '../../../lib/google/sheetsTypes';
-import { sameCategories, sameJson, sameRows, type LedgerData } from '../../../lib/store/ledgerData';
+import { sameData, sameJson, sameRows, type LedgerData } from '../../../lib/store/ledgerData';
 import { newSheetId, type RemoteState, type SheetLayout } from '../../../lib/store/remote';
 
-const CATEGORY_COLUMNS = ['Name', 'Color'] as const;
 const DASHBOARD_COLUMNS = ['Config'] as const;
 const PAYCHECKS_COLUMNS = ['Paychecks'] as const;
 /** Fields written for transaction rows: values plus the date format, never the user's styling. */
@@ -69,19 +70,37 @@ export function saveRequests(
     }
   }
 
-  if (!sameCategories(base.data.categories, next.categories)) {
-    let sheetId = layout.categoriesSheetId;
+  // `_Metadata` holds the categories and the per-account settings. A sheet that still has the old
+  // `_Categories` tab is moved over on any save: the new tab is written and the old one deleted in
+  // the same batch.
+  const entries = metadataEntries(next.categories, next.accounts);
+  const legacySheetId =
+    layout.metadataSheetId === undefined && !sameData(base.data, next)
+      ? layout.categoriesSheetId
+      : undefined;
+  if (
+    legacySheetId !== undefined ||
+    JSON.stringify(metadataEntries(base.data.categories, base.data.accounts)) !==
+      JSON.stringify(entries)
+  ) {
+    let sheetId = layout.metadataSheetId;
     if (sheetId === undefined) {
-      sheetId = layout.categoriesSheetId = newSheetId(takenIds(layout, next));
-      addTab(sheetId, CATEGORIES_TAB, CATEGORY_COLUMNS, next.categories.length);
-    } else fit(sheetId, next.categories.length);
+      sheetId = layout.metadataSheetId = newSheetId(takenIds(layout, next));
+      addTab(sheetId, METADATA_TAB, METADATA_COLUMNS, entries.length);
+    } else fit(sheetId, entries.length);
     requests.push({
       updateCells: {
-        range: dataRange(sheetId, CATEGORY_COLUMNS.length),
-        rows: next.categories.map(categoryRow),
+        range: dataRange(sheetId, METADATA_COLUMNS.length),
+        rows: entries.map(metadataRow),
         fields: 'userEnteredValue',
       },
     });
+    if (legacySheetId !== undefined) {
+      requests.push({ deleteSheet: { sheetId: legacySheetId } });
+      layout.sheetIds = layout.sheetIds.filter((id) => id !== legacySheetId);
+      delete layout.rowCounts[legacySheetId];
+      delete layout.categoriesSheetId;
+    }
   }
 
   if (!sameJson(base.data.dashboard, next.dashboard)) {

@@ -13,6 +13,12 @@ export const accountSchema = z.object({
   /** The tab's numeric sheet id. Stable across renames and reordering. */
   id: z.number().int(),
   name: z.string(),
+  /**
+   * True for a credit card or loan, whose tab records amounts from the account's own side (a
+   * purchase or interest charge is positive, a payment negative). Ledger flips the sign wherever it
+   * counts the money. Absent means false.
+   */
+  inverted: z.boolean().optional(),
 });
 
 /** The fields a caller supplies when adding or editing a transaction. */

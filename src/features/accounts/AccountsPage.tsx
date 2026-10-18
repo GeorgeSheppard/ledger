@@ -2,11 +2,13 @@ import { useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { paths } from '../../app/paths';
 import { findAccountByParam } from '../../lib/accounts/accounts';
+import { asMoney } from '../../lib/accounts/inverted';
 import type { Account } from '../../lib/domain/types';
 import { ActionButton } from '../../ui/ActionButton';
 import { ImportDialog } from '../../modules/import/ui/ImportDialog';
 import { AccountNameForm } from './AccountNameForm';
 import { AccountSummary } from './AccountSummary';
+import { AccountKind } from './AccountKind';
 import { AccountSwitcher } from './AccountSwitcher';
 import { TransactionTable } from './TransactionTable';
 import { useAccountActions, useAccountsAndCategories, useTransactions } from './useAccountsData';
@@ -120,7 +122,11 @@ export function AccountsPage() {
       )}
       {transactions.status === 'ready' && (
         <>
-          <AccountSummary transactions={transactions.data} />
+          <AccountSummary transactions={asMoney(account, transactions.data)} />
+          <AccountKind
+            inverted={!!account.inverted}
+            onChange={(inverted) => actions.setAccountInverted(account.id, inverted)}
+          />
           <TransactionTable
             key={account.id}
             account={account}

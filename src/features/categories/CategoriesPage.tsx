@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { usageOf } from '../../lib/categories/categories';
 import { nextCategoryColor } from '../../lib/categories/palette';
-import { CATEGORIES_TAB, type Category } from '../../lib/domain/types';
+import { METADATA_TAB, type Category } from '../../lib/domain/types';
 import {
   initialRowEditorState,
   isEditing,
@@ -26,7 +26,7 @@ export function CategoriesPage() {
       className="max-w-3xl"
       description={
         <>
-          Stored in the <code className="font-mono">{CATEGORIES_TAB}</code> tab of your sheet.
+          Stored in the <code className="font-mono">{METADATA_TAB}</code> tab of your sheet.
           Renaming a category updates every transaction that uses it.
         </>
       }

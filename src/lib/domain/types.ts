@@ -28,7 +28,13 @@ export const ACCOUNT_COLUMNS = ['Date', 'Category', 'Amount', 'Note', 'Total'] a
 /** Tabs starting with this prefix are app metadata, never accounts. */
 export const RESERVED_TAB_PREFIX = '_';
 
-/** Tab that holds the category list (columns: Name, Color). */
+/**
+ * Tab that holds the settings the app keeps about the spreadsheet: the categories and per-account
+ * options such as `inverted` (columns: Type, Name, Setting, Value).
+ */
+export const METADATA_TAB = '_Metadata';
+
+/** The old category tab (columns: Name, Color). Still read; replaced by `_Metadata` on the next save. */
 export const CATEGORIES_TAB = '_Categories';
 
 /** Tab that holds the paychecks, as JSON in cell A2. */

@@ -3,21 +3,20 @@ import {
   ACCOUNT_COLUMNS,
   CATEGORIES_TAB,
   DASHBOARD_TAB,
+  METADATA_TAB,
   PAYCHECKS_TAB,
 } from '../../../lib/domain/types';
 import { loadWorkbook, newWorkbook } from '../../../lib/files/xlsx';
-import { DATE_FORMAT } from '../../../lib/google/sheetFormat';
+import { DATE_FORMAT, METADATA_COLUMNS, metadataEntries } from '../../../lib/google/sheetFormat';
 import type { LedgerData } from '../../../lib/store/ledgerData';
 import { runningTotals } from '../../../lib/transactions/runningTotal';
 
 /**
  * Writes a ledger as an `.xlsx` workbook in the same tab layout as the Google Sheet. Writing starts
  * again from the original file's bytes and only touches the tabs Ledger owns (accounts,
- * `_Categories`, `_Dashboard`, `_Paychecks`). Every other tab, including `_` tabs other features
+ * `_Metadata`, `_Dashboard`, `_Paychecks`). Every other tab, including `_` tabs other features
  * add, comes back exactly as it was read.
  */
-
-const CATEGORY_COLUMNS = ['Name', 'Color'] as const;
 
 function isoToUtcDate(date: string): Date {
   const [y, m, d] = date.split('-').map(Number) as [number, number, number];
@@ -98,14 +97,20 @@ export async function writeWorkbook(
     writeAccount(sheet, data.rows[account.id] ?? []);
   }
 
-  const categories = sheetFor(workbook, CATEGORIES_TAB, CATEGORY_COLUMNS, [24, 12]);
-  writeRows(categories, data.categories.length, CATEGORY_COLUMNS.length, (row, cell) => {
-    const category = data.categories[row - 2];
-    if (!category) return false;
-    cell(1).value = category.name;
-    cell(2).value = category.color;
+  // `_Metadata` replaces the old `_Categories` tab, which goes once its contents are moved over.
+  const entries = metadataEntries(data.categories, data.accounts);
+  const metadata = sheetFor(workbook, METADATA_TAB, METADATA_COLUMNS, [12, 24, 12, 12]);
+  writeRows(metadata, entries.length, METADATA_COLUMNS.length, (row, cell) => {
+    const entry = entries[row - 2];
+    if (!entry) return false;
+    cell(1).value = entry.type;
+    cell(2).value = entry.name;
+    cell(3).value = entry.setting;
+    cell(4).value = entry.value;
     return true;
   });
+  const legacy = workbook.getWorksheet(CATEGORIES_TAB);
+  if (legacy) workbook.removeWorksheet(legacy.id);
 
   // JSON tabs: header in A1, the value in A2. Created only once there is something to keep.
   const writeJsonTab = (title: string, header: string, value: LedgerData['dashboard']) => {

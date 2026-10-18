@@ -1,13 +1,18 @@
 import type { Category, SpreadsheetRef } from '../../../lib/domain/types';
 import { DEFAULT_ACCOUNT_NAME, DEFAULT_CATEGORIES } from '../../../lib/domain/defaults';
-import { ACCOUNT_COLUMNS, CATEGORIES_TAB } from '../../../lib/domain/types';
-import { categoryRow, headerRow } from '../../../lib/google/sheetFormat';
+import { ACCOUNT_COLUMNS, METADATA_TAB } from '../../../lib/domain/types';
+import {
+  headerRow,
+  METADATA_COLUMNS,
+  metadataEntries,
+  metadataRow,
+} from '../../../lib/google/sheetFormat';
 import type { SheetsClient } from '../../../lib/google/sheetsClient';
 import type { NewSpreadsheet } from '../../../lib/google/sheetsTypes';
 
 export const DEFAULT_SPREADSHEET_TITLE = 'Ledger';
 
-/** Body for `spreadsheets.create`: one empty account tab and a `_Categories` tab. */
+/** Body for `spreadsheets.create`: one empty account tab and a `_Metadata` tab with the categories. */
 export function newSpreadsheetBody(
   title: string,
   accountName = DEFAULT_ACCOUNT_NAME,
@@ -30,15 +35,22 @@ export function newSpreadsheetBody(
       },
       {
         properties: {
-          title: CATEGORIES_TAB,
+          title: METADATA_TAB,
           index: 1,
-          gridProperties: { rowCount: 200, columnCount: 2, frozenRowCount: 1 },
+          gridProperties: {
+            rowCount: 200,
+            columnCount: METADATA_COLUMNS.length,
+            frozenRowCount: 1,
+          },
         },
         data: [
           {
             startRow: 0,
             startColumn: 0,
-            rowData: [headerRow(['Name', 'Color']), ...categories.map(categoryRow)],
+            rowData: [
+              headerRow(METADATA_COLUMNS),
+              ...metadataEntries(categories, []).map(metadataRow),
+            ],
           },
         ],
       },

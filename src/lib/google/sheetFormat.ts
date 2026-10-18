@@ -1,4 +1,5 @@
-import type { Category, IsoDate, TransactionInput } from '../domain/types';
+import { z } from 'zod';
+import type { Account, Category, IsoDate, TransactionInput } from '../domain/types';
 import { ACCOUNT_COLUMNS } from '../domain/types';
 import { categorySchema } from '../domain/schemas';
 import type { JsonValue } from '../store/ledgerData';
@@ -149,6 +150,78 @@ export function rowsToCategories(values: readonly (readonly unknown[])[]): Categ
 
 export function categoryRow(category: Category): RowData {
   return { values: [stringCell(category.name), stringCell(category.color)] };
+}
+
+export const METADATA_COLUMNS = ['Type', 'Name', 'Setting', 'Value'] as const;
+
+/** One row of `_Metadata`: `category | Food | color | #4f7cff` or `account | Visa | inverted | TRUE`. */
+export interface MetadataEntry {
+  type: 'category' | 'account';
+  name: string;
+  setting: string;
+  value: string | boolean;
+}
+
+const flagSchema = z
+  .union([z.boolean(), z.number(), z.string()])
+  .transform((v) => (typeof v === 'string' ? /^(true|yes|1)$/i.test(v.trim()) : Boolean(v)));
+
+/**
+ * `_Metadata` values (from row 2, columns A–D). Rows are checked one by one: a row of an unknown
+ * type or setting, or one with a blank name, is skipped, so a hand edit never stops the sheet
+ * loading. Account names are the tab names of the accounts that are inverted.
+ */
+export function parseMetadata(values: readonly (readonly unknown[])[]): {
+  categories: Category[];
+  invertedAccounts: string[];
+} {
+  const categories: Category[] = [];
+  const invertedAccounts: string[] = [];
+  for (const cells of values) {
+    const [type, name, setting] = [0, 1, 2].map((i) => textCell(cells[i]));
+    if (!name) continue;
+    if (type === 'category' && setting === 'color')
+      categories.push(categorySchema.parse({ name, color: textCell(cells[3]) }));
+    else if (type === 'account' && setting === 'inverted' && flagSchema.parse(cells[3] ?? false))
+      invertedAccounts.push(name);
+  }
+  return { categories, invertedAccounts };
+}
+
+/** Everything `_Metadata` holds for these categories and accounts, in the order it is written. */
+export function metadataEntries(
+  categories: readonly Category[],
+  accounts: readonly Account[]
+): MetadataEntry[] {
+  return [
+    ...categories.map((c): MetadataEntry => ({
+      type: 'category',
+      name: c.name,
+      setting: 'color',
+      value: c.color,
+    })),
+    ...accounts
+      .filter((a) => a.inverted)
+      .map((a): MetadataEntry => ({
+        type: 'account',
+        name: a.name,
+        setting: 'inverted',
+        value: true,
+      })),
+  ];
+}
+
+export function metadataRow(entry: MetadataEntry): RowData {
+  return {
+    values: [
+      stringCell(entry.type),
+      stringCell(entry.name),
+      stringCell(entry.setting),
+      typeof entry.value === 'boolean'
+        ? { userEnteredValue: { boolValue: entry.value } }
+        : stringCell(entry.value),
+    ],
+  };
 }
 
 /** `_Dashboard` stores its config as JSON text in cell A2. Unreadable text counts as no config. */
