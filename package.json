@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:google": "infisical run --env=dev -- vite",
     "build": "tsc -b && vite build",
+    "build:cloudflare": "sh scripts/build-with-infisical.sh",
     "preview": "vite preview",
     "lint": "tsc -b && eslint .",
     "lint:fix": "eslint . --fix",

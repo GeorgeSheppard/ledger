@@ -46,9 +46,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside className="flex flex-col gap-4 border-b border-line bg-surface p-4 md:border-r md:border-b-0">
         <div className="text-lg font-bold">Ledger</div>
         {session.status === 'connected' && (
-          <div className="truncate text-sm text-muted" title={session.spreadsheet.title}>
+          <NavLink
+            to={paths.connect}
+            className="truncate text-sm text-muted no-underline hover:text-fg hover:underline"
+            title={`${session.spreadsheet.title} (switch spreadsheet)`}
+          >
             {session.spreadsheet.title}
-          </div>
+          </NavLink>
         )}
         <nav className="flex flex-col gap-0.5">
           {NAV.map((item) => (

@@ -19,8 +19,14 @@ pnpm format       # prettier
 pnpm build
 ```
 
+To use a real Google Sheet instead of demo data, follow [docs/GOOGLE_SETUP.md](docs/GOOGLE_SETUP.md)
+to create the Google credentials, and [docs/SECRETS.md](docs/SECRETS.md) to store them in
+Infisical. Then run `pnpm dev:google`.
+
 ## Deployment
 
 Deployed to Cloudflare Workers as static assets (`wrangler.jsonc`), with SPA fallback routing. The
-build command is `pnpm build`, and the output directory is `dist`. Security headers are set in
-`public/_headers`.
+build command is `pnpm build`, and the output directory is `dist`. Security headers, including the
+Content-Security-Policy that allows Google sign-in, the Picker and the Sheets API, are set in
+`public/_headers`. The build command is `pnpm build:cloudflare`, which pulls the
+Google settings from Infisical (see [docs/SECRETS.md](docs/SECRETS.md)).
