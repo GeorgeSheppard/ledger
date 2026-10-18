@@ -7,8 +7,6 @@ import {
 } from '../lib/connection/rememberedSpreadsheet';
 import type { SpreadsheetSource } from '../lib/connection/spreadsheetSource';
 import { fixtureData } from '../lib/data/fixtures';
-import { MemoryRepository } from '../lib/data/memoryRepository';
-import type { LedgerRepository } from '../lib/data/repository';
 import type { SpreadsheetRef } from '../lib/domain/types';
 import {
   createGoogleServices,
@@ -17,6 +15,7 @@ import {
 } from '../lib/google/googleServices';
 import { signInAware } from '../lib/google/signInAware';
 import { GoogleApiError } from '../lib/google/sheetsClient';
+import { MemoryRemote, type LedgerRemote } from '../lib/store/remote';
 
 /**
  * Who is signed in and which spreadsheet is connected. The rest of the app reads this through
@@ -24,12 +23,13 @@ import { GoogleApiError } from '../lib/google/sheetsClient';
  *
  * - `signed-out`: show the landing page.
  * - `signed-in`: authenticated with Google but no spreadsheet chosen yet; show the connect page.
- * - `connected`: a spreadsheet is open and `repository` reads and writes it.
+ * - `connected`: a spreadsheet is open; `remote` reads and writes it. `LedgerDataProvider` loads it
+ *   into a `LedgerStore`, which is what features use.
  */
 export type Session =
   | { status: 'signed-out' }
   | { status: 'signed-in' }
-  | { status: 'connected'; spreadsheet: SpreadsheetRef; repository: LedgerRepository };
+  | { status: 'connected'; spreadsheet: SpreadsheetRef; remote: LedgerRemote };
 
 export interface SessionApi {
   session: Session;
@@ -59,12 +59,12 @@ const demoSpreadsheets: SpreadsheetSource = {
   create: async (title) => ({ id: DEMO_SPREADSHEET.id, title: title.trim() || 'Ledger' }),
 };
 
-/** Dev/demo session backed by `MemoryRepository`. Sign-in and connect succeed immediately. */
+/** Dev/demo session backed by `MemoryRemote`. Sign-in and connect succeed immediately. */
 function useMemorySession(): SessionApi {
   const [session, setSession] = useState<Session>(() => ({
     status: 'connected',
     spreadsheet: DEMO_SPREADSHEET,
-    repository: new MemoryRepository(fixtureData()),
+    remote: new MemoryRemote(fixtureData()),
   }));
   return useMemo(
     () => ({
@@ -75,7 +75,7 @@ function useMemorySession(): SessionApi {
         setSession({
           status: 'connected',
           spreadsheet,
-          repository: new MemoryRepository(fixtureData()),
+          remote: new MemoryRemote(fixtureData()),
         }),
       disconnect: () => setSession({ status: 'signed-in' }),
       spreadsheets: demoSpreadsheets,
@@ -100,10 +100,10 @@ function useGoogleSession(google: GoogleServices): SessionApi {
   });
 
   function connected(spreadsheet: SpreadsheetRef): Session {
-    const repository = signInAware(google.repository(spreadsheet.id), () =>
+    const remote = signInAware(google.remote(spreadsheet.id), () =>
       setSession({ status: 'signed-out' })
     );
-    return { status: 'connected', spreadsheet, repository };
+    return { status: 'connected', spreadsheet, remote };
   }
 
   function remember(spreadsheet: SpreadsheetRef | null) {

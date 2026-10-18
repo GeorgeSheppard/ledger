@@ -1,40 +1,27 @@
-import { useCallback } from 'react';
-import type { LedgerRepository } from '../../lib/data/repository';
+import { useMemo } from 'react';
 import type { Account, Category, Transaction, TransactionInput } from '../../lib/domain/types';
-import { useLedgerMutation, useLedgerQuery, type QueryState } from '../../state/ledgerData';
+import { useLedger, useLedgerMutation, type QueryState } from '../../state/ledgerData';
 
-const loadAccountsAndCategories = async (repository: LedgerRepository) => {
-  const [accounts, categories] = await Promise.all([
-    repository.listAccounts(),
-    repository.listCategories(),
-  ]);
-  return { accounts, categories };
-};
+const NO_TRANSACTIONS: Transaction[] = [];
 
-/** Every account (tab) and the category list. */
+/** Every account (tab) and the category list. Always ready: the sheet is loaded up front. */
 export function useAccountsAndCategories(): QueryState<{
   accounts: Account[];
   categories: Category[];
 }> {
-  return useLedgerQuery(loadAccountsAndCategories);
+  const { accounts, categories } = useLedger();
+  return useMemo(
+    () => ({ status: 'ready', data: { accounts, categories } }),
+    [accounts, categories]
+  );
 }
 
-/**
- * Transactions of one account. While a different account's rows are still on screen after
- * switching, this reports `loading` so stale rows never show under the wrong account.
- */
+/** Transactions of one account, oldest first. Always ready: the sheet is loaded up front. */
 export function useTransactions(accountId: number | undefined): QueryState<Transaction[]> {
-  const load = useCallback(
-    async (repository: LedgerRepository) => ({
-      accountId,
-      transactions: accountId === undefined ? [] : await repository.listTransactions(accountId),
-    }),
-    [accountId]
-  );
-  const state = useLedgerQuery(load);
-  if (state.status !== 'ready') return state;
-  if (state.data.accountId !== accountId) return { status: 'loading' };
-  return { status: 'ready', data: state.data.transactions };
+  const { transactionsByAccount } = useLedger();
+  const transactions =
+    (accountId === undefined ? undefined : transactionsByAccount[accountId]) ?? NO_TRANSACTIONS;
+  return useMemo(() => ({ status: 'ready', data: transactions }), [transactions]);
 }
 
 /** The writes the accounts page performs. Each refreshes every query once it finishes. */

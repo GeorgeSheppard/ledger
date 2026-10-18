@@ -31,6 +31,12 @@ export const SHORTCUTS = {
   'nav.categories': { keys: 'g c', description: 'Go to categories', scope: 'global' },
   'nav.import': { keys: 'g i', description: 'Go to CSV import', scope: 'global' },
   'help.toggle': { keys: '?', description: 'Show keyboard shortcuts', scope: 'global' },
+  'sync.save': {
+    keys: 'mod+s',
+    description: 'Save changes to Google Sheets',
+    scope: 'global',
+    allowInInputs: true,
+  },
 
   // Landing and connect (step 1)
   'landing.signIn': { keys: 'enter', description: 'Sign in with Google', scope: 'landing' },

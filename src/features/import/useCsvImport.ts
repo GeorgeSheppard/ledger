@@ -1,11 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { Account } from '../../lib/domain/types';
-import type { LedgerRepository } from '../../lib/data/repository';
 import { guessAccount } from '../../lib/csv/account';
 import { buildImportPlan, withNewCategories, type ImportPlan } from '../../lib/csv/importPlan';
 import { guessMapping, toTable, type ColumnMapping, type CsvTable } from '../../lib/csv/mapping';
 import { parseCsv } from '../../lib/csv/parse';
-import { useLedgerMutation, useLedgerQuery } from '../../state/ledgerData';
+import { useLedger, useLedgerMutation } from '../../state/ledgerData';
 
 /**
  * State for the import screen: the loaded file, the chosen account and mapping, and the plan
@@ -25,12 +24,12 @@ export interface ImportResult {
   categoriesAdded: number;
 }
 
-const loadAccounts = (repository: LedgerRepository) => repository.listAccounts();
-const loadCategories = (repository: LedgerRepository) => repository.listCategories();
-
 export function useCsvImport() {
-  const accounts = useLedgerQuery(loadAccounts);
-  const categories = useLedgerQuery(loadCategories);
+  const ledger = useLedger();
+  const categories = useMemo(
+    () => ({ status: 'ready', data: ledger.categories }) as const,
+    [ledger.categories]
+  );
   const mutate = useLedgerMutation();
 
   const [file, setFile] = useState<LoadedFile | null>(null);
@@ -40,18 +39,21 @@ export function useCsvImport() {
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
 
-  const accountList = useMemo(() => accounts.data ?? [], [accounts.data]);
+  const accountList = useMemo(() => ledger.accounts, [ledger.accounts]);
   const accountId =
     chosenAccountId !== null && accountList.some((a) => a.id === chosenAccountId)
       ? chosenAccountId
       : (accountList[0]?.id ?? null);
 
-  const loadExisting = useCallback(
-    (repository: LedgerRepository) =>
-      accountId === null ? Promise.resolve([]) : repository.listTransactions(accountId),
-    [accountId]
+  const existing = useMemo(
+    () =>
+      ({
+        status: 'ready',
+        data: (accountId === null ? undefined : ledger.transactionsByAccount[accountId]) ?? [],
+        error: null,
+      }) as const,
+    [accountId, ledger.transactionsByAccount]
   );
-  const existing = useLedgerQuery(loadExisting);
 
   const plan: ImportPlan | null = useMemo(() => {
     if (!file || !mapping || existing.status !== 'ready' || categories.status !== 'ready') {
@@ -134,8 +136,8 @@ export function useCsvImport() {
     setMapping,
     setHasHeader,
     plan,
-    loading: existing.status === 'loading' || categories.status === 'loading',
-    loadError: accounts.error ?? categories.error ?? existing.error ?? null,
+    loading: false,
+    loadError: null as Error | null,
     error,
     importing,
     result,

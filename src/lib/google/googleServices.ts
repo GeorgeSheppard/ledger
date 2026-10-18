@@ -1,13 +1,13 @@
 import type { KeyValueStore } from '../connection/rememberedSpreadsheet';
 import type { SpreadsheetSource } from '../connection/spreadsheetSource';
-import type { LedgerRepository } from '../data/repository';
 import type { SpreadsheetRef } from '../domain/types';
 import { GoogleAuth } from './auth';
 import { loadIdentityServices, loadPicker } from './googleGlobals';
 import { createLedgerSpreadsheet, openSpreadsheet } from './newSpreadsheet';
 import { pickSpreadsheet, projectNumberFromClientId } from './picker';
 import { HttpSheetsClient } from './sheetsClient';
-import { GoogleSheetsRepository } from './sheetsRepository';
+import type { LedgerRemote } from '../store/remote';
+import { sheetsRemote } from './sheetsRemote';
 
 export interface GoogleConfig {
   clientId: string;
@@ -20,7 +20,8 @@ export interface GoogleServices {
   spreadsheets: SpreadsheetSource;
   /** Checks the spreadsheet is still reachable and returns it with its current title. */
   open(id: string): Promise<SpreadsheetRef>;
-  repository(spreadsheetId: string): LedgerRepository;
+  /** Reads and writes one spreadsheet for `LedgerStore`. */
+  remote(spreadsheetId: string): LedgerRemote;
 }
 
 /** Reads the Google settings from the build environment, with a clear error when they are missing. */
@@ -66,6 +67,6 @@ export function createGoogleServices(
       },
     },
     open: (id) => openSpreadsheet(client, id),
-    repository: (spreadsheetId) => new GoogleSheetsRepository(client, spreadsheetId),
+    remote: (spreadsheetId) => sheetsRemote(client, spreadsheetId),
   };
 }

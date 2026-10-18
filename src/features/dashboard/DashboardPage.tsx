@@ -7,7 +7,6 @@ import {
   type DashboardRange,
 } from '../../lib/metrics/dashboard';
 import type { ShortcutId } from '../../lib/shortcuts/bindings';
-import { useLedgerQuery } from '../../state/ledgerData';
 import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
 import { cn } from '../../ui/cn';
@@ -20,7 +19,7 @@ import { NetWorthChart } from './charts/NetWorthChart';
 import { SpendingChart } from './charts/SpendingChart';
 import { FALLBACK_COLOR, INCOME_COLOR, NET_COLOR, SPENDING_COLOR } from './charts/theme';
 import { formatMonthLong } from './format';
-import { loadDashboardData } from './loadLedgers';
+import { useDashboardData } from './loadLedgers';
 import { StatTiles } from './StatTiles';
 
 const RANGES: { range: DashboardRange; label: string; shortcut: ShortcutId }[] = [
@@ -52,7 +51,7 @@ function Panel({ title, aside, className, children }: PanelProps) {
 
 /** The signed-in homepage: net worth, spending and cash flow across every account. */
 export function DashboardPage() {
-  const query = useLedgerQuery(loadDashboardData);
+  const query = useDashboardData();
   const [range, setRange] = useState<DashboardRange>(6);
   const [pickedMonth, setPickedMonth] = useState<string | null>(null);
 
