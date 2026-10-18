@@ -49,7 +49,7 @@ src/
     data/repository.ts         LedgerRepository interface
     data/memoryRepository.ts   in-memory implementation
     data/fixtures.ts           demo data (2 accounts, 6 months)
-    shortcuts/                 key parsing, sequence matcher, the bindings table
+    shortcuts/                 key parsing and formatting, the bindings table
     transactions/              running totals, sorting, validation, formatting
     categories/                category list operations
     google/                    auth, picker, Sheets API client, GoogleSheetsRepository
