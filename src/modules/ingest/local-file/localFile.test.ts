@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
 import { DASHBOARD_TAB } from '../../../lib/domain/types';
 import { fixtureData } from '../../../lib/data/fixtures';
+import { parsePaychecks } from '../../../lib/paychecks/serialize';
 import type { RemoteState } from '../../../lib/store/remote';
 import { LedgerStore } from '../../../lib/store/ledgerStore';
 import { fileSaver } from '../../save';
@@ -88,7 +89,6 @@ describe('writing a workbook', () => {
   it('round-trips the ledger tabs in the Sheets format', async () => {
     const data = fixtureData();
     data.dashboard = { version: 1, widgets: [] };
-    data.paychecks = { version: 1, paychecks: [] };
     const bytes = await writeWorkbook(null, [], data);
     const state = ledgerFromTabs(await readWorkbookTabs(bytes));
     expect(state.data.accounts.map((a) => a.name)).toEqual(['Current account', 'Savings']);
@@ -96,6 +96,34 @@ describe('writing a workbook', () => {
     expect(state.data.categories).toEqual(data.categories);
     expect(state.data.dashboard).toEqual(data.dashboard);
     expect(state.data.paychecks).toEqual(data.paychecks);
+  });
+
+  it('round-trips the paychecks, and reads an older file by converting its paychecks', async () => {
+    const data = fixtureData();
+    const kept = ledgerFromTabs(await readWorkbookTabs(await writeWorkbook(null, [], data)));
+    expect(kept.data.paychecks).toEqual(data.paychecks);
+    expect(parsePaychecks(kept.data.paychecks).paychecks).toHaveLength(6);
+
+    data.paychecks = {
+      version: 1,
+      paychecks: [
+        {
+          id: 'p1',
+          name: 'Acme',
+          date: '2026-03-25',
+          gross: 3000,
+          deductions: [{ id: 'd1', name: 'Tax', amount: 500 }],
+          accountId: 1,
+          repeat: 'monthly',
+          until: '2026-04-30',
+        },
+      ],
+    };
+    const old = ledgerFromTabs(await readWorkbookTabs(await writeWorkbook(null, [], data)));
+    expect(parsePaychecks(old.data.paychecks).paychecks.map((p) => p.month)).toEqual([
+      '2026-03',
+      '2026-04',
+    ]);
   });
 
   it('round-trips inverted accounts through _Metadata and drops an old _Categories tab', async () => {

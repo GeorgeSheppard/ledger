@@ -29,23 +29,26 @@ export function AppProviders({ route = '/', children }: { route?: string; childr
 function Seed({
   dashboard,
   creditCard,
+  noPaychecks,
   children,
 }: {
   dashboard?: DashboardConfig;
   creditCard?: boolean;
+  noPaychecks?: boolean;
   children: ReactNode;
 }) {
   const repository = useRepository();
-  const [ready, setReady] = useState(!dashboard && !creditCard);
+  const [ready, setReady] = useState(!dashboard && !creditCard && !noPaychecks);
   useEffect(() => {
-    if (!dashboard && !creditCard) return;
+    if (!dashboard && !creditCard && !noPaychecks) return;
     (async () => {
+      if (noPaychecks) await repository.savePaychecks(null);
       if (dashboard)
         await repository.saveDashboardConfig(serializeDashboard(dashboard) as unknown as JsonValue);
       if (creditCard) await addCreditCard(repository);
       setReady(true);
     })();
-  }, [repository, dashboard, creditCard]);
+  }, [repository, dashboard, creditCard, noPaychecks]);
   return ready ? children : null;
 }
 
@@ -70,6 +73,8 @@ interface ConnectedProps {
   dashboard?: DashboardConfig;
   /** Adds an inverted "Credit card" account (purchases positive) to the demo spreadsheet. */
   creditCard?: boolean;
+  /** Starts with no paychecks entered. */
+  noPaychecks?: boolean;
   /** Wraps `children` in the sidebar and header, as pages are in the app. */
   shell?: boolean;
   children: ReactNode;
@@ -80,13 +85,14 @@ export function Connected({
   route = '/',
   dashboard,
   creditCard,
+  noPaychecks,
   shell = false,
   children,
 }: ConnectedProps) {
   return (
     <AppProviders route={route}>
       <LedgerDataProvider>
-        <Seed dashboard={dashboard} creditCard={creditCard}>
+        <Seed dashboard={dashboard} creditCard={creditCard} noPaychecks={noPaychecks}>
           {shell ? <AppShell>{children}</AppShell> : children}
         </Seed>
       </LedgerDataProvider>

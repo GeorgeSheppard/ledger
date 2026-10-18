@@ -139,18 +139,23 @@ export const SHORTCUTS = {
   'transactions.search': { keys: 'f', description: 'Search transactions', scope: 'transactions' },
 
   // Paychecks
-  'paychecks.new': { keys: 'n', description: 'New paycheck', scope: 'paychecks' },
-  'paychecks.down': { keys: 'j', description: 'Next paycheck', scope: 'paychecks' },
-  'paychecks.up': { keys: 'k', description: 'Previous paycheck', scope: 'paychecks' },
-  'paychecks.edit': { keys: 'enter', description: 'Edit paycheck', scope: 'paychecks' },
+  'paychecks.new': { keys: 'n', description: 'Add a month', scope: 'paychecks' },
+  'paychecks.copy': {
+    keys: 'c',
+    description: 'Copy the last month',
+    scope: 'paychecks',
+  },
+  'paychecks.down': { keys: 'j', description: 'Next month', scope: 'paychecks' },
+  'paychecks.up': { keys: 'k', description: 'Previous month', scope: 'paychecks' },
+  'paychecks.edit': { keys: 'enter', description: 'Edit month', scope: 'paychecks' },
   'paychecks.delete': {
     keys: 'mod+backspace',
-    description: 'Delete paycheck',
+    description: 'Delete month',
     scope: 'paychecks',
   },
   'paychecks.save': {
     keys: 'mod+enter',
-    description: 'Save paycheck',
+    description: 'Save month',
     scope: 'paychecks',
     allowInInputs: true,
   },
@@ -160,15 +165,21 @@ export const SHORTCUTS = {
     scope: 'paychecks',
     allowInInputs: true,
   },
+  'paychecks.addIncome': {
+    keys: 'alt+i',
+    description: 'Add an income line',
+    scope: 'paychecks',
+    allowInInputs: true,
+  },
   'paychecks.addDeduction': {
-    keys: 'alt+a',
+    keys: 'alt+d',
     description: 'Add a deduction',
     scope: 'paychecks',
     allowInInputs: true,
   },
-  'paychecks.removeDeduction': {
+  'paychecks.removeLine': {
     keys: 'alt+backspace',
-    description: 'Remove the deduction being edited',
+    description: 'Remove the line being edited',
     scope: 'paychecks',
     allowInInputs: true,
   },
