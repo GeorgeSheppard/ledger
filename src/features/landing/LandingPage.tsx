@@ -3,6 +3,7 @@ import { paths } from '../../app/paths';
 import { useSession } from '../../state/session';
 import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
+import { DonateLink } from '../../ui/DonateLink';
 import { useAsyncAction } from '../connect/useAsyncAction';
 import { LegalLinks } from '../legal/LegalPage';
 import { SheetPreview } from './SheetPreview';
@@ -141,7 +142,8 @@ export function LandingPage() {
         {cta}
       </section>
 
-      <footer className="border-t border-line pt-6">
+      <footer className="flex flex-col gap-3 border-t border-line pt-6">
+        <DonateLink />
         <LegalLinks />
       </footer>
     </div>
