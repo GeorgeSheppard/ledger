@@ -8,7 +8,7 @@ export const TRANSACTION_GRID =
   'grid grid-cols-[112px_minmax(120px,190px)_minmax(0,1fr)_120px_120px_32px] gap-2';
 
 /** Heights of the windowed transaction list's items, which must match what the rows render. */
-export const ROW_HEIGHT = { desktop: 44, mobile: 60 } as const;
+export const ROW_HEIGHT = { desktop: 44, mobile: 44 } as const;
 export const MONTH_HEIGHT = 48;
 
 /** A clickable list row that can be selected with J/K (transactions and categories). */

@@ -514,6 +514,7 @@ export function TransactionTable({
         <ActionButton
           shortcut="transactions.delete"
           variant="danger"
+          className={cn(selectedRows.length === 0 && 'max-md:hidden')}
           disabled={selectedRows.length === 0 || !browsing || saving}
           onAction={askToDelete}
         >
@@ -524,7 +525,7 @@ export function TransactionTable({
           {selection.ids.length < shown.length && (
             <button
               type="button"
-              className="inline-flex cursor-pointer items-center gap-1.5 underline hover:text-fg disabled:cursor-default disabled:no-underline disabled:opacity-50"
+              className="inline-flex cursor-pointer items-center gap-1.5 underline hover:text-fg disabled:cursor-default disabled:no-underline disabled:opacity-50 max-md:hidden"
               disabled={!browsing}
               onClick={() => setSelection(selectAll(shownIds))}
             >
@@ -541,12 +542,12 @@ export function TransactionTable({
             </button>
           )}
         </span>
-        <div className="ml-auto flex items-center gap-2">
-          <div className="relative flex items-center">
+        <div className="ml-auto flex items-center gap-2 max-md:order-first max-md:w-full">
+          <div className="relative flex items-center max-md:min-w-0 max-md:flex-1">
             <TextInput
               ref={searchRef}
               type="search"
-              className="w-48 pr-9 max-md:w-36"
+              className="w-48 pr-9 max-md:w-full"
               aria-label="Search transactions"
               placeholder="Search notes…"
               value={filters.search}
