@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router';
 import type { ShortcutId } from '../lib/shortcuts/bindings';
 import { useSyncStatus } from '../state/ledgerData';
 import { useSession } from '../state/session';
+import { ExitButton } from './ExitButton';
 import { useShortcut } from '../state/shortcuts';
 import { ActionButton } from '../ui/ActionButton';
 import { DonateLink } from '../ui/DonateLink';
@@ -72,7 +73,7 @@ function SpreadsheetPanel({ title, isFile }: { title: string; isFile: boolean })
           {title}
         </div>
       </div>
-      <SaveStatus />
+      <SaveStatus buttonClassName="w-full justify-between" />
       <ActionButton variant="ghost" className="w-full whitespace-nowrap" onAction={leave}>
         {isFile ? 'Close file' : 'Switch spreadsheet'}
       </ActionButton>
@@ -82,13 +83,13 @@ function SpreadsheetPanel({ title, isFile }: { title: string; isFile: boolean })
 
 /** Frame around every signed-in page: sidebar navigation, sheet name, shortcut help. */
 export function AppShell({ children }: { children: ReactNode }) {
-  const { session, signOut } = useSession();
+  const { session } = useSession();
   const [helpOpen, setHelpOpen] = useState(false);
   useShortcut('help.toggle', () => setHelpOpen((open) => !open));
 
   return (
     <div className="grid min-h-dvh grid-cols-1 md:grid-cols-[220px_1fr]">
-      <aside className="flex flex-col gap-4 border-b border-line bg-surface p-4 md:border-r md:border-b-0">
+      <aside className="flex flex-col gap-4 border-b border-line bg-surface p-4 md:sticky md:top-0 md:h-dvh md:self-start md:overflow-y-auto md:border-r md:border-b-0">
         <div className="text-lg font-bold">Ledger</div>
         {session.status === 'connected' && (
           <SpreadsheetPanel title={session.spreadsheet.title} isFile={session.file === true} />
@@ -102,20 +103,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           <DonateLink className="text-xs" />
           <button
             type="button"
-            className="flex cursor-pointer items-center gap-2 text-sm text-muted hover:text-fg"
+            className="flex w-full cursor-pointer items-center justify-between gap-2 px-2.5 text-sm text-muted hover:text-fg"
             onClick={() => setHelpOpen(true)}
           >
             Shortcuts <Kbd shortcut="help.toggle" />
           </button>
-          {session.status === 'connected' && session.file ? null : (
-            <button
-              type="button"
-              className="flex cursor-pointer items-center gap-2 text-sm text-muted hover:text-fg"
-              onClick={signOut}
-            >
-              Sign out
-            </button>
-          )}
+          {session.status === 'connected' && <ExitButton className="w-full justify-start" />}
         </div>
       </aside>
       <main className="min-w-0">{children}</main>

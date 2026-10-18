@@ -25,6 +25,7 @@ import {
 import { signInAware } from '../modules/ingest/google/signInAware';
 import { GoogleApiError } from '../lib/google/sheetsClient';
 import { MemoryRemote, type LedgerRemote } from '../lib/store/remote';
+import { discardLocalData } from './ledgerData';
 
 /**
  * Who is signed in and which spreadsheet is connected. The rest of the app reads this through
@@ -44,7 +45,12 @@ export type Session =
 export interface SessionApi {
   session: Session;
   signIn(): Promise<void>;
-  signOut(): void;
+  /**
+   * Leaves Ledger for good: signs out of Google, forgets the remembered spreadsheet, empties the
+   * browser's working copy (unsaved edits are lost, so callers ask first) and returns to the landing
+   * page. Works the same for a Google Sheet and for a file.
+   */
+  exit(): Promise<void>;
   /** Opens a spreadsheet (from the picker or newly created) and moves to `connected`. */
   connect(spreadsheet: SpreadsheetRef): Promise<void>;
   disconnect(): void;
@@ -89,7 +95,7 @@ function useMemorySession(): BaseSessionApi {
     () => ({
       session,
       signIn: async () => setSession({ status: 'signed-in' }),
-      signOut: () => setSession({ status: 'signed-out' }),
+      exit: async () => setSession({ status: 'signed-out' }),
       connect: async (spreadsheet) =>
         setSession({
           status: 'connected',
@@ -148,8 +154,9 @@ function useGoogleSession(google: GoogleServices): BaseSessionApi {
         setSession({ status: 'signed-in' });
       }
     },
-    signOut() {
+    async exit() {
       google.auth.signOut();
+      remember(null);
       setSession({ status: 'signed-out' });
     },
     async connect(spreadsheet) {
@@ -188,9 +195,10 @@ function useFileOverlay(base: BaseSessionApi): SessionApi {
     },
     startBlankFile: () => show(newLocalLedger()),
     closeFile: () => setFile(null),
-    signOut() {
+    async exit() {
+      await discardLocalData();
       setFile(null);
-      base.signOut();
+      await base.exit();
     },
     async connect(spreadsheet) {
       setFile(null);

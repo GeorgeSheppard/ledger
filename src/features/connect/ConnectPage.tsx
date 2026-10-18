@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
+import { ExitButton } from '../../app/ExitButton';
 import { paths } from '../../app/paths';
 import { GoogleSpreadsheetStep } from '../../modules/ingest';
 import { useSession } from '../../state/session';
@@ -10,7 +11,7 @@ import { GetStartedDialog } from './GetStartedDialog';
 
 /** After sign-in, or when switching: choose a Google Sheet, or one of the other ways to start. */
 export function ConnectPage() {
-  const { session, signOut } = useSession();
+  const { session } = useSession();
   const navigate = useNavigate();
   const [others, setOthers] = useState(false);
 
@@ -26,11 +27,7 @@ export function ConnectPage() {
           ? 'Pick another Google Sheet from your Drive, or create a new one. Your current spreadsheet is left as it is.'
           : 'Ledger reads and writes one Google Sheet in your Drive.'
       }
-      actions={
-        <ActionButton variant="ghost" onAction={signOut}>
-          Sign out
-        </ActionButton>
-      }
+      actions={<ExitButton variant="ghost" />}
     >
       {current && (
         <Card className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 text-sm">

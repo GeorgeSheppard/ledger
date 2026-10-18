@@ -55,6 +55,25 @@ function cacheFor(remote: LedgerRemote): LedgerCache {
   return (browserCache ??= indexedDbCache());
 }
 
+/** The open ledger when it has edits that exist nowhere else yet, for the "save first?" prompt. */
+export function ledgerWithUnsavedChanges(): LedgerStore | null {
+  const state = active?.state;
+  return state?.status === 'ready' && state.store.hasUnsavedChanges ? state.store : null;
+}
+
+/**
+ * Forgets everything this browser holds for the open ledger: stops saving, waits for any write
+ * to the working copy that is already under way, then empties IndexedDB. Unsaved edits are lost.
+ */
+export async function discardLocalData(): Promise<void> {
+  const current = active;
+  active = null;
+  current?.close?.(false);
+  if (current) current.close = undefined;
+  if (current?.state.status === 'ready') await current.state.store.flushCache().catch(() => {});
+  await (browserCache ?? indexedDbCache()).clear().catch(() => {});
+}
+
 /** The entry for `remote`, starting the load the first time it is asked for. */
 function entryFor(remote: LedgerRemote, spreadsheetId: string): OpenedStore {
   const existing = opened.get(remote);

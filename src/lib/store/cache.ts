@@ -10,12 +10,15 @@ export type CachedLedger = z.infer<typeof cachedLedgerSchema>;
 export interface LedgerCache {
   get(spreadsheetId: string): Promise<CachedLedger | null>;
   put(spreadsheetId: string, value: CachedLedger): Promise<void>;
+  /** Forgets every working copy, for every spreadsheet. */
+  clear(): Promise<void>;
 }
 
 /** Keeps nothing. For the demo data, which starts fresh on every load. */
 export const noCache: LedgerCache = {
   get: async () => null,
   put: async () => {},
+  clear: async () => {},
 };
 
 export class MemoryCache implements LedgerCache {
@@ -28,6 +31,10 @@ export class MemoryCache implements LedgerCache {
 
   async put(spreadsheetId: string, value: CachedLedger): Promise<void> {
     this.entries.set(spreadsheetId, structuredClone(value));
+  }
+
+  async clear(): Promise<void> {
+    this.entries.clear();
   }
 }
 
@@ -65,6 +72,9 @@ export function indexedDbCache(
     },
     put: async (id, value) => {
       await run('readwrite', (s) => s.put(value, id));
+    },
+    clear: async () => {
+      await run('readwrite', (s) => s.clear());
     },
   };
 }
