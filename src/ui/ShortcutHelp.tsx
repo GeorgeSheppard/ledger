@@ -5,6 +5,7 @@ import { Kbd } from './Kbd';
 /** Scopes listed in the overlay. Pages outside the app shell (landing, connect) are left out. */
 const SCOPE_LABELS: Partial<Record<ShortcutScope, string>> = {
   global: 'Everywhere',
+  dashboard: 'Dashboard',
   accounts: 'Accounts',
   transactions: 'Transactions',
   categories: 'Categories',
