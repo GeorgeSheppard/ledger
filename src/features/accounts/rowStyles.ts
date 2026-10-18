@@ -1,11 +1,15 @@
 import { cn } from '../../ui/cn';
 
 /**
- * Column layout shared by the transaction header, rows and inline editor: a checkbox, the five
- * data columns, and the row's menu button.
+ * Column layout shared by the transaction header, rows and inline editor: the five data columns
+ * and the row's menu button.
  */
 export const TRANSACTION_GRID =
-  'grid grid-cols-[20px_112px_minmax(120px,190px)_minmax(0,1fr)_120px_120px_32px] gap-2';
+  'grid grid-cols-[112px_minmax(120px,190px)_minmax(0,1fr)_120px_120px_32px] gap-2';
+
+/** Heights of the windowed transaction list's items, which must match what the rows render. */
+export const ROW_HEIGHT = { desktop: 44, mobile: 60 } as const;
+export const MONTH_HEIGHT = 48;
 
 /** A clickable list row that can be selected with J/K (transactions and categories). */
 export function selectableRow(selected: boolean, className?: string) {

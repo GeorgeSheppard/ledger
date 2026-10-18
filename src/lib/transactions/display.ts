@@ -88,3 +88,18 @@ export function selectionAfterDelete(
   const row = next.row > deleted.row ? next.row - 1 : next.row;
   return `${next.accountId}:${row}`;
 }
+
+/** One line of the transactions list: a month heading or a transaction. */
+export type ListItem =
+  | { kind: 'month'; key: string; moneyIn: number; moneyOut: number }
+  | { kind: 'row'; transaction: Transaction };
+
+/** Month headings followed by their rows, flattened so the list can be windowed. */
+export function flattenGroups(groups: readonly MonthGroup[]): ListItem[] {
+  const items: ListItem[] = [];
+  for (const group of groups) {
+    items.push({ kind: 'month', key: group.key, moneyIn: group.moneyIn, moneyOut: group.moneyOut });
+    for (const transaction of group.transactions) items.push({ kind: 'row', transaction });
+  }
+  return items;
+}

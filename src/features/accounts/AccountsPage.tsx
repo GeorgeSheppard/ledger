@@ -1,6 +1,6 @@
 import type { Account } from '../../lib/domain/types';
 import { useState, type ReactNode } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { paths } from '../../app/paths';
 import { findAccountByParam } from '../../lib/accounts/accounts';
 import { asMoney } from '../../lib/accounts/inverted';
@@ -9,10 +9,11 @@ import { ImportDialog } from '../../modules/import/ui/ImportDialog';
 import { EditableTitle } from './EditableTitle';
 import { AccountNameForm } from './AccountNameForm';
 import { AccountSummary } from './AccountSummary';
-import { AccountKind } from './AccountKind';
+import { AccountSettings } from './AccountSettings';
 import { AccountSwitcher } from './AccountSwitcher';
 import { TransactionTable } from './TransactionTable';
 import { useAccountActions, useAccountsAndCategories, useTransactions } from './useAccountsData';
+import { cn } from '../../ui/cn';
 import { Card } from '../../ui/Card';
 import { Page } from '../../ui/Page';
 
@@ -29,6 +30,10 @@ export function AccountsPage() {
   const actions = useAccountActions();
   const [nameForm, setNameForm] = useState<NameForm>(null);
   const [importing, setImporting] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const tab: AccountTab = params.get('tab') === 'settings' ? 'settings' : 'transactions';
+  const showTab = (next: AccountTab) =>
+    setParams(next === 'settings' ? { tab: 'settings' } : {}, { replace: true });
 
   if (meta.status === 'loading')
     return (
@@ -111,17 +116,21 @@ export function AccountsPage() {
       {transactions.status === 'ready' && (
         <>
           <AccountSummary transactions={asMoney(account, transactions.data)} />
-          <AccountKind
-            inverted={!!account.inverted}
-            onChange={(inverted) => actions.setAccountInverted(account.id, inverted)}
-          />
-          <TransactionTable
-            key={account.id}
-            account={account}
-            transactions={transactions.data}
-            categories={categories}
-            paused={importing}
-          />
+          <AccountTabs tab={tab} onChange={showTab} />
+          {tab === 'settings' ? (
+            <AccountSettings
+              account={account}
+              onInvertedChange={(inverted) => actions.setAccountInverted(account.id, inverted)}
+            />
+          ) : (
+            <TransactionTable
+              key={account.id}
+              account={account}
+              transactions={transactions.data}
+              categories={categories}
+              paused={importing}
+            />
+          )}
           {importing && (
             <ImportDialog
               account={account}
@@ -133,6 +142,35 @@ export function AccountsPage() {
         </>
       )}
     </Page>
+  );
+}
+
+type AccountTab = 'transactions' | 'settings';
+
+const TABS: { id: AccountTab; label: string }[] = [
+  { id: 'transactions', label: 'Transactions' },
+  { id: 'settings', label: 'Settings' },
+];
+
+function AccountTabs({ tab, onChange }: { tab: AccountTab; onChange(tab: AccountTab): void }) {
+  return (
+    <div role="tablist" aria-label="Account" className="flex gap-1 border-b border-line">
+      {TABS.map(({ id, label }) => (
+        <button
+          key={id}
+          type="button"
+          role="tab"
+          aria-selected={tab === id}
+          className={cn(
+            '-mb-px cursor-pointer border-b-2 border-transparent px-3 py-2 text-sm text-muted hover:text-fg',
+            tab === id && 'border-accent font-medium text-fg'
+          )}
+          onClick={() => onChange(id)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
   );
 }
 
