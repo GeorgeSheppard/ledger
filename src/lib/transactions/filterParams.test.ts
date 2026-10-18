@@ -37,3 +37,12 @@ describe('categoryTransactionsPath', () => {
     });
   });
 });
+
+describe('sign', () => {
+  it('travels as in or out and reads back', () => {
+    expect(filterParams({ sign: 'out' })).toBe('sign=out');
+    expect(filterParams({ sign: 'any' })).toBe('');
+    expect(filtersFromParams(new URLSearchParams('sign=in')).sign).toBe('in');
+    expect(filtersFromParams(new URLSearchParams('sign=bogus')).sign).toBe('any');
+  });
+});

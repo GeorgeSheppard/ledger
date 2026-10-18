@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { UNCATEGORISED } from '../../../lib/metrics/cashFlow';
 import type { AccountLedger } from '../../../lib/metrics/netWorth';
 import type { LinkedFilters } from '../../../lib/transactions/filterParams';
-import { filterTransactions, noFilters } from '../../../lib/transactions/filters';
+import { filterTransactions, noFilters, type AmountSign } from '../../../lib/transactions/filters';
 import { ActionButton } from '../../../ui/ActionButton';
 
 interface ViewTransactionsProps {
@@ -13,6 +13,8 @@ interface ViewTransactionsProps {
   from: string;
   to: string;
   categories?: readonly string[];
+  /** Only money in or out; any by default. */
+  sign?: AmountSign;
   open(filters: LinkedFilters): void;
 }
 
@@ -26,6 +28,7 @@ export function ViewTransactions({
   from,
   to,
   categories = [],
+  sign = 'any',
   open,
 }: ViewTransactionsProps) {
   const filters = useMemo<LinkedFilters>(
@@ -34,8 +37,9 @@ export function ViewTransactions({
       to,
       categories: categories.map((c) => (c === UNCATEGORISED ? '' : c)),
       accounts: accountIds,
+      sign,
     }),
-    [from, to, categories, accountIds]
+    [from, to, categories, accountIds, sign]
   );
   const count = useMemo(
     () =>
