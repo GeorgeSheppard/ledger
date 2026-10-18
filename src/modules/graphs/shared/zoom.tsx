@@ -149,7 +149,9 @@ export function ZoomControls({ view, children }: { view: ZoomView; children?: Re
   return (
     <div className="mb-2 flex flex-wrap items-center justify-end gap-1">
       <span className="mr-auto text-xs text-muted no-keys:hidden">
-        Drag to pan, Ctrl and scroll to zoom
+        {view.zoomed
+          ? 'Drag to pan, Ctrl and scroll to zoom'
+          : 'Ctrl and scroll to zoom, then drag to pan'}
       </span>
       {children}
       <ActionButton

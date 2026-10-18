@@ -313,7 +313,7 @@ export function DashboardPage() {
                 className={cn(
                   'min-w-0 p-5',
                   SPANS[widget.width],
-                  widget.kind === 'stat' && 'self-start',
+                  'self-start',
                   editing && 'cursor-pointer',
                   isSelected && 'outline-2 outline-offset-2 outline-accent'
                 )}

@@ -64,7 +64,7 @@ export function NetWorthChart({ series, accounts, toolbar }: NetWorthChartProps)
     responsive: true,
     maintainAspectRatio: false,
     layout: { padding: { top: 8, right: 8 } },
-    interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    interaction: { mode: 'onLine', intersect: false },
     scales: {
       x: timeScale(view, 'end', colors.muted),
       y: {
