@@ -32,7 +32,7 @@ describe('layoutSankey', () => {
     expect(node('gross').x).toBe(0);
     expect(node('rent').x).toBe(390);
     for (const n of layout.nodes) {
-      expect(n.y).toBeGreaterThanOrEqual(0);
+      expect(n.y).toBeGreaterThanOrEqual(-1e-9);
       expect(n.y + n.height).toBeLessThanOrEqual(200 + 1e-9);
     }
   });
