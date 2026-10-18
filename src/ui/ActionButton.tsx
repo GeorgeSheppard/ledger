@@ -12,16 +12,16 @@ const VARIANTS = {
 } as const;
 
 interface ActionButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> {
-  /** The shortcut that triggers this button. Its keys are shown on the button. */
-  shortcut: ShortcutId;
+  /** The shortcut that triggers this button, with its keys shown on the button. Leave it out for actions that are rare. */
+  shortcut?: ShortcutId;
   onAction(): void;
   variant?: keyof typeof VARIANTS;
   children: ReactNode;
 }
 
 /**
- * The standard button. Every action in the app has a shortcut, and the shortcut is always shown
- * with the button, so use this rather than a bare `<button>` for anything a user can do.
+ * The standard button. Frequent actions have a shortcut, which is shown with the button; use this
+ * rather than a bare `<button>` for anything a user can do.
  */
 export function ActionButton({
   shortcut,
@@ -46,10 +46,10 @@ export function ActionButton({
         className
       )}
       onClick={onAction}
-      title={rest.title ?? getBinding(shortcut).description}
+      title={rest.title ?? (shortcut ? getBinding(shortcut).description : undefined)}
     >
       <span>{children}</span>
-      <Kbd shortcut={shortcut} />
+      {shortcut && <Kbd shortcut={shortcut} />}
     </button>
   );
 }

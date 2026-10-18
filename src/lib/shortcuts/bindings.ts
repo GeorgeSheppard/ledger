@@ -47,17 +47,6 @@ export const SHORTCUTS = {
     allowInInputs: true,
   },
 
-  // Landing and connect (step 1)
-  'landing.signIn': { keys: 'enter', description: 'Sign in with Google', scope: 'landing' },
-  'connect.pick': { keys: 'o', description: 'Open an existing spreadsheet', scope: 'connect' },
-  'connect.create': { keys: 'c', description: 'Create a new spreadsheet', scope: 'connect' },
-  'connect.back': { keys: 'escape', description: 'Back to your dashboard', scope: 'connect' },
-  'landing.openFile': { keys: 'o', description: 'Choose a spreadsheet file', scope: 'landing' },
-  'landing.blank': { keys: 'b', description: 'Start a blank ledger', scope: 'landing' },
-  'connect.openFile': { keys: 'f', description: 'Choose a spreadsheet file', scope: 'connect' },
-  'connect.blank': { keys: 'b', description: 'Start a blank ledger', scope: 'connect' },
-  'connect.signOut': { keys: 'shift+q', description: 'Sign out', scope: 'connect' },
-
   // Dashboard (step 3)
   'dashboard.range3': { keys: '1', description: 'Show last 3 months', scope: 'dashboard' },
   'dashboard.range6': { keys: '2', description: 'Show last 6 months', scope: 'dashboard' },

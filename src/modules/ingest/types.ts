@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react';
 import type { LedgerRemote, RemoteState } from '../../lib/store/remote';
 import type { Saver } from '../save';
 
@@ -29,4 +30,22 @@ export function remoteOf({ load, saver }: Connection): LedgerRemote {
     save: (base, next) => saver.save(base, next),
     ...(download && { download }),
   };
+}
+
+/** What an option's walkthrough is given. */
+export interface IngestSetupProps {
+  /** Call once the ledger is open, so the dialog or page can step aside. */
+  onOpened(): void;
+}
+
+/**
+ * One choice in the "Get started" dialog: a way of bringing a ledger in, and the steps that walk
+ * the user through it. Adding an ingest module means adding its option to `INGEST_OPTIONS`.
+ */
+export interface IngestOption {
+  readonly id: string;
+  readonly title: string;
+  /** One or two plain sentences shown on the choice card. */
+  readonly description: string;
+  readonly Setup: ComponentType<IngestSetupProps>;
 }
