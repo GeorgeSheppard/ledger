@@ -100,18 +100,21 @@ export function LandingPage() {
       </section>
 
       <section className="flex flex-col gap-6">
-        <h2 className="text-2xl font-semibold tracking-tight">What Ledger can see</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">Your data stays on your device</h2>
         <ul className="flex max-w-3xl list-disc flex-col gap-3 pl-5 text-muted">
           <li>
-            Only the spreadsheets you pick in Google&rsquo;s file chooser or create through Ledger.
-            It cannot browse or read anything else in your Drive.
+            Everything Ledger does with your finances, from reading your spreadsheet to importing
+            statements and drawing charts, happens in your browser. Your data is never processed on
+            any other computer, and Ledger has no server that could receive it.
           </li>
           <li>
-            Ledger runs entirely in your browser. Your sign-in lasts for this browser tab, and your
-            financial data goes straight between your browser and Google.
+            Open a spreadsheet file from your device and it never leaves it. Google is optional: if
+            you choose to sync with a Google Sheet, Ledger can only open the sheets you pick, and
+            your data travels straight between your browser and your own Drive.
           </li>
           <li>
-            You can remove Ledger&rsquo;s access at any time from your Google Account&rsquo;s{' '}
+            Press Exit to clear Ledger&rsquo;s local copy from your browser. If you used Google, you
+            can also remove Ledger&rsquo;s access from your Google Account&rsquo;s{' '}
             <a href="https://myaccount.google.com/connections" target="_blank" rel="noreferrer">
               third-party connections
             </a>{' '}

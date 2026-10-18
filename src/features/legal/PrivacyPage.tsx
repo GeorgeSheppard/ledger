@@ -15,10 +15,14 @@ export function PrivacyPage() {
 
       <LegalSection title="The short version">
         <Bullets>
-          <li>Ledger has no server or database of its own. It runs entirely in your browser.</li>
           <li>
-            Your financial data is stored in the Google Sheet you choose or create, with a working
-            copy in your browser. It travels directly between your browser and Google.
+            Ledger has no server or database of its own. It runs entirely in your browser, and your
+            data is never processed anywhere other than your device.
+          </li>
+          <li>
+            Using Google is optional. If you do, your data is stored in the Google Sheet you choose
+            or create, with a working copy in your browser, and travels directly between your
+            browser and Google.
           </li>
           <li>We do not sell, rent or share your data with anyone, and there are no adverts.</li>
           <li>Ledger can only open spreadsheets you pick or create with it, nothing else.</li>
