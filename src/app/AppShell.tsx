@@ -6,6 +6,7 @@ import { useShortcut } from '../state/shortcuts';
 import { ActionButton } from '../ui/ActionButton';
 import { Kbd } from '../ui/Kbd';
 import { cn } from '../ui/cn';
+import { SaveStatus } from '../features/sync/SaveStatus';
 import { ShortcutHelp } from '../ui/ShortcutHelp';
 import { paths } from './paths';
 
@@ -83,6 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="mt-auto flex flex-col gap-2">
+          <SaveStatus />
           <button
             type="button"
             className="flex cursor-pointer items-center gap-2 text-sm text-muted hover:text-fg"

@@ -6,23 +6,23 @@ import {
   removeCategory,
   sameName,
 } from '../../lib/categories/categories';
-import type { LedgerRepository } from '../../lib/data/repository';
 import type { Category } from '../../lib/domain/types';
 import { countUsage } from '../../lib/categories/categories';
-import { useLedgerMutation, useLedgerQuery } from '../../state/ledgerData';
-
-const loadCategoriesWithUsage = async (repository: LedgerRepository) => {
-  const [categories, accounts] = await Promise.all([
-    repository.listCategories(),
-    repository.listAccounts(),
-  ]);
-  const transactions = await Promise.all(accounts.map((a) => repository.listTransactions(a.id)));
-  return { categories, usage: countUsage(transactions.flat()) };
-};
+import { useLedger, useLedgerMutation, type QueryState } from '../../state/ledgerData';
 
 /** The category list plus how many transactions (across all accounts) use each name. */
-export function useCategoriesWithUsage() {
-  return useLedgerQuery(loadCategoriesWithUsage);
+export function useCategoriesWithUsage(): QueryState<{
+  categories: Category[];
+  usage: ReturnType<typeof countUsage>;
+}> {
+  const { categories, transactionsByAccount } = useLedger();
+  return useMemo(
+    () => ({
+      status: 'ready',
+      data: { categories, usage: countUsage(Object.values(transactionsByAccount).flat()) },
+    }),
+    [categories, transactionsByAccount]
+  );
 }
 
 /** Category writes. Each reads the current list first so concurrent edits are not lost. */

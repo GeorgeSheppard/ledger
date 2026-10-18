@@ -4,7 +4,9 @@ import {
   parseDateCell,
   parseNumberCell,
   rowsToCategories,
-  rowsToTransactions,
+  parseAccountTab,
+  parseDashboardCell,
+  dashboardRow,
   serialToIsoDate,
   totalFormula,
   transactionRow,
@@ -39,44 +41,52 @@ describe('parseNumberCell', () => {
   });
 });
 
-describe('rowsToTransactions', () => {
-  it('maps rows, keeps sheet row numbers across blank rows, and prefers the sheet total', () => {
-    const rows = rowsToTransactions(7, [
-      [46113, 'Salary', 1000, 'Pay', 1000],
-      [],
-      ['', '', '', ''],
-      [46114, 'Food', -20.5, '', 979.5],
-    ]);
-    expect(rows).toEqual([
-      {
-        id: '7:2',
-        accountId: 7,
-        row: 2,
-        date: '2026-04-01',
-        category: 'Salary',
-        amount: 1000,
-        note: 'Pay',
-        total: 1000,
-      },
-      {
-        id: '7:5',
-        accountId: 7,
-        row: 5,
-        date: '2026-04-02',
-        category: 'Food',
-        amount: -20.5,
-        note: '',
-        total: 979.5,
-      },
-    ]);
+describe('parseAccountTab', () => {
+  const header = ['Date', 'Category', 'Amount', 'Note', 'Total'];
+
+  it('reads rows under an exact header, dropping blank rows and ignoring totals', () => {
+    expect(
+      parseAccountTab([
+        header,
+        [46113, 'Salary', 1000, 'Pay', 1000],
+        [],
+        ['', '', '', ''],
+        [46114, ' Food ', -20.5, '', '#REF!'],
+      ])
+    ).toEqual({
+      rows: [
+        { date: '2026-04-01', category: 'Salary', amount: 1000, note: 'Pay' },
+        { date: '2026-04-02', category: 'Food', amount: -20.5, note: '' },
+      ],
+    });
   });
 
-  it('computes the running total when the Total cell is broken', () => {
-    const rows = rowsToTransactions(1, [
-      [46113, '', 10, '', '#REF!'],
-      [46113, '', 5],
-    ]);
-    expect(rows.map((r) => r.total)).toEqual([10, 15]);
+  it('accepts an account with no rows yet', () => {
+    expect(parseAccountTab([header])).toEqual({ rows: [] });
+  });
+
+  it('rejects tabs that are not in the Ledger format', () => {
+    expect(parseAccountTab([])).toEqual({ error: expect.stringContaining('Row 1') });
+    expect(parseAccountTab([['Date', 'Description', 'Amount']])).toHaveProperty('error');
+    expect(parseAccountTab([[...header, 'Balance']])).toHaveProperty('error');
+    expect(parseAccountTab([header.map((h) => h.toLowerCase())])).toHaveProperty('error');
+    expect(parseAccountTab([header, ['Opening', '', 10]])).toEqual({
+      error: 'Row 2 has no valid date',
+    });
+    expect(parseAccountTab([header, [46113, '', 'ten']])).toEqual({
+      error: 'Row 2 has no valid amount',
+    });
+  });
+});
+
+describe('dashboard cell', () => {
+  it('round-trips JSON and treats unreadable text as no config', () => {
+    const row = dashboardRow({ widgets: [{ kind: 'netWorth' }] });
+    const text = row.values[0]?.userEnteredValue?.stringValue;
+    expect(parseDashboardCell(text)).toEqual({ widgets: [{ kind: 'netWorth' }] });
+    expect(parseDashboardCell('{oops')).toBeNull();
+    expect(parseDashboardCell(undefined)).toBeNull();
+    expect(dashboardRow(null).values).toEqual([{}]);
   });
 });
 

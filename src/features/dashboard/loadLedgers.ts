@@ -1,23 +1,21 @@
-import type { LedgerRepository } from '../../lib/data/repository';
+import { useMemo } from 'react';
 import type { Category } from '../../lib/domain/types';
 import type { AccountLedger } from '../../lib/metrics/netWorth';
+import { useLedger, type QueryState } from '../../state/ledgerData';
 
 export interface DashboardData {
   ledgers: AccountLedger[];
   categories: Category[];
 }
 
-/** Everything the dashboard needs, in one query. Module-level so `useLedgerQuery` sees it as stable. */
-export async function loadDashboardData(repository: LedgerRepository): Promise<DashboardData> {
-  const [accounts, categories] = await Promise.all([
-    repository.listAccounts(),
-    repository.listCategories(),
-  ]);
-  const ledgers = await Promise.all(
-    accounts.map(async (account) => ({
+/** Everything the dashboard needs. Always ready: the sheet is loaded up front. */
+export function useLedgers(): QueryState<DashboardData> {
+  const { accounts, transactionsByAccount, categories } = useLedger();
+  return useMemo(() => {
+    const ledgers = accounts.map((account) => ({
       account,
-      transactions: await repository.listTransactions(account.id),
-    }))
-  );
-  return { ledgers, categories };
+      transactions: transactionsByAccount[account.id] ?? [],
+    }));
+    return { status: 'ready', data: { ledgers, categories } };
+  }, [accounts, transactionsByAccount, categories]);
 }

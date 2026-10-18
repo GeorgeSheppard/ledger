@@ -1,5 +1,5 @@
 import type { Category, TransactionInput } from '../domain/types';
-import type { MemoryData } from './memoryRepository';
+import type { LedgerData } from '../store/ledgerData';
 
 /** Demo data for dev and tests: two accounts with six months of plausible activity. */
 
@@ -53,7 +53,7 @@ function savingsAccountRows(): TransactionInput[] {
   return rows;
 }
 
-export function fixtureData(): MemoryData {
+export function fixtureData(): LedgerData {
   return {
     accounts: [
       { id: 1, name: 'Current account' },
@@ -61,5 +61,6 @@ export function fixtureData(): MemoryData {
     ],
     rows: { 1: currentAccountRows(), 2: savingsAccountRows() },
     categories: FIXTURE_CATEGORIES,
+    dashboard: null,
   };
 }
