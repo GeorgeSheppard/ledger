@@ -156,3 +156,13 @@ export const OverviewWithCreditCard: Story = {
     </Connected>
   ),
 };
+
+/** Clicking the account name edits it in place; there is no Rename button. */
+export const RenameInPlace: Story = {
+  render: AccountRoute,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      await within(canvasElement).findByRole('button', { name: 'Current account' })
+    );
+  },
+};

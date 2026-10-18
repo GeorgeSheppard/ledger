@@ -1,11 +1,12 @@
+import type { Account } from '../../lib/domain/types';
 import { useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { paths } from '../../app/paths';
 import { findAccountByParam } from '../../lib/accounts/accounts';
 import { asMoney } from '../../lib/accounts/inverted';
-import type { Account } from '../../lib/domain/types';
 import { ActionButton } from '../../ui/ActionButton';
 import { ImportDialog } from '../../modules/import/ui/ImportDialog';
+import { EditableTitle } from './EditableTitle';
 import { AccountNameForm } from './AccountNameForm';
 import { AccountSummary } from './AccountSummary';
 import { AccountKind } from './AccountKind';
@@ -15,7 +16,7 @@ import { useAccountActions, useAccountsAndCategories, useTransactions } from './
 import { Card } from '../../ui/Card';
 import { Page } from '../../ui/Page';
 
-type NameForm = { kind: 'new' } | { kind: 'rename'; account: Account } | null;
+type NameForm = { kind: 'new' } | null;
 
 /** `/accounts/:accountId`: one account's transactions with the account menu above them. */
 export function AccountsPage() {
@@ -50,11 +51,6 @@ export function AccountsPage() {
     navigate(paths.account(created.id));
   };
 
-  const renameAccount = async (target: Account, name: string) => {
-    await actions.renameAccount(target.id, name);
-    setNameForm(null);
-  };
-
   const go = (target: Account | undefined) => target && navigate(paths.account(target.id));
 
   if (!account) {
@@ -75,6 +71,14 @@ export function AccountsPage() {
   return (
     <Page
       title={account.name}
+      heading={
+        <EditableTitle
+          account={account}
+          accounts={meta.data.accounts}
+          disabled={blocked}
+          onRename={(name) => actions.renameAccount(account.id, name)}
+        />
+      }
       actions={
         <>
           <AccountSwitcher
@@ -84,13 +88,6 @@ export function AccountsPage() {
             onSelect={go}
             onNew={() => setNameForm({ kind: 'new' })}
           />
-          <ActionButton
-            variant="ghost"
-            disabled={blocked}
-            onAction={() => setNameForm({ kind: 'rename', account })}
-          >
-            Rename
-          </ActionButton>
           <ActionButton disabled={blocked || !ready} onAction={() => setImporting(true)}>
             Import data
           </ActionButton>
@@ -99,20 +96,11 @@ export function AccountsPage() {
     >
       {nameForm && (
         <Card className="px-4 py-3">
-          {nameForm.kind === 'new' ? (
-            <AccountNameForm
-              accounts={meta.data.accounts}
-              onSubmit={createAccount}
-              onCancel={() => setNameForm(null)}
-            />
-          ) : (
-            <AccountNameForm
-              accounts={meta.data.accounts}
-              account={nameForm.account}
-              onSubmit={(name) => renameAccount(nameForm.account, name)}
-              onCancel={() => setNameForm(null)}
-            />
-          )}
+          <AccountNameForm
+            accounts={meta.data.accounts}
+            onSubmit={createAccount}
+            onCancel={() => setNameForm(null)}
+          />
         </Card>
       )}
 
