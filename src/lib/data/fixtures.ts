@@ -54,12 +54,13 @@ function savingsAccountRows(): TransactionInput[] {
   return rows;
 }
 
-/** Six payslips matching the transactions; the last month has a bonus, so tax rises with it. */
+/** Six payslips matching the transactions, paid on the 25th; the last has a bonus, so tax rises with it. */
 function fixturePaychecks() {
   return ['2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09'].map((month, i) => {
     const bonus = i === 5;
     return {
-      month,
+      id: `p${i + 1}`,
+      date: `${month}-25`,
       income: [
         { id: 'l1', name: 'Salary', amount: 2600 },
         { id: 'l2', name: 'Allowance', amount: 150 },
@@ -84,6 +85,6 @@ export function fixtureData(): LedgerData {
     rows: { 1: currentAccountRows(), 2: savingsAccountRows() },
     categories: FIXTURE_CATEGORIES,
     dashboard: null,
-    paychecks: { version: 2, paychecks: fixturePaychecks() },
+    paychecks: { version: 3, paychecks: fixturePaychecks() },
   };
 }

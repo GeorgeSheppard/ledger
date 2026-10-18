@@ -1,9 +1,8 @@
-import type { MonthKey } from '../metrics/months';
-import { addMonths, monthOf } from '../metrics/months';
 import type { IsoDate } from '../domain/types';
+import { isIsoDate } from '../transactions/dates';
 
 /**
- * Paychecks: one entry per month, typed in from the payslip. A payslip is a few named income lines
+ * Paychecks: one entry per payslip, typed in by hand. There is no schedule and nothing repeats. A payslip is a few named income lines
  * (salary, an allowance, a bonus...) and a few named deduction lines (income tax, national
  * insurance, pension, student loan...); take-home pay is what is left. Plain data and pure
  * functions only. Saved in the spreadsheet's `_Paychecks` tab (see `./serialize.ts`).
@@ -22,15 +21,17 @@ export interface PayLine {
 }
 
 export interface Paycheck {
-  /** The month the pay is for, `YYYY-MM`. At most one paycheck per month. */
-  month: MonthKey;
+  /** Unique within the list. */
+  id: string;
+  /** The day the pay arrived. Only decides which months of the dashboard count it. */
+  date: IsoDate;
   /** Money in before anything is taken out. */
   income: PayLine[];
   deductions: PayLine[];
 }
 
 export interface PaycheckList {
-  /** Oldest month first. */
+  /** Oldest first. */
   paychecks: Paycheck[];
 }
 
@@ -67,31 +68,8 @@ export function newLine(existing: readonly { id: string }[], name = '', amount =
   return { id: newId(existing, 'l'), name, amount };
 }
 
-/** The latest paycheck before `month`, or the latest of all when none is earlier. */
-function lastBefore(list: PaycheckList, month: MonthKey): Paycheck | undefined {
-  const earlier = list.paychecks.filter((p) => p.month < month);
-  return earlier.at(-1) ?? list.paychecks.at(-1);
-}
-
-/** The month a new entry should start on: the one after the latest entry, else `today`'s. */
-export function nextMonth(list: PaycheckList, today: IsoDate): MonthKey {
-  const latest = list.paychecks.at(-1);
-  return latest ? addMonths(latest.month, 1) : monthOf(today);
-}
-
-export function newPaycheck(month: MonthKey): Paycheck {
-  return { month, income: [], deductions: [] };
-}
-
-/**
- * A paycheck for `month` with the same lines and amounts as the latest earlier one, ready to
- * adjust. Falls back to an empty paycheck when there is nothing to copy.
- */
-export function copyPaycheck(list: PaycheckList, month: MonthKey): Paycheck {
-  const from = lastBefore(list, month);
-  if (!from) return newPaycheck(month);
-  const fresh = (lines: PayLine[]) => lines.map((l, i) => ({ ...l, id: `l${i + 1}` }));
-  return { month, income: fresh(from.income), deductions: fresh(from.deductions) };
+export function newPaycheck(list: PaycheckList, date: IsoDate): Paycheck {
+  return { id: newId(list.paychecks, 'p'), date, income: [], deductions: [] };
 }
 
 /**
@@ -99,7 +77,7 @@ export function copyPaycheck(list: PaycheckList, month: MonthKey): Paycheck {
  * One spelling per name, ignoring case.
  */
 export function suggestedNames(list: PaycheckList, kind: LineKind): string[] {
-  const seen = new Map<string, { name: string; count: number; last: MonthKey }>();
+  const seen = new Map<string, { name: string; count: number; last: IsoDate }>();
   for (const paycheck of list.paychecks)
     for (const line of paycheck[kind]) {
       const name = line.name.trim();
@@ -108,25 +86,18 @@ export function suggestedNames(list: PaycheckList, kind: LineKind): string[] {
       const found = seen.get(key);
       if (found) {
         found.count++;
-        found.last = paycheck.month;
+        found.last = paycheck.date;
         found.name = name;
-      } else seen.set(key, { name, count: 1, last: paycheck.month });
+      } else seen.set(key, { name, count: 1, last: paycheck.date });
     }
   return [...seen.values()]
     .sort((a, b) => b.count - a.count || (a.last < b.last ? 1 : -1) || a.name.localeCompare(b.name))
     .map((s) => s.name);
 }
 
-/**
- * What is wrong with a paycheck, in words, or null when it can be saved. `taken` are the months
- * already used by other entries.
- */
-export function paycheckProblem(
-  paycheck: Paycheck,
-  taken: readonly MonthKey[] = []
-): string | null {
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(paycheck.month)) return 'Pick a month.';
-  if (taken.includes(paycheck.month)) return 'There is already a paycheck for that month.';
+/** What is wrong with a paycheck, in words, or null when it can be saved. */
+export function paycheckProblem(paycheck: Paycheck): string | null {
+  if (!isIsoDate(paycheck.date)) return 'Pick a date.';
   const lines = [...paycheck.income, ...paycheck.deductions];
   if (lines.some((l) => !(l.amount >= 0))) return 'Amounts cannot be negative.';
   if (lines.some((l) => l.amount > 0 && !l.name.trim())) return 'Name every line.';
@@ -144,21 +115,19 @@ export function tidyPaycheck(paycheck: Paycheck): Paycheck {
   return { ...paycheck, income: tidy(paycheck.income), deductions: tidy(paycheck.deductions) };
 }
 
-const byMonth = (a: Paycheck, b: Paycheck) => (a.month < b.month ? -1 : a.month > b.month ? 1 : 0);
+/** Oldest first; paychecks on the same day keep their order. */
+const byDate = (a: Paycheck, b: Paycheck) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
 
 export function addPaycheck(list: PaycheckList, paycheck: Paycheck): PaycheckList {
-  return { paychecks: [...list.paychecks, paycheck].sort(byMonth) };
+  return { paychecks: [...list.paychecks, paycheck].sort(byDate) };
 }
 
-/** Swaps the paycheck that was for `month` for `paycheck`, which may be for another month. */
-export function replacePaycheck(
-  list: PaycheckList,
-  month: MonthKey,
-  paycheck: Paycheck
-): PaycheckList {
-  return { paychecks: list.paychecks.map((p) => (p.month === month ? paycheck : p)).sort(byMonth) };
+export function replacePaycheck(list: PaycheckList, paycheck: Paycheck): PaycheckList {
+  return {
+    paychecks: list.paychecks.map((p) => (p.id === paycheck.id ? paycheck : p)).sort(byDate),
+  };
 }
 
-export function removePaycheck(list: PaycheckList, month: MonthKey): PaycheckList {
-  return { paychecks: list.paychecks.filter((p) => p.month !== month) };
+export function removePaycheck(list: PaycheckList, id: string): PaycheckList {
+  return { paychecks: list.paychecks.filter((p) => p.id !== id) };
 }

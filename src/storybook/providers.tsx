@@ -118,7 +118,12 @@ export function Connected({
   return (
     <AppProviders route={route}>
       <LedgerDataProvider>
-        <Seed dashboard={dashboard} creditCard={creditCard} bigAccount={bigAccount} noPaychecks={noPaychecks}>
+        <Seed
+          dashboard={dashboard}
+          creditCard={creditCard}
+          bigAccount={bigAccount}
+          noPaychecks={noPaychecks}
+        >
           {shell ? <AppShell>{children}</AppShell> : children}
         </Seed>
       </LedgerDataProvider>

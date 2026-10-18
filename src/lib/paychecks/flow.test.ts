@@ -4,7 +4,8 @@ import { buildMoneyFlow, flowWindow, type MoneyFlow } from './flow';
 import type { Paycheck } from './paychecks';
 
 const payslip = (month: string, over: Partial<Paycheck> = {}): Paycheck => ({
-  month,
+  id: `p-${month}`,
+  date: `${month}-15`,
   income: [
     { id: 'l1', name: 'Salary', amount: 2800 },
     { id: 'l2', name: 'Allowance', amount: 200 },

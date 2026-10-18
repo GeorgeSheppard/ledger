@@ -65,8 +65,9 @@ export function flowWindow(
   const to = span?.last ?? monthOf(today);
   if (range !== 'all') return { from: addMonths(to, 1 - range), to };
   const from =
-    [span?.first, ...paychecks.map((p) => p.month)].filter((m): m is MonthKey => !!m).sort()[0] ??
-    to;
+    [span?.first, ...paychecks.map((p) => monthOf(p.date))]
+      .filter((m): m is MonthKey => !!m)
+      .sort()[0] ?? to;
   return { from: from < to ? from : to, to };
 }
 
@@ -116,7 +117,8 @@ export function buildMoneyFlow({
   const incomes = new Map<string, Tally>();
   const deductions = new Map<string, Tally>();
   for (const paycheck of paychecks) {
-    if (paycheck.month < from || paycheck.month > to) continue;
+    const month = monthOf(paycheck.date);
+    if (month < from || month > to) continue;
     for (const line of paycheck.income) if (line.amount > 0) add(incomes, line.name, line.amount);
     for (const line of paycheck.deductions)
       if (line.amount > 0) add(deductions, line.name, line.amount);

@@ -9,7 +9,7 @@ const meta = { title: 'Pages/Paychecks', component: PaychecksPage } satisfies Me
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Six months of payslips, newest first. */
+/** Six payslips, newest first. */
 export const Default: Story = {
   render: () => (
     <Connected shell route="/paychecks">
@@ -26,22 +26,13 @@ export const Empty: Story = {
   ),
 };
 
-/** "Copy last month" opens next month's payslip with last month's lines, ready to adjust. */
-export const CopyLastMonth: Story = {
+/** A blank payslip: a date, income and deductions, with names used before offered as suggestions. */
+export const AddPaycheck: Story = {
   ...Default,
   play: async ({ canvasElement }) => {
     await userEvent.click(
-      await within(canvasElement).findByRole('button', { name: /copy last month/i })
+      await within(canvasElement).findByRole('button', { name: /^add paycheck/i })
     );
-    await within(canvasElement).findByRole('dialog');
-  },
-};
-
-/** A blank payslip: income and deductions, with names used before offered as suggestions. */
-export const AddMonth: Story = {
-  ...Default,
-  play: async ({ canvasElement }) => {
-    await userEvent.click(await within(canvasElement).findByRole('button', { name: /^add /i }));
     await within(canvasElement).findByRole('dialog');
   },
 };

@@ -23,7 +23,7 @@ interface DraftLine {
   amount: string;
 }
 interface Draft {
-  month: string;
+  date: string;
   income: DraftLine[];
   deductions: DraftLine[];
 }
@@ -34,7 +34,7 @@ function toDraft(paycheck: Paycheck): Draft {
   const lines = (list: Paycheck['income']) =>
     list.map((l) => ({ ...l, amount: amountText(l.amount) }));
   return {
-    month: paycheck.month,
+    date: paycheck.date,
     income: lines(paycheck.income),
     deductions: lines(paycheck.deductions),
   };
@@ -46,9 +46,14 @@ function parseAmount(text: string): number {
   return cleaned === '' ? 0 : Number(cleaned);
 }
 
-function fromDraft(draft: Draft): Paycheck {
+function fromDraft(draft: Draft, id: string): Paycheck {
   const lines = (list: DraftLine[]) => list.map((l) => ({ ...l, amount: parseAmount(l.amount) }));
-  return { month: draft.month, income: lines(draft.income), deductions: lines(draft.deductions) };
+  return {
+    id,
+    date: draft.date,
+    income: lines(draft.income),
+    deductions: lines(draft.deductions),
+  };
 }
 
 interface Focus {
@@ -184,13 +189,13 @@ function Field({
 interface PaycheckEditorProps {
   paycheck: Paycheck;
   isNew: boolean;
-  /** Everything already saved, for suggested names and to keep one entry per month. */
+  /** Everything already saved, for suggested names. */
   list: PaycheckList;
   onSave(paycheck: Paycheck): void;
   onCancel(): void;
 }
 
-/** Modal for one month's payslip: income lines, deductions and the take-home pay they leave. */
+/** Modal for one payslip: income lines, deductions and the take-home pay they leave. */
 export function PaycheckEditor({ paycheck, isNew, list, onSave, onCancel }: PaycheckEditorProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [draft, setDraft] = useState(() => toDraft(paycheck));
@@ -202,9 +207,8 @@ export function PaycheckEditor({ paycheck, isNew, list, onSave, onCancel }: Payc
     dialog.current?.showModal();
   }, []);
 
-  const current = fromDraft(draft);
-  const taken = list.paychecks.map((p) => p.month).filter((m) => isNew || m !== paycheck.month);
-  const problem = paycheckProblem(current, taken);
+  const current = fromDraft(draft, paycheck.id);
+  const problem = paycheckProblem(current);
   const net = netPay(current);
   const finite = (n: number) => (Number.isFinite(n) ? n : 0);
 
@@ -268,12 +272,16 @@ export function PaycheckEditor({ paycheck, isNew, list, onSave, onCancel }: Payc
       >
         <h2 className="text-lg font-semibold">{isNew ? 'New paycheck' : 'Edit paycheck'}</h2>
 
-        <Field label="Month" htmlFor={`${id}-month`} hint="The month this payslip is for.">
+        <Field
+          label="Date"
+          htmlFor={`${id}-date`}
+          hint="The day it was paid. The dashboard counts it in that month."
+        >
           <TextInput
-            id={`${id}-month`}
-            type="month"
-            value={draft.month}
-            onChange={(e) => setDraft((d) => ({ ...d, month: e.target.value }))}
+            id={`${id}-date`}
+            type="date"
+            value={draft.date}
+            onChange={(e) => setDraft((d) => ({ ...d, date: e.target.value }))}
           />
         </Field>
 
@@ -313,7 +321,7 @@ export function PaycheckEditor({ paycheck, isNew, list, onSave, onCancel }: Payc
             Cancel
           </ActionButton>
           <ActionButton shortcut="paychecks.save" variant="primary" onAction={submit}>
-            {isNew ? 'Add month' : 'Done'}
+            {isNew ? 'Add paycheck' : 'Done'}
           </ActionButton>
         </div>
       </form>

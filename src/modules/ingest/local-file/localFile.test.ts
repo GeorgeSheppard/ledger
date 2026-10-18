@@ -120,9 +120,9 @@ describe('writing a workbook', () => {
       ],
     };
     const old = ledgerFromTabs(await readWorkbookTabs(await writeWorkbook(null, [], data)));
-    expect(parsePaychecks(old.data.paychecks).paychecks.map((p) => p.month)).toEqual([
-      '2026-03',
-      '2026-04',
+    expect(parsePaychecks(old.data.paychecks).paychecks.map((p) => p.date)).toEqual([
+      '2026-03-25',
+      '2026-04-25',
     ]);
   });
 

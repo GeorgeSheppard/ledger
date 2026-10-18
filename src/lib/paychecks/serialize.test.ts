@@ -3,39 +3,39 @@ import { parsePaychecks, serializePaychecks } from './serialize';
 
 const TODAY = '2026-06-15';
 
-const legacy = (paychecks: unknown[]) => ({ version: 1, paychecks });
-
-describe('parsePaychecks (version 2)', () => {
+describe('parsePaychecks (version 3)', () => {
   it('round-trips', () => {
     const list = {
       paychecks: [
         {
-          month: '2026-01',
+          id: 'p1',
+          date: '2026-01-25',
           income: [{ id: 'l1', name: 'Salary', amount: 3000 }],
           deductions: [{ id: 'l1', name: 'Tax', amount: 600 }],
         },
       ],
     };
     expect(parsePaychecks(serializePaychecks(list), TODAY)).toEqual(list);
-    expect(serializePaychecks(list).version).toBe(2);
+    expect(serializePaychecks(list).version).toBe(3);
   });
 
-  it('is empty for nothing or junk, and drops what it cannot read', () => {
+  it('is empty for nothing or junk, and repairs or drops what it cannot read', () => {
     expect(parsePaychecks(null, TODAY)).toEqual({ paychecks: [] });
     expect(parsePaychecks('x', TODAY)).toEqual({ paychecks: [] });
     const parsed = parsePaychecks(
       {
-        version: 2,
+        version: 3,
         paychecks: [
-          { month: '2026-13', income: [], deductions: [] },
+          { id: 'a', date: 'nope', income: [], deductions: [] },
           {
-            month: '2026-02',
+            id: 'b',
+            date: '2026-02-25',
             income: [{ name: 'A', amount: 1 }, { name: 'B', amount: -1 }, 7],
             deductions: 'x',
           },
-          { month: '2026-02', income: [], deductions: [] },
+          { id: 'b', date: '2026-02-25', income: [], deductions: [] },
           {
-            month: '2026-01',
+            date: '2026-01-25',
             income: [
               { id: 'l1', name: 'S', amount: 2 },
               { id: 'l1', name: 'T', amount: 3 },
@@ -45,14 +45,40 @@ describe('parsePaychecks (version 2)', () => {
       },
       TODAY
     );
-    expect(parsed.paychecks.map((p) => p.month)).toEqual(['2026-01', '2026-02']);
+    expect(parsed.paychecks.map((p) => p.date)).toEqual(['2026-01-25', '2026-02-25', '2026-02-25']);
+    expect(new Set(parsed.paychecks.map((p) => p.id)).size).toBe(3);
     expect(parsed.paychecks[1]!.income).toEqual([{ id: 'l1', name: 'A', amount: 1 }]);
-    expect(parsed.paychecks[1]!.deductions).toEqual([]);
     expect(parsed.paychecks[0]!.income.map((l) => l.id)).toEqual(['l1', 'l1_']);
   });
 });
 
-describe('migrating version 1', () => {
+describe('migrating version 2 (one payslip per month)', () => {
+  it('dates each payslip on the last day of its month', () => {
+    const { paychecks } = parsePaychecks(
+      {
+        version: 2,
+        paychecks: [
+          {
+            month: '2026-02',
+            income: [{ id: 'l1', name: 'Salary', amount: 3000 }],
+            deductions: [{ id: 'l1', name: 'Tax', amount: 600 }],
+          },
+          { month: '2026-13', income: [], deductions: [] },
+        ],
+      },
+      TODAY
+    );
+    expect(paychecks).toHaveLength(1);
+    expect(paychecks[0]).toMatchObject({
+      date: '2026-02-28',
+      income: [{ name: 'Salary', amount: 3000 }],
+      deductions: [{ name: 'Tax', amount: 600 }],
+    });
+  });
+});
+
+describe('migrating version 1 (a schedule)', () => {
+  const legacy = (paychecks: unknown[]) => ({ version: 1, paychecks });
   const salary = {
     id: 'p1',
     name: 'Acme',
@@ -67,14 +93,15 @@ describe('migrating version 1', () => {
     until: null,
   };
 
-  it('turns a one-off paycheck into one month, dropping the account', () => {
+  it('turns a one-off paycheck into one dated paycheck, dropping the account', () => {
     const { paychecks } = parsePaychecks(
       legacy([{ ...salary, repeat: 'none', accountId: 7 }]),
       TODAY
     );
     expect(paychecks).toEqual([
       {
-        month: '2026-01',
+        id: 'p1',
+        date: '2026-01-25',
         income: [{ id: 'l1', name: 'Acme', amount: 3000 }],
         deductions: [
           { id: 'l1', name: 'Income tax', amount: 500 },
@@ -84,17 +111,20 @@ describe('migrating version 1', () => {
     ]);
   });
 
-  it('runs an open-ended monthly paycheck up to this month', () => {
-    const months = parsePaychecks(legacy([salary]), TODAY).paychecks.map((p) => p.month);
-    expect(months).toEqual(['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06']);
+  it('makes one paycheck per payment, up to today when open-ended', () => {
+    const dates = parsePaychecks(legacy([salary]), TODAY).paychecks.map((p) => p.date);
+    expect(dates).toEqual(['2026-01-25', '2026-02-25', '2026-03-25', '2026-04-25', '2026-05-25']);
   });
 
-  it('stops at the last payment date', () => {
-    const months = parsePaychecks(legacy([{ ...salary, until: '2026-03-31' }]), TODAY).paychecks;
-    expect(months.map((p) => p.month)).toEqual(['2026-01', '2026-02', '2026-03']);
+  it('stops at the last payment date and keeps the day of month in short months', () => {
+    const dates = parsePaychecks(
+      legacy([{ ...salary, date: '2026-01-31', until: '2026-03-31' }]),
+      TODAY
+    ).paychecks.map((p) => p.date);
+    expect(dates).toEqual(['2026-01-31', '2026-02-28', '2026-03-31']);
   });
 
-  it('adds up weekly payments in a month and treats a missing version as version 1', () => {
+  it('keeps every weekly payment and treats a missing version as version 1', () => {
     const { paychecks } = parsePaychecks(
       {
         paychecks: [
@@ -103,45 +133,18 @@ describe('migrating version 1', () => {
       },
       TODAY
     );
-    expect(paychecks).toHaveLength(1);
-    // 1st, 8th and 15th of June.
-    expect(paychecks[0]!.income[0]!.amount).toBe(300);
-  });
-
-  it('combines two jobs in one month and merges same-named deductions', () => {
-    const { paychecks } = parsePaychecks(
-      legacy([
-        { ...salary, repeat: 'none' },
-        {
-          ...salary,
-          id: 'p2',
-          name: 'Cafe',
-          gross: 400,
-          repeat: 'none',
-          deductions: [{ id: 'x', name: 'income TAX', amount: 20 }],
-        },
-      ]),
-      TODAY
-    );
-    expect(paychecks).toHaveLength(1);
-    expect(paychecks[0]!.income.map((l) => [l.name, l.amount])).toEqual([
-      ['Acme', 3000],
-      ['Cafe', 400],
-    ]);
-    expect(paychecks[0]!.deductions[0]).toMatchObject({ name: 'Income tax', amount: 520 });
+    expect(paychecks.map((p) => p.date)).toEqual(['2026-06-01', '2026-06-08', '2026-06-15']);
   });
 
   it('skips paychecks it cannot read', () => {
     expect(
       parsePaychecks(legacy([{ id: 'p', name: 'x', date: 'bad', gross: 5 }, 3]), TODAY)
-    ).toEqual({
-      paychecks: [],
-    });
+    ).toEqual({ paychecks: [] });
   });
 
-  it('is written back as version 2', () => {
+  it('is written back as version 3', () => {
     const list = parsePaychecks(legacy([{ ...salary, repeat: 'none' }]), TODAY);
-    expect(serializePaychecks(list).version).toBe(2);
+    expect(serializePaychecks(list).version).toBe(3);
     expect(parsePaychecks(serializePaychecks(list), TODAY)).toEqual(list);
   });
 });

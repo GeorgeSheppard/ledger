@@ -143,23 +143,18 @@ export const SHORTCUTS = {
   'transactions.search': { keys: 'f', description: 'Search transactions', scope: 'transactions' },
 
   // Paychecks
-  'paychecks.new': { keys: 'n', description: 'Add a month', scope: 'paychecks' },
-  'paychecks.copy': {
-    keys: 'c',
-    description: 'Copy the last month',
-    scope: 'paychecks',
-  },
-  'paychecks.down': { keys: 'j', description: 'Next month', scope: 'paychecks' },
-  'paychecks.up': { keys: 'k', description: 'Previous month', scope: 'paychecks' },
-  'paychecks.edit': { keys: 'enter', description: 'Edit month', scope: 'paychecks' },
+  'paychecks.new': { keys: 'n', description: 'Add a paycheck', scope: 'paychecks' },
+  'paychecks.down': { keys: 'j', description: 'Next paycheck', scope: 'paychecks' },
+  'paychecks.up': { keys: 'k', description: 'Previous paycheck', scope: 'paychecks' },
+  'paychecks.edit': { keys: 'enter', description: 'Edit paycheck', scope: 'paychecks' },
   'paychecks.delete': {
     keys: 'mod+backspace',
-    description: 'Delete month',
+    description: 'Delete paycheck',
     scope: 'paychecks',
   },
   'paychecks.save': {
     keys: 'mod+enter',
-    description: 'Save month',
+    description: 'Save paycheck',
     scope: 'paychecks',
     allowInInputs: true,
   },
