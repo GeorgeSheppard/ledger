@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import type { LedgerRemote, RemoteState } from '../../lib/store/remote';
+import type { LedgerRemote, LoadProgress, RemoteState } from '../../lib/store/remote';
 import type { Saver } from '../save';
 
 /**
@@ -11,7 +11,7 @@ export interface Connection {
   /** Shown as the spreadsheet name. */
   title: string;
   /** Reads the whole ledger. */
-  load(): Promise<RemoteState>;
+  load(onProgress?: (progress: LoadProgress) => void): Promise<RemoteState>;
   saver: Saver;
 }
 
