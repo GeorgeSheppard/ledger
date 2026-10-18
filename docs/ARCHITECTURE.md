@@ -42,6 +42,7 @@ src/
     Kbd.tsx                    renders a shortcut's keys
     ShortcutHelp.tsx           `?` overlay listing every shortcut
     cn.ts                      class name joiner (clsx + tailwind-merge)
+  storybook/                   providers for stories (real session and store, demo data)
   styles/
     global.css                 Tailwind import, design tokens (light + dark), base styles
   lib/                         pure TypeScript, unit tested
@@ -202,4 +203,10 @@ pnpm dev     # demo data, no Google account needed
 pnpm test    # unit tests for lib/
 pnpm lint
 pnpm build
+pnpm storybook         # components and pages with demo data, on :6006
+pnpm screenshots <id>  # PNG screenshots of stories, for PRs
 ```
+
+Stories (`*.stories.tsx`, next to the component they show) render pages and dialogs through the
+real `SessionProvider` and `LedgerDataProvider` on the demo data, so what you see is what the app
+shows. See [STORYBOOK.md](STORYBOOK.md), including how to put before/after images on a PR.
