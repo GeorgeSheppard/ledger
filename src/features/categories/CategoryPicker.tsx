@@ -7,6 +7,7 @@ import {
 } from '../../lib/categories/categories';
 import type { Category } from '../../lib/domain/types';
 import { cn } from '../../ui/cn';
+import { FloatingPanel } from '../../ui/FloatingPanel';
 import { TextInput } from '../../ui/TextInput';
 
 const OPTION = 'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm';
@@ -51,6 +52,7 @@ export function CategoryPicker({
   const [query, setQuery] = useState(value);
   const [active, setActive] = useState(0);
   const [creating, setCreating] = useState(false);
+  const [anchor, setAnchor] = useState<HTMLDivElement | null>(null);
 
   const options = useMemo<Option[]>(() => {
     const matches = searchCategories(categories, open ? query : '');
@@ -117,7 +119,7 @@ export function CategoryPicker({
   const shownColor = value.trim() && !open ? categoryColor(allCategories, value) : undefined;
 
   return (
-    <div className="relative min-w-0">
+    <div ref={setAnchor} className="relative min-w-0">
       {shownColor && (
         <span
           className="pointer-events-none absolute top-1/2 left-2.5 size-2 -translate-y-1/2 rounded-full"
@@ -157,51 +159,56 @@ export function CategoryPicker({
         onKeyDown={onKeyDown}
       />
       {open && (
-        <ul
-          id={listId}
-          role="listbox"
-          className="absolute top-full left-0 z-20 mt-1 max-h-64 w-max max-w-72 min-w-full overflow-y-auto rounded-lg border border-line bg-surface p-1 shadow-lg"
+        <FloatingPanel
+          anchor={anchor}
+          onDismiss={close}
+          matchWidth
+          maxHeight="16rem"
+          dismissOnScroll={false}
+          className="max-w-72 p-1"
         >
-          {options.map((option, i) => (
-            <li
-              key={option.kind === 'category' ? option.category.name : option.kind}
-              id={`${listId}-${i}`}
-              role="option"
-              aria-selected={i === active}
-              className={cn(
-                OPTION,
-                i === active && 'bg-surface-hover',
-                option.kind === 'create' && 'text-accent'
-              )}
-              onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => setActive(i)}
-              onClick={() => void pick(option)}
-            >
-              {option.kind === 'none' && <span className="text-muted">No category</span>}
-              {option.kind === 'category' && (
-                <>
-                  <span
-                    className="size-2.5 flex-none rounded-full"
-                    style={{ background: option.category.color }}
-                    aria-hidden="true"
-                  />
-                  {option.category.name}
-                </>
-              )}
-              {option.kind === 'create' && (
-                <>
-                  <span className="w-2.5 text-center font-semibold" aria-hidden="true">
-                    +
-                  </span>
-                  Add “{option.name}”
-                </>
-              )}
-            </li>
-          ))}
-          {options.length === 0 && (
-            <li className={cn(OPTION, 'cursor-default text-muted')}>No matches</li>
-          )}
-        </ul>
+          <ul id={listId} role="listbox">
+            {options.map((option, i) => (
+              <li
+                key={option.kind === 'category' ? option.category.name : option.kind}
+                id={`${listId}-${i}`}
+                role="option"
+                aria-selected={i === active}
+                className={cn(
+                  OPTION,
+                  i === active && 'bg-surface-hover',
+                  option.kind === 'create' && 'text-accent'
+                )}
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseEnter={() => setActive(i)}
+                onClick={() => void pick(option)}
+              >
+                {option.kind === 'none' && <span className="text-muted">No category</span>}
+                {option.kind === 'category' && (
+                  <>
+                    <span
+                      className="size-2.5 flex-none rounded-full"
+                      style={{ background: option.category.color }}
+                      aria-hidden="true"
+                    />
+                    {option.category.name}
+                  </>
+                )}
+                {option.kind === 'create' && (
+                  <>
+                    <span className="w-2.5 text-center font-semibold" aria-hidden="true">
+                      +
+                    </span>
+                    Add “{option.name}”
+                  </>
+                )}
+              </li>
+            ))}
+            {options.length === 0 && (
+              <li className={cn(OPTION, 'cursor-default text-muted')}>No matches</li>
+            )}
+          </ul>
+        </FloatingPanel>
       )}
     </div>
   );

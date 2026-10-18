@@ -5,6 +5,9 @@
 //   pnpm screenshots pages-dashboard--sankey --scheme dark --out /tmp/shots
 //   pnpm screenshots all --no-build              every story, reusing the last build
 //
+// Also fails (exit code 1) when a story's play function throws, so it doubles as a check of the
+// interactions in the stories.
+//
 // Uses the Chromium that is already installed (set CHROMIUM_PATH if it is somewhere else); it never
 // downloads a browser.
 import { execFileSync } from 'node:child_process';
@@ -110,6 +113,20 @@ try {
     });
     for (const story of chosen) {
       const page = await context.newPage();
+      // A story's play function runs in the page; if its assertions throw (a popover covered or
+      // clipped, say) Storybook only says so on its channel, so catch that and fail the run.
+      await page.addInitScript(() => {
+        window.__storyFailures = [];
+        const timer = setInterval(() => {
+          const channel = window.__STORYBOOK_ADDONS_CHANNEL__;
+          if (!channel) return;
+          clearInterval(timer);
+          for (const event of ['playFunctionThrewException', 'storyThrewException', 'storyErrored'])
+            channel.on(event, (error) =>
+              window.__storyFailures.push(String(error?.message ?? error))
+            );
+        }, 5);
+      });
       page.on('pageerror', (error) => console.warn(`  [${story.id}] ${error.message}`));
       await page.goto(`${base}/iframe.html?id=${story.id}&viewMode=story`);
       // Storybook adds this class when a story failed to render.
@@ -118,6 +135,11 @@ try {
       });
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(400); // charts and the play function settle
+      const failures = await page.evaluate(() => window.__storyFailures);
+      for (const message of failures) {
+        console.error(`  [${story.id}] FAILED: ${message}`);
+        process.exitCode = 1;
+      }
       const file = join(options.out, `${story.id}.${colorScheme}.png`);
       // A modal's backdrop and position are tied to the viewport, so a full-page capture would
       // leave it grey over the first screen only. Capture just the viewport when one is open.

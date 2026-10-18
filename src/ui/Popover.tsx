@@ -1,6 +1,6 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useId, useState, type ReactNode } from 'react';
 import { cn } from './cn';
+import { FloatingPanel } from './FloatingPanel';
 
 interface PopoverProps {
   /** Accessible name of the button, e.g. "Filter by date". */
@@ -19,8 +19,8 @@ interface PopoverProps {
 }
 
 /**
- * A button that opens a small panel of controls under it (a filter, say). The panel is portaled to
- * <body> like `Menu`'s list, so a virtualised or clipped parent cannot hide it. Escape or a click
+ * A button that opens a small panel of controls under it (a filter, say). It is a `FloatingPanel`, so a
+ * virtualised or clipped parent cannot hide it. Escape or a click
  * outside closes it and puts focus back on the button.
  */
 export function Popover({
@@ -33,47 +33,9 @@ export function Popover({
   alignRight,
   className,
 }: PopoverProps) {
-  const root = useRef<HTMLDivElement>(null);
-  const button = useRef<HTMLButtonElement>(null);
-  const box = useRef<HTMLDivElement>(null);
-  const [place, setPlace] = useState<{ top: number; left?: number; right?: number }>();
+  const [button, setButton] = useState<HTMLButtonElement | null>(null);
   const id = useId();
-
-  useLayoutEffect(() => {
-    if (!open) return;
-    const rect = button.current!.getBoundingClientRect();
-    const width = box.current?.offsetWidth ?? 0;
-    const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
-    setPlace({
-      top: rect.bottom + 4,
-      ...(alignRight ? { right: Math.max(8, window.innerWidth - rect.right) } : { left }),
-    });
-  }, [open, alignRight]);
-
-  useEffect(() => {
-    if (!open) return;
-    box.current?.querySelector<HTMLElement>('input:not(:disabled), button:not(:disabled)')?.focus();
-    const away = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (!root.current?.contains(target) && !box.current?.contains(target)) onOpenChange(false);
-    };
-    // Scrolling the page would leave the panel behind; scrolling inside it is fine.
-    const scrolled = (event: Event) => {
-      if (!box.current?.contains(event.target as Node)) onOpenChange(false);
-    };
-    const width = window.innerWidth;
-    const resized = () => {
-      if (window.innerWidth !== width) onOpenChange(false);
-    };
-    document.addEventListener('pointerdown', away);
-    window.addEventListener('scroll', scrolled, true);
-    window.addEventListener('resize', resized);
-    return () => {
-      document.removeEventListener('pointerdown', away);
-      window.removeEventListener('scroll', scrolled, true);
-      window.removeEventListener('resize', resized);
-    };
-  }, [open, onOpenChange]);
+  const dismiss = useCallback(() => onOpenChange(false), [onOpenChange]);
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     if (!open) return;
@@ -81,14 +43,14 @@ export function Popover({
     if (event.key === 'Escape') {
       event.nativeEvent.stopPropagation();
       onOpenChange(false);
-      button.current?.focus();
+      button?.focus();
     }
   };
 
   return (
-    <div ref={root} className={cn('relative inline-flex', className)} onKeyDown={onKeyDown}>
+    <div className={cn('inline-flex', className)} onKeyDown={onKeyDown}>
       <button
-        ref={button}
+        ref={setButton}
         type="button"
         aria-label={label}
         aria-haspopup="dialog"
@@ -105,21 +67,23 @@ export function Popover({
       >
         {children}
       </button>
-      {open &&
-        createPortal(
-          <div
-            ref={box}
-            id={id}
-            role="dialog"
-            aria-label={label}
-            className="fixed z-50 w-max max-w-[calc(100vw-1rem)] rounded-lg border border-line bg-surface p-3 text-sm font-normal tracking-normal text-fg normal-case shadow-lg"
-            style={{ ...place, visibility: place ? undefined : 'hidden' }}
-            onKeyDown={onKeyDown}
-          >
-            {panel}
-          </div>,
-          document.body
-        )}
+      {open && (
+        <FloatingPanel
+          anchor={button}
+          onDismiss={dismiss}
+          placement={alignRight ? 'bottom-end' : 'bottom-start'}
+          id={id}
+          role="dialog"
+          aria-label={label}
+          className="p-3 text-sm font-normal tracking-normal text-fg normal-case"
+          onKeyDown={onKeyDown}
+          onPlaced={(panel) =>
+            panel.querySelector<HTMLElement>('input:not(:disabled), button:not(:disabled)')?.focus()
+          }
+        >
+          {panel}
+        </FloatingPanel>
+      )}
     </div>
   );
 }
