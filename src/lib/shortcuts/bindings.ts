@@ -136,6 +136,11 @@ export const SHORTCUTS = {
     description: 'Delete selected rows',
     scope: 'transactions',
   },
+  'transactions.selectAll': {
+    keys: 'shift+a',
+    description: 'Select every shown row',
+    scope: 'transactions',
+  },
   'transactions.search': { keys: 'f', description: 'Search transactions', scope: 'transactions' },
 
   // Paychecks

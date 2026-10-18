@@ -29,23 +29,26 @@ export function AppProviders({ route = '/', children }: { route?: string; childr
 function Seed({
   dashboard,
   creditCard,
+  bigAccount,
   children,
 }: {
   dashboard?: DashboardConfig;
   creditCard?: boolean;
+  bigAccount?: number;
   children: ReactNode;
 }) {
   const repository = useRepository();
-  const [ready, setReady] = useState(!dashboard && !creditCard);
+  const [ready, setReady] = useState(!dashboard && !creditCard && !bigAccount);
   useEffect(() => {
-    if (!dashboard && !creditCard) return;
+    if (!dashboard && !creditCard && !bigAccount) return;
     (async () => {
+      if (bigAccount) await addBigAccount(repository, bigAccount);
       if (dashboard)
         await repository.saveDashboardConfig(serializeDashboard(dashboard) as unknown as JsonValue);
       if (creditCard) await addCreditCard(repository);
       setReady(true);
     })();
-  }, [repository, dashboard, creditCard]);
+  }, [repository, dashboard, creditCard, bigAccount]);
   return ready ? children : null;
 }
 
@@ -63,6 +66,26 @@ async function addCreditCard(repository: ReturnType<typeof useRepository>) {
 }
 
 export const CREDIT_CARD_NAME = 'Credit card';
+export const BIG_ACCOUNT_NAME = 'Big account';
+
+/** An account with `count` transactions spread over the last few years, for scrolling and selecting. */
+async function addBigAccount(repository: ReturnType<typeof useRepository>, count: number) {
+  const account = await repository.createAccount(BIG_ACCOUNT_NAME);
+  const notes = ['Supermarket', 'Coffee', 'Train', 'Pharmacy', 'Restaurant', 'Fuel', 'Books'];
+  const categories = ['Groceries', 'Eating out', 'Travel', 'Health', 'Fun', ''];
+  const start = Date.UTC(2022, 0, 1);
+  await repository.addTransactions(
+    account.id,
+    Array.from({ length: count }, (_, i) => ({
+      date: new Date(start + Math.floor((i * 1700) / count) * 86_400_000)
+        .toISOString()
+        .slice(0, 10),
+      category: categories[i % categories.length]!,
+      amount: i % 40 === 0 ? 2400 : -(((i * 37) % 9000) / 100 + 1),
+      note: `${notes[i % notes.length]} ${i + 1}`,
+    }))
+  );
+}
 
 interface ConnectedProps {
   route?: string;
@@ -70,6 +93,8 @@ interface ConnectedProps {
   dashboard?: DashboardConfig;
   /** Adds an inverted "Credit card" account (purchases positive) to the demo spreadsheet. */
   creditCard?: boolean;
+  /** Adds a "Big account" with this many transactions. */
+  bigAccount?: number;
   /** Wraps `children` in the sidebar and header, as pages are in the app. */
   shell?: boolean;
   children: ReactNode;
@@ -80,13 +105,14 @@ export function Connected({
   route = '/',
   dashboard,
   creditCard,
+  bigAccount,
   shell = false,
   children,
 }: ConnectedProps) {
   return (
     <AppProviders route={route}>
       <LedgerDataProvider>
-        <Seed dashboard={dashboard} creditCard={creditCard}>
+        <Seed dashboard={dashboard} creditCard={creditCard} bigAccount={bigAccount}>
           {shell ? <AppShell>{children}</AppShell> : children}
         </Seed>
       </LedgerDataProvider>

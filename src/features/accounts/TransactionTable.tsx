@@ -1,9 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { addCategory } from '../../lib/categories/categories';
 import type { Account, Category, Transaction } from '../../lib/domain/types';
 import { formatAmount } from '../../lib/transactions/amount';
 import { formatMonth, todayIso } from '../../lib/transactions/dates';
-import { groupByMonth, selectionAfterDelete } from '../../lib/transactions/display';
+import {
+  flattenGroups,
+  groupByMonth,
+  selectionAfterDelete,
+  type ListItem,
+} from '../../lib/transactions/display';
 import { transactionKey } from '../../lib/transactions/duplicates';
 import {
   draftFromTransaction,
@@ -49,8 +54,9 @@ import { DeleteConfirm } from './DeleteConfirm';
 import { TransactionEditor } from './TransactionEditor';
 import { TransactionFilterPanel } from './TransactionFilterPanel';
 import { TransactionRow } from './TransactionRow';
-import { TRANSACTION_GRID } from './rowStyles';
+import { MONTH_HEIGHT, ROW_HEIGHT, TRANSACTION_GRID } from './rowStyles';
 import { useAccountActions } from './useAccountsData';
+import { useWindowedList } from './useWindowedList';
 
 interface TransactionTableProps {
   account: Account;
@@ -80,9 +86,13 @@ const COLUMNS: { key: SortKey; label: string; align?: 'right' }[] = [
 
 /**
  * The account's transactions, newest first and grouped by month until a column is sorted.
- * Clicking a cell edits that row at once. Ctrl/⌘+click, Shift+click and the checkboxes select rows
- * (J/K move the selection, Delete removes it). The search box and filter panel narrow the list; the
- * menu at the end of each row has the common "show me…" actions. Render with `key={account.id}` so
+ * A click selects a row; clicking the row that is the only one selected (or double-clicking) edits
+ * it. Ctrl/⌘+click and Shift+click extend the selection, J/K move it, Shift+A selects everything
+ * shown and Delete removes the selection. The search box and filter panel narrow the list; the menu
+ * at the end of each row has the common "show me…" actions.
+ *
+ * Only the rows near the viewport are in the DOM (see `useWindowedList`), so a sheet with tens of
+ * thousands of rows costs the same to show as one with fifty. Render with `key={account.id}` so
  * switching accounts starts fresh.
  */
 export function TransactionTable({
@@ -101,7 +111,6 @@ export function TransactionTable({
   const [filters, setFilters] = useState<TransactionFilters>(noFilters);
   const [sort, setSort] = useState<Sort>(defaultSort);
   const [panelOpen, setPanelOpen] = useState(false);
-  const listRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const shown = useMemo(
@@ -117,22 +126,57 @@ export function TransactionTable({
 
   // Rows that were deleted or filtered out leave the selection.
   const selection = useMemo(() => pruneSelection(chosen, shownIds), [chosen, shownIds]);
+  const selectedSet = useMemo(() => new Set(selection.ids), [selection.ids]);
   const selectedRows = useMemo(
-    () => shown.filter((t) => selection.ids.includes(t.id)),
-    [shown, selection.ids]
+    () => shown.filter((t) => selectedSet.has(t.id)),
+    [shown, selectedSet]
   );
   const editingRow = mode.kind === 'edit' ? mode.id : null;
   const isEditing = mode.kind !== 'browse';
   const busy = isEditing || saving || paused;
   const browsing = !isEditing && !paused;
 
+  const mobile = useMediaQuery('(max-width: 767px)');
+  const [editorHeight, setEditorHeight] = useState(EDITOR_ESTIMATE);
+  const items = useMemo<ListItem[]>(
+    () =>
+      grouped ? flattenGroups(groups) : shown.map((transaction) => ({ kind: 'row', transaction })),
+    [grouped, groups, shown]
+  );
+  const heights = useMemo(() => {
+    const row = mobile ? ROW_HEIGHT.mobile : ROW_HEIGHT.desktop;
+    return items.map((item) =>
+      item.kind === 'month' ? MONTH_HEIGHT : item.transaction.id === editingRow ? editorHeight : row
+    );
+  }, [items, mobile, editingRow, editorHeight]);
+  const { listRef, layout, range, reveal } = useWindowedList(heights);
+  const editingIndex = useMemo(
+    () =>
+      editingRow === null
+        ? -1
+        : items.findIndex((item) => item.kind === 'row' && item.transaction.id === editingRow),
+    [items, editingRow]
+  );
+
+  // Keyboard moves and new rows scroll the selection into view. Selecting from the mouse or
+  // selecting everything must not move the page, so those leave `revealKey` alone.
+  const [revealKey, setRevealKey] = useState(0);
   const cursor = selection.ids.at(-1);
+  const latest = useRef({ items, cursor, reveal });
   useEffect(() => {
-    if (!cursor) return;
-    listRef.current
-      ?.querySelector(`[data-row-id="${CSS.escape(cursor)}"]`)
-      ?.scrollIntoView({ block: 'nearest' });
-  }, [cursor, mode.kind]);
+    latest.current = { items, cursor, reveal };
+  });
+  useEffect(() => {
+    if (revealKey === 0) return;
+    const { items: current, cursor: id, reveal: scroll } = latest.current;
+    if (!id) return;
+    const index = current.findIndex((item) => item.kind === 'row' && item.transaction.id === id);
+    if (index !== -1) scroll(index);
+  }, [revealKey]);
+  const selectAndReveal = (next: Selection) => {
+    setSelection(next);
+    setRevealKey((k) => k + 1);
+  };
 
   const beginEditing = (draft: TransactionDraft, focusField: DraftField) =>
     setEditing({ draft, original: draft, errors: {}, focusField, focusKey: 0 });
@@ -168,7 +212,7 @@ export function TransactionTable({
     try {
       if (mode.kind === 'new') {
         const added = await actions.addTransaction(account.id, result.input);
-        setSelection(selectOnly(added?.id ?? null));
+        selectAndReveal(selectOnly(added?.id ?? null));
       } else if (mode.kind === 'edit') {
         const row = transactions.find((t) => t.id === mode.id)?.row;
         if (row === undefined) throw new Error('This transaction no longer exists.');
@@ -243,6 +287,13 @@ export function TransactionTable({
     void commit().then(apply);
   };
 
+  const activate = (transaction: Transaction, field: DraftField, modifiers: ClickModifiers) => {
+    if (modifiers.toggle || modifiers.range) return select(transaction, modifiers);
+    if (selectedSet.has(transaction.id) && selection.ids.length === 1)
+      return void open(transaction, field);
+    select(transaction, {});
+  };
+
   const sortBy = (key: SortKey) => setSort((current) => nextSort(current, key));
 
   const remove = async () => {
@@ -277,7 +328,7 @@ export function TransactionTable({
     try {
       const { date, category, amount, note } = transaction;
       const added = await actions.addTransaction(account.id, { date, category, amount, note });
-      setSelection(selectOnly(added?.id ?? null));
+      selectAndReveal(selectOnly(added?.id ?? null));
     } catch (error) {
       setWriteError(error instanceof Error ? error.message : String(error));
     }
@@ -337,15 +388,13 @@ export function TransactionTable({
     await actions.saveCategories(addCategory(categories, name));
   };
 
+  const move = (delta: number) => selectAndReveal(moveSelection(selection, shownIds, delta));
+  useShortcut('transactions.down', () => move(1), browsing);
+  useShortcut('transactions.up', () => move(-1), browsing);
   useShortcut(
-    'transactions.down',
-    () => setSelection((s) => moveSelection(s, shownIds, 1)),
-    browsing
-  );
-  useShortcut(
-    'transactions.up',
-    () => setSelection((s) => moveSelection(s, shownIds, -1)),
-    browsing
+    'transactions.selectAll',
+    () => setSelection(selectAll(shownIds)),
+    browsing && shown.length > 0
   );
   useShortcut('transactions.edit', editSelected, browsing && selectedRows.length === 1);
   useShortcut(
@@ -374,27 +423,53 @@ export function TransactionTable({
     />
   );
 
-  const renderRow = (transaction: Transaction) => {
+  const renderItem = (index: number) => {
+    const item = items[index];
+    if (!item) return null;
+    const style = { position: 'absolute', top: layout.offsets[index], left: 0, right: 0 } as const;
+    if (item.kind === 'month')
+      return (
+        <div
+          key={`month-${item.key}`}
+          role="presentation"
+          className="flex items-end justify-between bg-canvas px-3 pb-2 text-[0.8125rem]"
+          style={{ ...style, height: MONTH_HEIGHT }}
+        >
+          <span className="font-semibold">{formatMonth(item.key)}</span>
+          <span className="flex gap-3 text-xs text-muted tabular-nums">
+            {item.moneyIn > 0 && (
+              <span className="text-positive">{formatAmount(item.moneyIn, { signed: true })}</span>
+            )}
+            {item.moneyOut < 0 && <span>{formatAmount(item.moneyOut)}</span>}
+          </span>
+        </div>
+      );
+    const { transaction } = item;
     if (editingRow === transaction.id)
       return (
-        <div key={transaction.id} data-row-id={transaction.id}>
-          {editor}
+        <div key={transaction.id} data-row-id={transaction.id} style={style}>
+          <Measured onHeight={setEditorHeight}>{editor}</Measured>
         </div>
       );
     return (
-      <TransactionRow
-        key={transaction.id}
-        transaction={transaction}
-        categories={categories}
-        selected={selection.ids.includes(transaction.id)}
-        onOpen={(t, field) => void open(t, field)}
-        onSelect={select}
-        menuItems={menuFor(transaction)}
-      />
+      <div key={transaction.id} style={{ ...style, height: heights[index] }}>
+        <TransactionRow
+          transaction={transaction}
+          categories={categories}
+          selected={selectedSet.has(transaction.id)}
+          onActivate={activate}
+          menuItems={menuFor(transaction)}
+        />
+      </div>
     );
   };
 
-  const allSelected = shown.length > 0 && selectedRows.length === shown.length;
+  // The row being edited stays rendered even when scrolled out of the window, so it keeps focus.
+  const rendered: number[] = [];
+  for (let i = range.start; i < range.end; i++) rendered.push(i);
+  if (editingIndex !== -1 && (editingIndex < range.start || editingIndex >= range.end))
+    rendered.push(editingIndex);
+
   const filterCount = countFilters(filters);
 
   return (
@@ -416,9 +491,19 @@ export function TransactionTable({
         >
           {selectedRows.length > 1 ? `Delete ${selectedRows.length}` : 'Delete'}
         </ActionButton>
-        {selection.ids.length > 0 && (
-          <span className="inline-flex items-center gap-2 text-sm text-muted">
-            {selection.ids.length} selected
+        <span className="inline-flex items-center gap-2 text-sm text-muted">
+          {selection.ids.length > 0 && <>{selection.ids.length.toLocaleString()} selected</>}
+          {selection.ids.length < shown.length && (
+            <button
+              type="button"
+              className="inline-flex cursor-pointer items-center gap-1.5 underline hover:text-fg disabled:cursor-default disabled:no-underline disabled:opacity-50"
+              disabled={!browsing}
+              onClick={() => setSelection(selectAll(shownIds))}
+            >
+              Select all <Kbd shortcut="transactions.selectAll" className="max-md:hidden" />
+            </button>
+          )}
+          {selection.ids.length > 0 && (
             <button
               type="button"
               className="cursor-pointer underline hover:text-fg"
@@ -426,10 +511,10 @@ export function TransactionTable({
             >
               Clear
             </button>
-          </span>
-        )}
+          )}
+        </span>
         <div className="ml-auto flex items-center gap-2">
-          <div className="relative">
+          <div className="relative flex items-center">
             <TextInput
               ref={searchRef}
               type="search"
@@ -445,7 +530,7 @@ export function TransactionTable({
                 else e.currentTarget.blur();
               }}
             />
-            <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 max-md:hidden">
+            <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center max-md:hidden">
               <Kbd shortcut="transactions.search" />
             </span>
           </div>
@@ -521,16 +606,6 @@ export function TransactionTable({
         )}
         role="row"
       >
-        <span role="columnheader" className="flex items-center">
-          <input
-            type="checkbox"
-            className="size-4 cursor-pointer accent-accent"
-            aria-label="Select all shown transactions"
-            checked={allSelected}
-            disabled={shown.length === 0 || isEditing}
-            onChange={() => setSelection(allSelected ? noSelection : selectAll(shownIds))}
-          />
-        </span>
         {COLUMNS.map((column) => {
           const active = sort.key === column.key;
           return (
@@ -559,7 +634,7 @@ export function TransactionTable({
         <span role="columnheader" aria-hidden="true" />
       </div>
 
-      <div className="flex flex-col pt-2" role="rowgroup" ref={listRef}>
+      <div className="flex flex-col pt-2" role="rowgroup">
         {mode.kind === 'new' && editor}
         {transactions.length === 0 && mode.kind !== 'new' && (
           <div className="flex flex-col items-center gap-1 px-4 py-8 text-center text-muted">
@@ -577,28 +652,40 @@ export function TransactionTable({
             </ActionButton>
           </div>
         )}
-        {grouped
-          ? groups.map((group) => (
-              <div key={group.key} className="group" role="presentation">
-                <div
-                  className="sticky top-0 z-1 mt-4 flex items-baseline justify-between bg-canvas px-3 py-2 text-[0.8125rem] group-first:mt-0"
-                  role="presentation"
-                >
-                  <span className="font-semibold">{formatMonth(group.key)}</span>
-                  <span className="flex gap-3 text-xs text-muted tabular-nums">
-                    {group.moneyIn > 0 && (
-                      <span className="text-positive">
-                        {formatAmount(group.moneyIn, { signed: true })}
-                      </span>
-                    )}
-                    {group.moneyOut < 0 && <span>{formatAmount(group.moneyOut)}</span>}
-                  </span>
-                </div>
-                {group.transactions.map(renderRow)}
-              </div>
-            ))
-          : shown.map(renderRow)}
+        <div ref={listRef} className="relative" style={{ height: layout.total }}>
+          {rendered.map(renderItem)}
+        </div>
       </div>
     </section>
   );
+}
+
+/** Until the editor has been measured: roughly its height with the footer, in pixels. */
+const EDITOR_ESTIMATE = 128;
+
+/** Reports its content's height, so the windowed list can make room for the open editor. */
+function Measured({ onHeight, children }: { onHeight(height: number): void; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const report = () => onHeight(element.offsetHeight);
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [onHeight]);
+  return <div ref={ref}>{children}</div>;
+}
+
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const list = window.matchMedia(query);
+    const update = () => setMatches(list.matches);
+    update();
+    list.addEventListener('change', update);
+    return () => list.removeEventListener('change', update);
+  }, [query]);
+  return matches;
 }

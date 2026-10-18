@@ -77,3 +77,19 @@ describe('other selection helpers', () => {
     expect(moveSelection(selectOnly('a'), [], 1).ids).toEqual(['a']);
   });
 });
+
+describe('a very large selection', () => {
+  const ids = Array.from({ length: 100_000 }, (_, i) => `1:${i + 2}`);
+
+  it('selects, prunes and extends without slowing down', () => {
+    const started = performance.now();
+    const all = selectAll(ids);
+    expect(all.ids).toHaveLength(100_000);
+    expect(pruneSelection(all, ids)).toBe(all);
+    expect(pruneSelection(all, ids.slice(0, 50_000)).ids).toHaveLength(50_000);
+    expect(
+      clickSelection(selectOnly(ids[0]!), ids, ids[99_999]!, { range: true }).ids
+    ).toHaveLength(100_000);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+});

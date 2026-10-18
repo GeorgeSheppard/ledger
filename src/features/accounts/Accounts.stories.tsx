@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Navigate, Route, Routes } from 'react-router';
 import { paths } from '../../app/paths';
 import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test';
-import { CREDIT_CARD_NAME, Connected } from '../../storybook/providers';
+import { BIG_ACCOUNT_NAME, CREDIT_CARD_NAME, Connected } from '../../storybook/providers';
 import { useLedger } from '../../state/ledgerData';
 import { AccountsOverviewPage } from './AccountsOverviewPage';
 import { AccountsPage } from './AccountsPage';
@@ -46,23 +46,28 @@ const rowsOf = (canvasElement: HTMLElement) =>
     .findAllByRole('row')
     .then((rows) => rows.filter((r) => r.dataset.rowId));
 
-/** Clicking a cell opens that row for editing straight away; there is no Edit button. */
+/** A click selects a row; clicking the selected row again (or double-clicking) opens it for editing. */
 export const EditOnClick: Story = {
   render: AccountRoute,
   play: async ({ canvasElement }) => {
-    const [first] = await rowsOf(canvasElement);
-    await userEvent.click(within(first!).getByText('Dinner'));
-    await within(canvasElement).findByRole('textbox', { name: 'Note' });
+    const canvas = within(canvasElement);
+    const [dinner] = await canvas.findAllByText('Dinner');
+    await userEvent.click(dinner!);
+    await expect(canvas.queryByRole('textbox', { name: 'Note' })).toBeNull();
+    await userEvent.click(dinner!);
+    await canvas.findByRole('textbox', { name: 'Note' });
   },
 };
 
-/** Ctrl/⌘+click and Shift+click select several rows; Delete is enabled once something is selected. */
+/** Click, Shift+click and Ctrl/⌘+click select several rows; Delete is enabled once something is selected. */
 export const SelectedRows: Story = {
   render: AccountRoute,
   play: async ({ canvasElement }) => {
     const rows = await rowsOf(canvasElement);
-    await userEvent.click(within(rows[0]!).getByRole('checkbox'));
-    fireEvent.click(within(rows[2]!).getByRole('checkbox'), { shiftKey: true });
+    await userEvent.click(within(rows[0]!).getByText(/./, { selector: '[data-field="note"]' }));
+    fireEvent.click(within(rows[2]!).getByText(/./, { selector: '[data-field="note"]' }), {
+      shiftKey: true,
+    });
     fireEvent.click(within(rows[7]!).getByText('Monthly rent'), { ctrlKey: true });
   },
 };
@@ -165,4 +170,53 @@ export const RenameInPlace: Story = {
       await within(canvasElement).findByRole('button', { name: 'Current account' })
     );
   },
+};
+
+function OpenByName({ name }: { name: string }) {
+  const found = useLedger().accounts.find((a) => a.name === name);
+  return found ? <Navigate to={paths.account(found.id)} replace /> : null;
+}
+
+/** 20,000 transactions: only the rows near the viewport are rendered, so it opens and scrolls like a short one. */
+export const LargeAccount: Story = {
+  render: () => (
+    <Connected shell bigAccount={20_000} route="/open-big">
+      <Routes>
+        <Route path="/open-big" element={<OpenByName name={BIG_ACCOUNT_NAME} />} />
+        <Route path="/accounts/:accountId" element={<AccountsPage />} />
+      </Routes>
+    </Connected>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByText('Big account');
+    await userEvent.click(await canvas.findByRole('button', { name: /^Select all/ }));
+    await expect(await canvas.findByText('20,000 selected')).toBeTruthy();
+    // Selecting everything leaves the page where it was.
+    await expect(window.scrollY).toBeLessThan(100);
+    await expect((await rowsOf(canvasElement)).length).toBeLessThan(60);
+  },
+};
+
+/** The overview sorted by balance, highest first. */
+export const OverviewSorted: Story = {
+  render: () => (
+    <Connected shell creditCard route="/accounts">
+      <AccountsOverviewPage />
+    </Connected>
+  ),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(await within(canvasElement).findByRole('button', { name: 'Balance' }));
+  },
+};
+
+/** The account's Settings tab, where "Credit card or loan" lives. */
+export const Settings: Story = {
+  render: () => (
+    <Connected shell route="/accounts/1?tab=settings">
+      <Routes>
+        <Route path="/accounts/:accountId" element={<AccountsPage />} />
+      </Routes>
+    </Connected>
+  ),
 };
