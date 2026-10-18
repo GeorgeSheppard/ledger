@@ -218,7 +218,7 @@ with `file: true` only so the shell can say "File" and "Close".
   `isFile` turns off autosave, replaces Save with Download, and warns before the tab closes with
   changes that were not downloaded. Nothing from a file is kept in IndexedDB.
 - Downloading rebuilds from the original file's bytes and rewrites only the tabs Ledger owns (account
-  tabs, `_Categories`, `_Dashboard`). Every other tab, including `_` tabs added by other features,
+  tabs, `_Categories`, `_Dashboard`, `_Paychecks`). Every other tab, including `_` tabs added by other features,
   comes back as it was. A feature that adds a new `_` tab to the store needs to teach `writeWorkbook`
   (`src/lib/files/workbook.ts`) and the Sheets remote how to write it.
 - ExcelJS is loaded with a dynamic import, so it is a separate chunk that Google users never fetch.

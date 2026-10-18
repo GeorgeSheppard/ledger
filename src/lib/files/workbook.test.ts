@@ -29,7 +29,7 @@ async function userWorkbook(): Promise<ArrayBuffer> {
     ['Item', 'Planned'],
     ['Food', 300],
   ]);
-  const paycheck = book.addWorksheet('_Paychecks');
+  const paycheck = book.addWorksheet('_Notes');
   paycheck.addRows([
     ['Gross', 'Tax'],
     [3000, { formula: 'A2*0.2', result: 600 }],
@@ -64,12 +64,14 @@ describe('writing a workbook', () => {
   it('round-trips the ledger tabs in the Sheets format', async () => {
     const data = fixtureData();
     data.dashboard = { version: 1, widgets: [] };
+    data.paychecks = { version: 1, paychecks: [] };
     const bytes = await writeWorkbook(null, [], data);
     const state = ledgerFromTabs(await readWorkbookTabs(bytes));
     expect(state.data.accounts.map((a) => a.name)).toEqual(['Current account', 'Savings']);
     expect(Object.values(state.data.rows)).toEqual(data.accounts.map((a) => data.rows[a.id]));
     expect(state.data.categories).toEqual(data.categories);
     expect(state.data.dashboard).toEqual(data.dashboard);
+    expect(state.data.paychecks).toEqual(data.paychecks);
   });
 
   it('writes dates as date cells and Total as a running SUM formula', async () => {
@@ -83,6 +85,7 @@ describe('writing a workbook', () => {
       'Current account',
       'Savings',
       '_Categories',
+      '_Paychecks',
     ]);
   });
 
@@ -102,10 +105,10 @@ describe('writing a workbook', () => {
     expect(book.worksheets.map((w) => w.name)).toEqual([
       'Current',
       'Budget 2026',
-      '_Paychecks',
+      '_Notes',
       '_Categories',
     ]);
-    expect(book.getWorksheet('_Paychecks')!.getCell('B2').value).toMatchObject({
+    expect(book.getWorksheet('_Notes')!.getCell('B2').value).toMatchObject({
       formula: 'A2*0.2',
     });
     expect(book.getWorksheet('Budget 2026')!.getCell('B2').value).toBe(300);

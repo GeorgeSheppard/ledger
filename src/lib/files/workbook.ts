@@ -1,6 +1,6 @@
 import type { Cell, CellValue, Workbook, Worksheet } from 'exceljs';
 import type { LedgerData } from '../store/ledgerData';
-import { ACCOUNT_COLUMNS, CATEGORIES_TAB } from '../domain/types';
+import { ACCOUNT_COLUMNS, CATEGORIES_TAB, PAYCHECKS_TAB } from '../domain/types';
 import { DASHBOARD_TAB, parseSpreadsheet } from '../google/sheetsRemote';
 import { DATE_FORMAT } from '../google/sheetFormat';
 import type { RemoteState } from '../store/remote';
@@ -20,7 +20,6 @@ import { runningTotals } from '../transactions/runningTotal';
 /** Columns read from each tab: Date to Total, plus one spare to spot extra columns in the header. */
 const READ_COLUMNS = ACCOUNT_COLUMNS.length + 1;
 const CATEGORY_COLUMNS = ['Name', 'Color'] as const;
-const DASHBOARD_COLUMNS = ['Config'] as const;
 
 export const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
@@ -188,11 +187,15 @@ export async function writeWorkbook(
     return true;
   });
 
-  const dashboard = workbook.getWorksheet(DASHBOARD_TAB);
-  if (dashboard || data.dashboard !== null) {
-    const sheet = dashboard ?? sheetFor(workbook, DASHBOARD_TAB, DASHBOARD_COLUMNS, [60]);
-    sheet.getCell(2, 1).value = data.dashboard === null ? null : JSON.stringify(data.dashboard);
-  }
+  // JSON tabs: header in A1, the value in A2. Created only once there is something to keep.
+  const writeJsonTab = (title: string, header: string, value: LedgerData['dashboard']) => {
+    const existing = workbook.getWorksheet(title);
+    if (!existing && value === null) return;
+    const sheet = existing ?? sheetFor(workbook, title, [header], [60]);
+    sheet.getCell(2, 1).value = value === null ? null : JSON.stringify(value);
+  };
+  writeJsonTab(DASHBOARD_TAB, 'Config', data.dashboard);
+  writeJsonTab(PAYCHECKS_TAB, 'Paychecks', data.paychecks);
 
   return new Uint8Array(await workbook.xlsx.writeBuffer());
 }

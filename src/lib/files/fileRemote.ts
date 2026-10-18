@@ -61,6 +61,7 @@ export function blankLedger(title = 'Ledger'): OpenedFile {
     rows: { 1: [] },
     categories: structuredClone(DEFAULT_CATEGORIES),
     dashboard: null,
+    paychecks: null,
   };
   const layout = { ...EMPTY_LAYOUT, sheetIds: [1] };
   return { title, remote: fileRemote(title, { data, skippedTabs: [], layout }, null) };
