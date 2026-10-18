@@ -1,4 +1,6 @@
-/** Small, pure geometry helpers for the hand-drawn SVG charts. */
+import { scaleBand, scaleLinear } from 'd3-scale';
+
+/** Small geometry helpers for the SVG charts: d3 scales plus the rounded-bar path. */
 
 export interface LinearScale {
   (value: number): number;
@@ -6,34 +8,10 @@ export interface LinearScale {
   ticks: number[];
 }
 
-/** Round step (1, 2, 2.5 or 5 times a power of ten) giving about `count` intervals. */
-function niceStep(span: number, count: number): number {
-  const raw = span / Math.max(1, count);
-  const power = 10 ** Math.floor(Math.log10(raw));
-  const fraction = raw / power;
-  const nice =
-    fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 2.5 ? 2.5 : fraction <= 5 ? 5 : 10;
-  return nice * power;
-}
-
 /**
- * Evenly spaced round ticks covering `[min, max]`, always including zero when the range crosses or
- * touches it. Returns the ticks and the widened domain they span.
+ * Maps values in `[min, max]` (widened to round tick values) onto `[rangeStart, rangeEnd]`. Flat
+ * data is widened to include zero so there is something to draw.
  */
-export function niceTicks(min: number, max: number, count = 4): number[] {
-  if (min === max) {
-    if (min === 0) return [0, 1];
-    [min, max] = min > 0 ? [0, min] : [min, 0];
-  }
-  const step = niceStep(max - min, count);
-  const start = Math.floor(min / step) * step;
-  const end = Math.ceil(max / step) * step;
-  const ticks: number[] = [];
-  for (let t = start; t <= end + step / 2; t += step) ticks.push(Math.round(t / step) * step);
-  return ticks.map((t) => (Object.is(t, -0) ? 0 : t));
-}
-
-/** Maps values in `[min, max]` (widened to nice ticks) onto `[rangeStart, rangeEnd]`. */
 export function linearScale(
   min: number,
   max: number,
@@ -41,20 +19,20 @@ export function linearScale(
   rangeEnd: number,
   tickCount = 4
 ): LinearScale {
-  const ticks = niceTicks(min, max, tickCount);
-  // niceTicks always returns at least two ticks.
-  const lo = ticks[0]!;
-  const hi = ticks.at(-1)!;
-  const scale = ((value: number) =>
-    rangeStart + ((value - lo) / (hi - lo)) * (rangeEnd - rangeStart)) as LinearScale;
-  scale.domain = [lo, hi];
-  scale.ticks = ticks;
-  return scale;
+  if (min === max) [min, max] = min === 0 ? [0, 1] : min > 0 ? [0, min] : [min, 0];
+  const scale = scaleLinear().domain([min, max]).nice(tickCount).range([rangeStart, rangeEnd]);
+  const result = ((value: number) => scale(value)) as LinearScale;
+  result.domain = scale.domain() as [number, number];
+  result.ticks = scale.ticks(tickCount).map((t) => (Object.is(t, -0) ? 0 : t));
+  return result;
 }
 
 /** Centre x of slot `index` when `count` equal slots share `[start, end]`. */
 export function bandCenter(index: number, count: number, start: number, end: number): number {
-  return start + ((index + 0.5) * (end - start)) / count;
+  const band = scaleBand<number>()
+    .domain(Array.from({ length: count }, (_, i) => i))
+    .range([start, end]);
+  return (band(index) ?? start) + band.bandwidth() / 2;
 }
 
 /** Path for a bar with rounded corners on the end away from the baseline only. */
