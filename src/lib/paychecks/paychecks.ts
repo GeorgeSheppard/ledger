@@ -9,7 +9,14 @@ import { isIsoDate } from '../transactions/dates';
  * name and an amount.
  */
 
-export const REPEATS = ['none', 'weekly', 'every2weeks', 'every4weeks', 'monthly', 'yearly'] as const;
+export const REPEATS = [
+  'none',
+  'weekly',
+  'every2weeks',
+  'every4weeks',
+  'monthly',
+  'yearly',
+] as const;
 export type Repeat = (typeof REPEATS)[number];
 
 export const REPEAT_LABELS: Record<Repeat, string> = {

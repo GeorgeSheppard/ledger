@@ -46,7 +46,7 @@ const SPANS: Record<WidgetWidth, string> = {
 
 /** The signed-in homepage: a grid of graphs the user can add, configure and arrange. */
 export function DashboardPage() {
-  const { query, layout, saveLayout } = useDashboardData();
+  const { query, layout, saveLayout, paychecks } = useDashboardData();
   const [range, setRange] = useState<DashboardRange>(6);
   const [pickedMonth, setPickedMonth] = useState<MonthKey | null>(null);
   /** The layout being edited; null when not editing. */
@@ -325,6 +325,7 @@ export function DashboardPage() {
                   <WidgetView
                     widget={widget}
                     ledgers={query.data.ledgers}
+                    paychecks={paychecks}
                     pageRange={range}
                     colorOf={colorOf}
                     selectedMonth={pickedMonth}

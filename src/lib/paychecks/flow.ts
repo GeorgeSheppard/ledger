@@ -1,7 +1,14 @@
 import type { IsoDate } from '../domain/types';
 import { monthlyCashFlow } from '../metrics/cashFlow';
 import type { DashboardRange } from '../metrics/dashboard';
-import { addMonths, isIsoDate, monthEnd, monthsBetween, monthOf, type MonthKey } from '../metrics/months';
+import {
+  addMonths,
+  isIsoDate,
+  monthEnd,
+  monthsBetween,
+  monthOf,
+  type MonthKey,
+} from '../metrics/months';
 import { dataMonthRange, type AccountLedger } from '../metrics/netWorth';
 import { excludedFromCashFlow } from '../metrics/transfers';
 import { netPay, paymentDates, round, type Paycheck } from './paychecks';
@@ -17,7 +24,8 @@ import { netPay, paymentDates, round, type Paycheck } from './paychecks';
  * rest of the dashboard.
  */
 
-export type FlowKind = 'income' | 'deduction' | 'takeHome' | 'account' | 'category' | 'saved' | 'other';
+export type FlowKind =
+  'income' | 'deduction' | 'takeHome' | 'account' | 'category' | 'saved' | 'other';
 
 export interface FlowNode {
   id: string;
@@ -62,7 +70,10 @@ export function flowWindow(
   const span = dataMonthRange(ledgers);
   const to = span?.last ?? monthOf(today);
   if (range !== 'all') return { from: addMonths(to, 1 - range), to };
-  const starts = paychecks.map((p) => p.date).filter(isIsoDate).map(monthOf);
+  const starts = paychecks
+    .map((p) => p.date)
+    .filter(isIsoDate)
+    .map(monthOf);
   const from = [span?.first, ...starts].filter((m): m is MonthKey => !!m).sort()[0] ?? to;
   return { from: from < to ? from : to, to };
 }
@@ -107,7 +118,9 @@ export function buildMoneyFlow({
   accountIds,
 }: FlowInput): MoneyFlow | null {
   if (ledgers.length === 0) return null;
-  const chosen = accountIds?.length ? ledgers.filter((l) => accountIds.includes(l.account.id)) : ledgers;
+  const chosen = accountIds?.length
+    ? ledgers.filter((l) => accountIds.includes(l.account.id))
+    : ledgers;
   const chosenIds = new Set(chosen.map((l) => l.account.id));
   const firstDate: IsoDate = `${from}-01`;
   const lastDate = monthEnd(to);
@@ -119,8 +132,7 @@ export function buildMoneyFlow({
   const sourceToTakeHome = new Map<string, FlowLink>();
 
   for (const paycheck of paychecks) {
-    const destination =
-      ledgers.find((l) => l.account.id === paycheck.accountId) ?? ledgers[0]!;
+    const destination = ledgers.find((l) => l.account.id === paycheck.accountId) ?? ledgers[0]!;
     if (!chosenIds.has(destination.account.id)) continue;
     const count = paymentDates(paycheck, firstDate, lastDate).length;
     if (count === 0) continue;
@@ -134,7 +146,10 @@ export function buildMoneyFlow({
     }
     const net = round(netPay(paycheck) * count);
     addLink(sourceToTakeHome, sourceKey, TAKE_HOME_ID, net);
-    intoAccount.set(destination.account.id, round((intoAccount.get(destination.account.id) ?? 0) + net));
+    intoAccount.set(
+      destination.account.id,
+      round((intoAccount.get(destination.account.id) ?? 0) + net)
+    );
   }
   if (sources.size === 0) return null;
 

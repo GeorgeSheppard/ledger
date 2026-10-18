@@ -1,5 +1,10 @@
 import type { Account, TransactionInput } from '../domain/types';
-import { ACCOUNT_COLUMNS, CATEGORIES_TAB, RESERVED_TAB_PREFIX } from '../domain/types';
+import {
+  ACCOUNT_COLUMNS,
+  CATEGORIES_TAB,
+  PAYCHECKS_TAB,
+  RESERVED_TAB_PREFIX,
+} from '../domain/types';
 import {
   sameCategories,
   sameJson,
@@ -24,9 +29,6 @@ import type { GridRange, SheetProperties, SheetsRequest } from './sheetsTypes';
 
 /** Tab holding the dashboard layout as JSON in cell A2. */
 export const DASHBOARD_TAB = '_Dashboard';
-
-/** Tab holding the paychecks as JSON in cell A2. */
-export const PAYCHECKS_TAB = '_Paychecks';
 
 const CATEGORY_COLUMNS = ['Name', 'Color'] as const;
 const DASHBOARD_COLUMNS = ['Config'] as const;
@@ -87,7 +89,13 @@ export function parseSpreadsheet(
   tabs: readonly SheetProperties[],
   valuesById: ReadonlyMap<number, unknown[][]>
 ): RemoteState {
-  const data: LedgerData = { accounts: [], rows: {}, categories: [], dashboard: null, paychecks: null };
+  const data: LedgerData = {
+    accounts: [],
+    rows: {},
+    categories: [],
+    dashboard: null,
+    paychecks: null,
+  };
   const skippedTabs: SkippedTab[] = [];
   const layout: SheetLayout = { rowCounts: {}, sheetIds: [] };
   for (const tab of [...tabs].sort((a, b) => a.index - b.index)) {

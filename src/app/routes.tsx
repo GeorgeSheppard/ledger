@@ -5,6 +5,7 @@ import { AccountsPage } from '../features/accounts/AccountsPage';
 import { CategoriesPage } from '../features/categories/CategoriesPage';
 import { ConnectPage } from '../features/connect/ConnectPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
+import { PaychecksPage } from '../features/paychecks/PaychecksPage';
 import { LandingPage } from '../features/landing/LandingPage';
 import { PrivacyPage } from '../features/legal/PrivacyPage';
 import { TermsPage } from '../features/legal/TermsPage';
@@ -56,6 +57,7 @@ export function AppRoutes() {
         <Route path={paths.accounts} element={<AccountsOverviewPage />} />
         <Route path={`${paths.accounts}/:accountId`} element={<AccountsPage />} />
         <Route path={paths.categories} element={<CategoriesPage />} />
+        <Route path={paths.paychecks} element={<PaychecksPage />} />
         {/* Importing now happens from each account page. */}
         <Route path="/import" element={<Navigate to={paths.accounts} replace />} />
       </Route>

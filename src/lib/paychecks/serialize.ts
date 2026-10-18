@@ -65,7 +65,9 @@ export function parsePaycheck(value: unknown): Paycheck | null {
     gross,
     deductions: parseDeductions(value.deductions),
     accountId: Number.isInteger(value.accountId) ? (value.accountId as number) : null,
-    repeat: (REPEATS as readonly unknown[]).includes(value.repeat) ? (value.repeat as Repeat) : 'none',
+    repeat: (REPEATS as readonly unknown[]).includes(value.repeat)
+      ? (value.repeat as Repeat)
+      : 'none',
     until: typeof value.until === 'string' && isIsoDate(value.until) ? value.until : null,
   };
 }

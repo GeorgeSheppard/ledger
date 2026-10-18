@@ -5,6 +5,7 @@ export const paths = {
   accounts: '/accounts',
   account: (accountId: number) => `/accounts/${accountId}`,
   categories: '/categories',
+  paychecks: '/paychecks',
   import: '/import',
   privacy: '/privacy',
   terms: '/terms',

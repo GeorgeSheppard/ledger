@@ -54,7 +54,10 @@ describe('layoutSankey', () => {
 
   it('ignores empty links and unknown nodes', () => {
     const l = layoutSankey(
-      [{ id: 'a', column: 0 }, { id: 'b', column: 1 }],
+      [
+        { id: 'a', column: 0 },
+        { id: 'b', column: 1 },
+      ],
       [
         { source: 'a', target: 'b', value: 0 },
         { source: 'a', target: 'zzz', value: 5 },

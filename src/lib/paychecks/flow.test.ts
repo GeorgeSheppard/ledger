@@ -72,15 +72,29 @@ describe('buildMoneyFlow', () => {
 
   it('shows spending beyond take-home as other income', () => {
     const poor = [current([['2026-01-26', -3000, 'Holiday']])];
-    const flow = buildMoneyFlow({ paychecks: [salary], ledgers: poor, from: '2026-01', to: '2026-01' })!;
+    const flow = buildMoneyFlow({
+      paychecks: [salary],
+      ledgers: poor,
+      from: '2026-01',
+      to: '2026-01',
+    })!;
     expect(value(flow, 'other', 'account:1')).toBe(600);
     expect(flow.nodes.some((n) => n.id === 'saved')).toBe(false);
     balanced(flow);
   });
 
   it('merges deductions and sources with the same name', () => {
-    const second = { ...salary, id: 'p2', deductions: [{ id: 'x', name: 'income TAX', amount: 50 }] };
-    const flow = buildMoneyFlow({ paychecks: [salary, second], ledgers, from: '2026-01', to: '2026-01' })!;
+    const second = {
+      ...salary,
+      id: 'p2',
+      deductions: [{ id: 'x', name: 'income TAX', amount: 50 }],
+    };
+    const flow = buildMoneyFlow({
+      paychecks: [salary, second],
+      ledgers,
+      from: '2026-01',
+      to: '2026-01',
+    })!;
     expect(flow.nodes.filter((n) => n.kind === 'deduction')).toHaveLength(2);
     expect(value(flow, 'income:acme', 'deduction:income tax')).toBe(550);
   });
@@ -91,11 +105,22 @@ describe('buildMoneyFlow', () => {
       { account: { id: 2, name: 'Savings' }, transactions: [] },
     ];
     const lost = { ...salary, accountId: 99 };
-    const flow = buildMoneyFlow({ paychecks: [lost], ledgers: two, from: '2026-01', to: '2026-01' })!;
+    const flow = buildMoneyFlow({
+      paychecks: [lost],
+      ledgers: two,
+      from: '2026-01',
+      to: '2026-01',
+    })!;
     expect(value(flow, 'takeHome', 'account:1')).toBe(2400);
     const savings = { ...salary, accountId: 2 };
     expect(
-      buildMoneyFlow({ paychecks: [savings], ledgers: two, from: '2026-01', to: '2026-01', accountIds: [1] })
+      buildMoneyFlow({
+        paychecks: [savings],
+        ledgers: two,
+        from: '2026-01',
+        to: '2026-01',
+        accountIds: [1],
+      })
     ).toBeNull();
   });
 
@@ -110,21 +135,33 @@ describe('buildMoneyFlow', () => {
         transactions: makeTransactions(2, [['2026-01-26', 500]]),
       },
     ];
-    const flow = buildMoneyFlow({ paychecks: [salary], ledgers: two, from: '2026-01', to: '2026-01' })!;
+    const flow = buildMoneyFlow({
+      paychecks: [salary],
+      ledgers: two,
+      from: '2026-01',
+      to: '2026-01',
+    })!;
     expect(flow.totals.spending).toBe(20);
   });
 
   it('is null without a paycheck in the window or without accounts', () => {
     expect(buildMoneyFlow({ paychecks: [], ledgers, from: '2026-01', to: '2026-02' })).toBeNull();
-    expect(buildMoneyFlow({ paychecks: [salary], ledgers, from: '2025-01', to: '2025-12' })).toBeNull();
-    expect(buildMoneyFlow({ paychecks: [salary], ledgers: [], from: '2026-01', to: '2026-02' })).toBeNull();
+    expect(
+      buildMoneyFlow({ paychecks: [salary], ledgers, from: '2025-01', to: '2025-12' })
+    ).toBeNull();
+    expect(
+      buildMoneyFlow({ paychecks: [salary], ledgers: [], from: '2026-01', to: '2026-02' })
+    ).toBeNull();
   });
 });
 
 describe('flowWindow', () => {
   const ledgers = [current([['2026-02-01', 1]])];
   it('ends at the latest month with data', () => {
-    expect(flowWindow(ledgers, [salary], 3, '2026-10-18')).toEqual({ from: '2025-12', to: '2026-02' });
+    expect(flowWindow(ledgers, [salary], 3, '2026-10-18')).toEqual({
+      from: '2025-12',
+      to: '2026-02',
+    });
   });
   it('starts at the earliest data or paycheck for all', () => {
     expect(flowWindow(ledgers, [{ ...salary, date: '2025-06-01' }], 'all', '2026-10-18')).toEqual({

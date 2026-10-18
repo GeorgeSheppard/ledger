@@ -220,7 +220,11 @@ describe('saveRequests', () => {
   it('adds the _Paychecks tab the first time paychecks are saved', async () => {
     const base = await loaded();
     const { requests, layout } = saveRequests(base, { ...base.data, paychecks: { paychecks: [] } });
-    expect(requests.map((r) => Object.keys(r)[0])).toEqual(['addSheet', 'updateCells', 'updateCells']);
+    expect(requests.map((r) => Object.keys(r)[0])).toEqual([
+      'addSheet',
+      'updateCells',
+      'updateCells',
+    ]);
     expect(requests[0]).toMatchObject({ addSheet: { properties: { title: '_Paychecks' } } });
     expect(layout.paychecksSheetId).toBeDefined();
   });

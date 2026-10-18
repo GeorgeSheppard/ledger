@@ -148,6 +148,7 @@ describe('LedgerStore', () => {
 
   it('stores the paychecks', async () => {
     const { store, remote } = await open();
+    await store.savePaychecks(null);
     expect(await store.getPaychecks()).toBeNull();
     await store.savePaychecks({ paychecks: [{ id: 'p1' }] });
     expect(store.getSnapshot().paychecks).toEqual({ paychecks: [{ id: 'p1' }] });

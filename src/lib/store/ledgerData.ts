@@ -275,7 +275,10 @@ export function sameCategories(a: readonly Category[], b: readonly Category[]): 
   );
 }
 
-export function sameJson(a: JsonValue | null | undefined, b: JsonValue | null | undefined): boolean {
+export function sameJson(
+  a: JsonValue | null | undefined,
+  b: JsonValue | null | undefined
+): boolean {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
