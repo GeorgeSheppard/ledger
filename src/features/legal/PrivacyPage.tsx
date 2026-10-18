@@ -8,8 +8,9 @@ export function PrivacyPage() {
     <LegalPage title="Privacy policy">
       <p>
         Ledger is a personal finance tool that keeps your data in a Google Sheet in your own Google
-        Drive. This page explains, in plain language, what Ledger can access, where your data goes
-        and what control you have over it.
+        Drive, or in a spreadsheet file on your own device if you prefer not to use Google. This
+        page explains, in plain language, what Ledger can access, where your data goes and what
+        control you have over it.
       </p>
 
       <LegalSection title="The short version">
@@ -21,6 +22,10 @@ export function PrivacyPage() {
           </li>
           <li>We do not sell, rent or share your data with anyone, and there are no adverts.</li>
           <li>Ledger can only open spreadsheets you pick or create with it, nothing else.</li>
+          <li>
+            If you open a spreadsheet file from your device instead, it is read in your browser and
+            never uploaded anywhere.
+          </li>
         </Bullets>
       </LegalSection>
 
@@ -63,6 +68,13 @@ export function PrivacyPage() {
             your Google Sheet automatically about once a minute, or straight away when you press
             Save. This copy never leaves your device except to be saved to your own sheet, and it is
             deleted when you sign out.
+          </li>
+          <li>
+            <strong>A spreadsheet file on your device.</strong> If you drop or choose an{' '}
+            <code>.xlsx</code> or <code>.csv</code> file instead of signing in with Google, Ledger
+            reads it in your browser and holds it in memory only. It is not sent to Google, to
+            Ledger or to anyone else, and it is not stored in your browser, so closing the tab
+            discards it. Changes reach you as a new file when you press Download.
           </li>
           <li>
             <strong>A few small settings.</strong> Ledger also keeps the Google access token for the

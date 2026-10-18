@@ -4,6 +4,7 @@ import { useSession } from '../../state/session';
 import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
 import { useAsyncAction } from '../connect/useAsyncAction';
+import { LocalFileCard } from '../connect/LocalFileCard';
 import { LegalLinks } from '../legal/LegalPage';
 import { SheetPreview } from './SheetPreview';
 
@@ -79,8 +80,8 @@ export function LandingPage() {
           </h1>
           <p className="text-lg text-muted">
             Ledger is a friendly way to keep your finances up to date and see where your money goes,
-            without being an Excel wizard. All of your data is stored in your own Google Sheet, so
-            you stay in control of it.
+            without being an Excel wizard. All of your data is stored in your own Google Sheet, or
+            in a spreadsheet file on your device, so you stay in control of it.
           </p>
           {cta}
           <p className="max-w-md text-sm text-muted">
@@ -92,6 +93,8 @@ export function LandingPage() {
         </div>
         <SheetPreview />
       </section>
+
+      <LocalFileCard scope="landing" className="max-w-3xl" />
 
       <section className="grid gap-4 md:grid-cols-3" aria-label="Why Ledger">
         {FEATURES.map((feature) => (

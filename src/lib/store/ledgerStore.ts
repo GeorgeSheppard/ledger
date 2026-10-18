@@ -11,7 +11,7 @@ import {
   type LedgerData,
   type LedgerSnapshot,
 } from './ledgerData';
-import { newSheetId, type LedgerRemote, type RemoteState } from './remote';
+import { newSheetId, type DownloadedFile, type LedgerRemote, type RemoteState } from './remote';
 
 export type SyncStatus =
   /** Everything is in the sheet. `savedAt` is `null` when nothing was saved this session. */
@@ -124,6 +124,23 @@ export class LedgerStore implements LedgerRepository {
     this.saving = run;
     this.emit();
     return run;
+  }
+
+  /** True when the ledger lives in a file: changes leave through `download()`, never autosave. */
+  get isFile(): boolean {
+    return this.remote.download !== undefined;
+  }
+
+  /**
+   * Builds the updated file from the working copy and counts the changes as saved. The caller hands
+   * the file to the browser. Rejects if the remote has no file to build.
+   */
+  async download(): Promise<DownloadedFile> {
+    const build = this.remote.download;
+    if (!build) throw new Error('This spreadsheet is saved to Google, not downloaded.');
+    const file = await build.call(this.remote, this.current);
+    await this.save();
+    return file;
   }
 
   /** Saves every `intervalMs` while there are unsaved edits. Returns a function that stops it. */

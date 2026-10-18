@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import type { ShortcutId } from '../lib/shortcuts/bindings';
+import { useSyncStatus } from '../state/ledgerData';
 import { useSession } from '../state/session';
 import { useShortcut } from '../state/shortcuts';
 import { ActionButton } from '../ui/ActionButton';
@@ -38,8 +39,19 @@ function NavItem({ to, label, shortcut }: (typeof NAV)[number]) {
 }
 
 /** Names the connected spreadsheet and offers switching to another one. */
-function SpreadsheetPanel({ title }: { title: string }) {
+function SpreadsheetPanel({ title, isFile }: { title: string; isFile: boolean }) {
   const navigate = useNavigate();
+  const { closeFile } = useSession();
+  const { status } = useSyncStatus();
+  const leave = () => {
+    if (!isFile) return navigate(paths.connect);
+    const unsaved = status.state === 'unsaved' || status.state === 'error';
+    if (
+      !unsaved ||
+      window.confirm('You have changes that are not downloaded. Close the file anyway?')
+    )
+      closeFile();
+  };
   useEffect(() => {
     document.title = `${title} · Ledger`;
     return () => {
@@ -52,7 +64,9 @@ function SpreadsheetPanel({ title }: { title: string }) {
       className="flex flex-col gap-2 rounded-lg border border-line bg-canvas p-3"
     >
       <div>
-        <div className="text-xs font-medium tracking-wide text-muted uppercase">Spreadsheet</div>
+        <div className="text-xs font-medium tracking-wide text-muted uppercase">
+          {isFile ? 'File' : 'Spreadsheet'}
+        </div>
         <div className="truncate font-semibold" title={title}>
           {title}
         </div>
@@ -60,9 +74,9 @@ function SpreadsheetPanel({ title }: { title: string }) {
       <ActionButton
         shortcut="nav.switchSpreadsheet"
         className="w-full justify-between whitespace-nowrap"
-        onAction={() => navigate(paths.connect)}
+        onAction={leave}
       >
-        Switch
+        {isFile ? 'Close' : 'Switch'}
       </ActionButton>
     </section>
   );
@@ -78,7 +92,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="grid min-h-dvh grid-cols-1 md:grid-cols-[220px_1fr]">
       <aside className="flex flex-col gap-4 border-b border-line bg-surface p-4 md:border-r md:border-b-0">
         <div className="text-lg font-bold">Ledger</div>
-        {session.status === 'connected' && <SpreadsheetPanel title={session.spreadsheet.title} />}
+        {session.status === 'connected' && (
+          <SpreadsheetPanel title={session.spreadsheet.title} isFile={session.file === true} />
+        )}
         <nav className="flex flex-col gap-0.5">
           {NAV.map((item) => (
             <NavItem key={item.to} {...item} />
@@ -93,13 +109,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             Shortcuts <Kbd shortcut="help.toggle" />
           </button>
-          <button
-            type="button"
-            className="flex cursor-pointer items-center gap-2 text-sm text-muted hover:text-fg"
-            onClick={signOut}
-          >
-            Sign out
-          </button>
+          {session.status === 'connected' && session.file ? null : (
+            <button
+              type="button"
+              className="flex cursor-pointer items-center gap-2 text-sm text-muted hover:text-fg"
+              onClick={signOut}
+            >
+              Sign out
+            </button>
+          )}
         </div>
       </aside>
       <main className="min-w-0">{children}</main>

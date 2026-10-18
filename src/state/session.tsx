@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   browserStore,
   forgetSpreadsheet,
@@ -7,6 +15,7 @@ import {
 } from '../lib/connection/rememberedSpreadsheet';
 import type { SpreadsheetSource } from '../lib/connection/spreadsheetSource';
 import { fixtureData } from '../lib/data/fixtures';
+import { blankLedger, openLedgerFile, type OpenedFile } from '../lib/files/fileRemote';
 import type { SpreadsheetRef } from '../lib/domain/types';
 import {
   createGoogleServices,
@@ -24,12 +33,13 @@ import { MemoryRemote, type LedgerRemote } from '../lib/store/remote';
  * - `signed-out`: show the landing page.
  * - `signed-in`: authenticated with Google but no spreadsheet chosen yet; show the connect page.
  * - `connected`: a spreadsheet is open; `remote` reads and writes it. `LedgerDataProvider` loads it
- *   into a `LedgerStore`, which is what features use.
+ *   into a `LedgerStore`, which is what features use. `file` is set when it is a spreadsheet file
+ *   from the user's device rather than a Google Sheet; pages treat both the same.
  */
 export type Session =
   | { status: 'signed-out' }
   | { status: 'signed-in' }
-  | { status: 'connected'; spreadsheet: SpreadsheetRef; remote: LedgerRemote };
+  | { status: 'connected'; spreadsheet: SpreadsheetRef; remote: LedgerRemote; file?: true };
 
 export interface SessionApi {
   session: Session;
@@ -42,7 +52,16 @@ export interface SessionApi {
   spreadsheets: SpreadsheetSource;
   /** The spreadsheet that signing in will reopen, if the user connected one before. */
   rememberedSpreadsheet: SpreadsheetRef | null;
+  /** Opens a `.xlsx` or `.csv` from the user's device instead of a Google Sheet. Rejects with a readable message. */
+  openFile(file: File): Promise<void>;
+  /** Opens an empty ledger that is kept in a file the user downloads. */
+  startBlankFile(): void;
+  /** Leaves the open file, back to wherever the user was before opening it. */
+  closeFile(): void;
 }
+
+/** What each session hook provides itself; `useFileOverlay` adds the file methods on top. */
+type BaseSessionApi = Omit<SessionApi, 'openFile' | 'startBlankFile' | 'closeFile'>;
 
 const SessionContext = createContext<SessionApi | null>(null);
 
@@ -60,7 +79,7 @@ const demoSpreadsheets: SpreadsheetSource = {
 };
 
 /** Dev/demo session backed by `MemoryRemote`. Sign-in and connect succeed immediately. */
-function useMemorySession(): SessionApi {
+function useMemorySession(): BaseSessionApi {
   const [session, setSession] = useState<Session>(() => ({
     status: 'connected',
     spreadsheet: DEMO_SPREADSHEET,
@@ -90,7 +109,7 @@ function useMemorySession(): SessionApi {
  * `sessionStorage` (this tab only); the connected spreadsheet's id is remembered in `localStorage`
  * so signing in again goes straight back to it.
  */
-function useGoogleSession(google: GoogleServices): SessionApi {
+function useGoogleSession(google: GoogleServices): BaseSessionApi {
   const [connectionStore] = useState(() => browserStore('local'));
   const [remembered, setRemembered] = useState(() => loadRememberedSpreadsheet(connectionStore));
 
@@ -112,7 +131,7 @@ function useGoogleSession(google: GoogleServices): SessionApi {
     setRemembered(spreadsheet);
   }
 
-  const api: SessionApi = {
+  const api: BaseSessionApi = {
     session,
     spreadsheets: google.spreadsheets,
     rememberedSpreadsheet: remembered,
@@ -145,6 +164,45 @@ function useGoogleSession(google: GoogleServices): SessionApi {
   return api;
 }
 
+/**
+ * Lets the user work from a file on their device, whichever source is configured. While a file is
+ * open it replaces the session; closing it, or connecting to Google, goes back to the base session.
+ */
+function useFileOverlay(base: BaseSessionApi): SessionApi {
+  const [file, setFile] = useState<Extract<Session, { status: 'connected' }> | null>(null);
+  const opened = useRef(0);
+
+  const show = ({ title, remote }: OpenedFile) =>
+    setFile({
+      status: 'connected',
+      spreadsheet: { id: `file:${++opened.current}`, title },
+      remote,
+      file: true,
+    });
+
+  return {
+    ...base,
+    session: file ?? base.session,
+    async openFile(chosen) {
+      show(await openLedgerFile(chosen));
+    },
+    startBlankFile: () => show(blankLedger()),
+    closeFile: () => setFile(null),
+    signOut() {
+      setFile(null);
+      base.signOut();
+    },
+    async connect(spreadsheet) {
+      setFile(null);
+      await base.connect(spreadsheet);
+    },
+    disconnect() {
+      setFile(null);
+      base.disconnect();
+    },
+  };
+}
+
 export function SessionProvider({ children }: { children: ReactNode }) {
   if (DATA_SOURCE === 'memory') return <MemorySessionProvider>{children}</MemorySessionProvider>;
   if (DATA_SOURCE === 'google') return <GoogleSessionProvider>{children}</GoogleSessionProvider>;
@@ -152,7 +210,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 }
 
 function MemorySessionProvider({ children }: { children: ReactNode }) {
-  const api = useMemorySession();
+  const api = useFileOverlay(useMemorySession());
   return <SessionContext.Provider value={api}>{children}</SessionContext.Provider>;
 }
 
@@ -181,7 +239,7 @@ function GoogleSessionContext({
   google: GoogleServices;
   children: ReactNode;
 }) {
-  const api = useGoogleSession(google);
+  const api = useFileOverlay(useGoogleSession(google));
   // Load Google's sign-in library early so the popup opens straight from the click.
   useEffect(() => google.auth.preload(), [google]);
   return <SessionContext.Provider value={api}>{children}</SessionContext.Provider>;

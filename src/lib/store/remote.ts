@@ -10,6 +10,17 @@ export interface LedgerRemote {
   load(): Promise<RemoteState>;
   /** Writes the difference between `base.data` and `next`. Returns the new saved state. */
   save(base: RemoteState, next: LedgerData): Promise<RemoteState>;
+  /**
+   * Only for a ledger kept in a file on the user's device. Builds the updated file, which is how
+   * changes leave the browser, so there is no autosave and the Save button becomes Download.
+   */
+  download?(data: LedgerData): Promise<DownloadedFile>;
+}
+
+export interface DownloadedFile {
+  name: string;
+  type: string;
+  bytes: Uint8Array;
 }
 
 export interface RemoteState {
