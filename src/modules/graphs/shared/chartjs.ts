@@ -30,16 +30,22 @@ let zoomLoaded: Promise<void> | undefined;
 
 /**
  * Pan and zoom come from a plugin that needs the browser, so it is loaded when a chart first
- * appears (which also keeps it out of the main bundle). Charts wait for this before drawing.
+ * appears (which also keeps it out of the main bundle). Charts wait for this before drawing. If it
+ * cannot be loaded (offline, or a new release removed the file an open tab still points at) the
+ * charts draw without pan and zoom rather than staying blank, and the next chart tries again.
  */
 export function useChartsReady(): boolean {
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    zoomLoaded ??= import('chartjs-plugin-zoom').then(({ default: plugin }) => {
+    const loading = (zoomLoaded ??= import('chartjs-plugin-zoom').then(({ default: plugin }) => {
       Chart.register(plugin);
-    });
+    }));
     let current = true;
-    void zoomLoaded.then(() => current && setReady(true));
+    const done = () => current && setReady(true);
+    loading.then(done, () => {
+      if (zoomLoaded === loading) zoomLoaded = undefined;
+      done();
+    });
     return () => {
       current = false;
     };
