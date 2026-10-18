@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { paths } from '../../app/paths';
-import { DEFAULT_SPREADSHEET_TITLE } from '../../lib/google/newSpreadsheet';
+import { DEFAULT_SPREADSHEET_TITLE } from '../../modules/ingest/google/newSpreadsheet';
 import { useSession } from '../../state/session';
 import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
 import { Page } from '../../ui/Page';
-import { LocalFileCard } from './LocalFileCard';
+import { LocalFileCard } from '../../modules/ingest/local-file/LocalFileCard';
 import { useAsyncAction } from './useAsyncAction';
 
 /** After sign-in: choose an existing spreadsheet with the Google Picker, or create a new one. */

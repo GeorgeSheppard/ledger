@@ -11,7 +11,7 @@ import { Card } from '../../ui/Card';
 import { cn } from '../../ui/cn';
 import { Kbd } from '../../ui/Kbd';
 import { Page } from '../../ui/Page';
-import { formatDate } from '../import/format';
+import { formatDate } from '../../modules/import/ui/format';
 import { AccountNameForm } from './AccountNameForm';
 import { selectableRow } from './rowStyles';
 import { useAccountActions, useAccountOverview } from './useAccountsData';

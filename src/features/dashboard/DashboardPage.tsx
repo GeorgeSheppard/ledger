@@ -3,14 +3,11 @@ import { Link } from 'react-router';
 import { paths } from '../../app/paths';
 import {
   addWidget,
-  defaultDashboard,
   moveWidget,
-  newWidget,
   newWidgetId,
   removeWidget,
   replaceWidget,
   resizeWidget,
-  widgetTitle,
   type DashboardConfig,
   type Widget,
   type WidgetWidth,
@@ -23,10 +20,11 @@ import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
 import { cn } from '../../ui/cn';
 import { Page } from '../../ui/Page';
-import { FALLBACK_COLOR } from './charts/theme';
-import { formatMonthLong } from './format';
+import { FALLBACK_COLOR } from '../../modules/graphs/shared/theme';
+import { formatMonthLong } from '../../modules/graphs/shared/format';
 import { useDashboardData } from './useDashboardData';
 import { WidgetEditor } from './WidgetEditor';
+import { createWidget, defaultDashboard, widgetTitle } from '../../modules/graphs';
 import { WidgetView } from './WidgetView';
 
 const RANGES: { range: DashboardRange; label: string; shortcut: ShortcutId }[] = [
@@ -96,7 +94,7 @@ export function DashboardPage() {
   const change = (next: DashboardConfig) => setDraft(next);
   const openNew = () => {
     if (!editing) startEditing();
-    setEditor({ widget: newWidget('netWorth', newWidgetId(config.widgets)), isNew: true });
+    setEditor({ widget: createWidget('netWorth', newWidgetId(config.widgets)), isNew: true });
   };
   const closeEditor = (widget?: Widget) => {
     if (widget && editor) {

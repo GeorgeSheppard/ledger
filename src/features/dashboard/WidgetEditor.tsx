@@ -1,20 +1,9 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import {
-  KIND_LABELS,
-  METRIC_LABELS,
-  RANGES,
-  STAT_METRICS,
-  usesCategories,
-  WIDGET_KINDS,
-  widgetTitle,
-  type StatMetric,
-  type Widget,
-  type WidgetKind,
-  type WidgetWidth,
-} from '../../lib/dashboard/config';
+import { RANGES, type Widget, type WidgetWidth } from '../../lib/dashboard/config';
 import type { Account } from '../../lib/domain/types';
 import type { DashboardRange } from '../../lib/metrics/dashboard';
 import { ActionButton } from '../../ui/ActionButton';
+import { graphOf, GRAPHS, widgetTitle } from '../../modules/graphs';
 import { Select } from '../../ui/Select';
 import { TextInput } from '../../ui/TextInput';
 
@@ -118,6 +107,7 @@ export function WidgetEditor({
   const [draft, setDraft] = useState(widget);
   const id = useId();
   const set = (patch: Partial<Widget>) => setDraft((d) => ({ ...d, ...patch }));
+  const graph = graphOf(draft.kind);
 
   useEffect(() => {
     dialog.current?.showModal();
@@ -144,31 +134,17 @@ export function WidgetEditor({
           <Select
             id={`${id}-kind`}
             value={draft.kind}
-            onChange={(e) => set({ kind: e.target.value as WidgetKind })}
+            onChange={(e) => set({ kind: e.target.value })}
           >
-            {WIDGET_KINDS.map((kind) => (
-              <option key={kind} value={kind}>
-                {KIND_LABELS[kind]}
+            {GRAPHS.map((graph) => (
+              <option key={graph.kind} value={graph.kind}>
+                {graph.label}
               </option>
             ))}
           </Select>
         </Field>
 
-        {draft.kind === 'stat' && (
-          <Field label="Number" htmlFor={`${id}-metric`}>
-            <Select
-              id={`${id}-metric`}
-              value={draft.metric}
-              onChange={(e) => set({ metric: e.target.value as StatMetric })}
-            >
-              {STAT_METRICS.map((metric) => (
-                <option key={metric} value={metric}>
-                  {METRIC_LABELS[metric]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        )}
+        {graph?.Options && <graph.Options widget={draft} onChange={set} />}
 
         <Field label="Title" htmlFor={`${id}-title`}>
           <TextInput
@@ -187,7 +163,7 @@ export function WidgetEditor({
           onChange={(chosen) => set({ accounts: chosen })}
         />
 
-        {usesCategories(draft.kind) && categories.length > 0 && (
+        {graph?.usesCategories && categories.length > 0 && (
           <ChoiceList
             legend="Categories"
             allLabel="All categories"

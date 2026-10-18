@@ -6,25 +6,11 @@ import type { DashboardRange } from '../metrics/dashboard';
  * it follows the sheet rather than the browser. Plain data and pure functions only.
  */
 
-export const WIDGET_KINDS = [
-  'stat',
-  'netWorth',
-  'balances',
-  'spending',
-  'breakdown',
-  'cashFlow',
-  'sankey',
-] as const;
-export type WidgetKind = (typeof WIDGET_KINDS)[number];
-
-export const STAT_METRICS = [
-  'netWorth',
-  'spending',
-  'income',
-  'savingsRate',
-  'averageSpending',
-] as const;
-export type StatMetric = (typeof STAT_METRICS)[number];
+/**
+ * Which graph a widget shows. The kinds that exist are the graph modules in `src/modules/graphs`;
+ * the layout only stores the name, so a layout can mention a graph that has been removed.
+ */
+export type WidgetKind = string;
 
 /** Columns of the 4-column grid a widget spans on wide screens. Small screens stack everything. */
 export type WidgetWidth = 1 | 2 | 3 | 4;
@@ -47,56 +33,11 @@ export interface Widget {
   range: DashboardRange | null;
   width: WidgetWidth;
   /** Which number a `stat` widget shows. Ignored by other kinds. */
-  metric: StatMetric;
+  metric: string;
 }
 
 export interface DashboardConfig {
   widgets: Widget[];
-}
-
-export const KIND_LABELS: Record<WidgetKind, string> = {
-  stat: 'Single number',
-  netWorth: 'Net worth over time',
-  balances: 'Account balances',
-  spending: 'Spending by category, per month',
-  breakdown: 'Category breakdown for a month',
-  cashFlow: 'Income and spending',
-  sankey: 'Money flow from paychecks (Sankey)',
-};
-
-export const METRIC_LABELS: Record<StatMetric, string> = {
-  netWorth: 'Net worth',
-  spending: 'Spending in the latest month',
-  income: 'Income in the latest month',
-  savingsRate: 'Share of income saved',
-  averageSpending: 'Average monthly spending',
-};
-
-/** Which widget kinds can be narrowed to some categories. */
-export function usesCategories(kind: WidgetKind): boolean {
-  return kind === 'spending' || kind === 'breakdown';
-}
-
-const DEFAULT_WIDTHS: Record<WidgetKind, WidgetWidth> = {
-  stat: 1,
-  netWorth: 3,
-  balances: 1,
-  spending: 4,
-  breakdown: 2,
-  cashFlow: 2,
-  sankey: 4,
-};
-
-/** The title shown when a widget has none of its own. */
-export function widgetTitle(widget: Pick<Widget, 'kind' | 'title' | 'metric'>): string {
-  if (widget.title.trim()) return widget.title.trim();
-  if (widget.kind === 'stat') return METRIC_LABELS[widget.metric];
-  if (widget.kind === 'netWorth') return 'Net worth';
-  if (widget.kind === 'balances') return 'Accounts';
-  if (widget.kind === 'spending') return 'Spending by category';
-  if (widget.kind === 'breakdown') return 'Category breakdown';
-  if (widget.kind === 'sankey') return 'Where your money goes';
-  return 'Income and spending';
 }
 
 /** An id not used by any of `existing`. */
@@ -105,7 +46,12 @@ export function newWidgetId(existing: readonly Pick<Widget, 'id'>[]): string {
   for (let n = existing.length + 1; ; n++) if (!used.has(`w${n}`)) return `w${n}`;
 }
 
-/** A widget of `kind` with sensible defaults: every account, every category, the page's range. */
+const DEFAULT_WIDTH: WidgetWidth = 2;
+
+/**
+ * A widget of `kind` with sensible defaults: every account, every category, the page's range.
+ * Graph modules know their own preferred width; see `createWidget` in `modules/graphs`.
+ */
 export function newWidget(kind: WidgetKind, id: string, overrides: Partial<Widget> = {}): Widget {
   return {
     id,
@@ -114,26 +60,10 @@ export function newWidget(kind: WidgetKind, id: string, overrides: Partial<Widge
     accounts: [],
     categories: [],
     range: null,
-    width: DEFAULT_WIDTHS[kind],
-    metric: 'netWorth',
+    width: DEFAULT_WIDTH,
+    metric: '',
     ...overrides,
   };
-}
-
-/** The layout used until the user changes it: headline numbers, then the main charts. */
-export function defaultDashboard(): DashboardConfig {
-  const kinds: [WidgetKind, Partial<Widget>?][] = [
-    ['stat', { metric: 'netWorth' }],
-    ['stat', { metric: 'spending' }],
-    ['stat', { metric: 'income' }],
-    ['stat', { metric: 'savingsRate' }],
-    ['netWorth'],
-    ['balances'],
-    ['spending'],
-    ['breakdown'],
-    ['cashFlow'],
-  ];
-  return { widgets: kinds.map(([kind, overrides], i) => newWidget(kind, `w${i + 1}`, overrides)) };
 }
 
 export function addWidget(config: DashboardConfig, widget: Widget): DashboardConfig {

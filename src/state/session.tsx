@@ -12,17 +12,17 @@ import {
   forgetSpreadsheet,
   loadRememberedSpreadsheet,
   rememberSpreadsheet,
-} from '../lib/connection/rememberedSpreadsheet';
-import type { SpreadsheetSource } from '../lib/connection/spreadsheetSource';
+} from '../modules/ingest/google/rememberedSpreadsheet';
+import type { SpreadsheetSource } from '../modules/ingest/spreadsheetSource';
 import { fixtureData } from '../lib/data/fixtures';
-import { blankLedger, openLedgerFile, type OpenedFile } from '../lib/files/fileRemote';
+import { localFileIngest, newLocalLedger, remoteOf, type Connection } from '../modules/ingest';
 import type { SpreadsheetRef } from '../lib/domain/types';
 import {
   createGoogleServices,
   googleConfigFromEnv,
   type GoogleServices,
-} from '../lib/google/googleServices';
-import { signInAware } from '../lib/google/signInAware';
+} from '../modules/ingest/google/googleServices';
+import { signInAware } from '../modules/ingest/google/signInAware';
 import { GoogleApiError } from '../lib/google/sheetsClient';
 import { MemoryRemote, type LedgerRemote } from '../lib/store/remote';
 
@@ -119,7 +119,7 @@ function useGoogleSession(google: GoogleServices): BaseSessionApi {
   });
 
   function connected(spreadsheet: SpreadsheetRef): Session {
-    const remote = signInAware(google.remote(spreadsheet.id), () =>
+    const remote = signInAware(google.remote(spreadsheet), () =>
       setSession({ status: 'signed-out' })
     );
     return { status: 'connected', spreadsheet, remote };
@@ -172,11 +172,11 @@ function useFileOverlay(base: BaseSessionApi): SessionApi {
   const [file, setFile] = useState<Extract<Session, { status: 'connected' }> | null>(null);
   const opened = useRef(0);
 
-  const show = ({ title, remote }: OpenedFile) =>
+  const show = (connection: Connection) =>
     setFile({
       status: 'connected',
-      spreadsheet: { id: `file:${++opened.current}`, title },
-      remote,
+      spreadsheet: { id: `file:${++opened.current}`, title: connection.title },
+      remote: remoteOf(connection),
       file: true,
     });
 
@@ -184,9 +184,9 @@ function useFileOverlay(base: BaseSessionApi): SessionApi {
     ...base,
     session: file ?? base.session,
     async openFile(chosen) {
-      show(await openLedgerFile(chosen));
+      show(await localFileIngest.open(chosen));
     },
-    startBlankFile: () => show(blankLedger()),
+    startBlankFile: () => show(newLocalLedger()),
     closeFile: () => setFile(null),
     signOut() {
       setFile(null);

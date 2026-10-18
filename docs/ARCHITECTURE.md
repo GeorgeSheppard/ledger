@@ -6,18 +6,21 @@ writes it from the browser. There is no backend.
 ## Principles
 
 1. **Business logic is plain TypeScript in `src/lib/`.** No React, no DOM, no `fetch` to Google
-   outside `src/lib/google/`. Every module in `lib/` is unit-tested with Vitest (`*.test.ts` next to
-   the file).
-2. **UI lives in `src/features/<feature>/` and `src/ui/`.** Components render and handle input; they
-   call `lib/` functions and the data hooks. They do not compute balances, parse CSVs or talk to
-   Google.
-3. **One data seam.** Features read the spreadsheet with `useLedger()` and write through
+   outside the Sheets client in `src/lib/google/` and the Google modules. Everything in `lib/` is
+   unit-tested with Vitest (`*.test.ts` next to the file).
+2. **The parts you can pick and choose are modules, in `src/modules/`.** Where the data comes from,
+   how it is saved back, how bank data is imported and which graphs the dashboard offers each have
+   one folder, one interface and one implementation folder per option. See [Modules](#modules).
+3. **UI lives in `src/features/<feature>/`, `src/modules/*/ui` and `src/ui/`.** Components render
+   and handle input; they call `lib/` functions and the data hooks. They do not compute balances,
+   parse CSVs or talk to Google.
+4. **One data seam.** Features read the spreadsheet with `useLedger()` and write through
    `useRepository()` (a `LedgerStore`, which implements `LedgerRepository`), both in
    `src/state/ledgerData.tsx`. In dev the store is backed by `MemoryRemote` seeded with demo data,
    so every feature can be built without Google credentials. See [Data flow](#data-flow).
-4. **Every action has a shortcut, shown next to its button.** Shortcuts are declared once in
+5. **Every action has a shortcut, shown next to its button.** Shortcuts are declared once in
    `src/lib/shortcuts/bindings.ts`; buttons are `<ActionButton shortcut="…">`.
-5. **Styling is Tailwind only.** See [Styling](#styling) below. No `.css` files besides
+6. **Styling is Tailwind only.** See [Styling](#styling) below. No `.css` files besides
    `src/styles/global.css`.
 
 ## File structure
@@ -53,18 +56,67 @@ src/
     shortcuts/                 key parsing and formatting, the bindings table
     transactions/              running totals, sorting, validation, formatting
     categories/                category list operations
-    google/                    auth, picker, Sheets API client, sheetsRemote (load and save)
-    connection/                remembering which spreadsheet is connected
+    google/                    Sheets API client and the sheet format parser (shared by Google and .xlsx)
+    files/                     ExcelJS loading shared by reading and writing .xlsx files
     metrics/                   net worth series, monthly spend by category
-    csv/                       parsing, column mapping, reconciliation
-  features/                    one folder per feature: pages, components, feature hooks
+    csv/                       the CSV text parser
+    dashboard/                 dashboard layout (widgets) and how it is stored
+    paychecks/                 paychecks and the money-flow calculation
+  modules/                     the pick-and-choose parts of the app, see "Modules" below
+    ingest/                    getting a ledger in: Google, a file on this device
+    import/                    turning bank data into transactions: CSV, pasted text
+    graphs/                    dashboard graphs: one folder per graph, plus a registry
+    save/                      pushing changes back where the ledger came from
+  features/                    one folder per page: pages, components, feature hooks
     landing/                   public homepage
-    connect/                   sign in, pick or create a sheet
+    connect/                   sign in, pick or create a sheet, open a file
     accounts/                  accounts summary, account menu, transaction table, inline editing
     categories/                category management page
-    dashboard/                 charts
-    import/                    Import data dialog: CSV drag and drop, mapping, review
+    dashboard/                 the dashboard page: layout editing, widget frame
+    paychecks/                 paychecks page
+    legal/                     privacy policy and terms
 ```
+
+## Modules
+
+The app is a few interchangeable parts. Each is a folder under `src/modules/` with a small
+interface in `types.ts`, a public `index.ts`, and one folder per implementation. Adding an option
+means adding a folder and one line in the group's `index.ts`; removing one means deleting them.
+`src/modules/modules.test.ts` fails if an implementation imports a sibling, or if one group reaches
+into another group's internals instead of its `index.ts`.
+
+```
+src/modules/
+  ingest/        Ingest<Input>.open(input) → Connection { title, load(), saver }
+    google/        reads a Google Sheet (plus sign-in, Picker, create)
+    local-file/    reads .xlsx / .csv from the device, or starts a blank ledger
+  save/          Saver { save(base, next), download?(data) }
+    cloud/         one batchUpdate to the Google Sheet
+    local-file/    keeps changes in memory; download() builds the updated .xlsx
+    ui/            Save button and status
+  import/        Importer { id, label, accepts, parse(input, options) → ParsedImport }
+    csv/           a CSV file; delimiter and header row detected
+    pasted-text/   text copied from a bank's website, read with heuristics
+    shared/        mapping, values, reconcile and import plan, common to every importer
+    ui/            Import data dialog (drop zone, paste box, mapping, preview)
+  graphs/        Graph { kind, label, defaultWidth, title(), Options?, View }
+    stat/ net-worth/ balances/ spending/ breakdown/ cash-flow/ sankey/
+    shared/        chart primitives (axes, legend, tooltip, theme, formatting)
+```
+
+- **Ingest and save.** Whatever the source, `remoteOf(connection)` gives the store one `LedgerRemote`.
+  The store loads once, keeps the working copy in IndexedDB and calls the saver with the last saved
+  state and the new one, so everything after ingest behaves the same. A connection pairs its reader
+  with the saver that writes back to where the data came from: `cloud` flushes the batched updates
+  to the sheet, `local-file` turns Save into Download. A new source is an `Ingest` that returns a
+  `Connection` with its own saver.
+- **Import.** Every importer returns the same `ParsedImport` (a table, the guessed column mapping,
+  warnings and, for free-form dates, the day/month order), so the preview, mapping editor and
+  import plan do not know which one ran. Register new importers in `import/index.ts`.
+- **Graphs.** The dashboard layout stores each widget's `kind` and settings. `WidgetView` looks the
+  kind up in `GRAPHS` and renders its `View` with the widget's accounts, range and data worked out.
+  A layout that mentions a removed graph shows "This graph is no longer available" and keeps the
+  widget so nothing is lost.
 
 ## Styling
 
@@ -124,12 +176,12 @@ focus-visible:outline-offset-2 focus-visible:outline-accent`, `disabled:opacity-
 The Sheets API allows 60 read and 60 write requests per minute per user, so the app never talks to
 it per page or per edit:
 
-1. **Load once.** When a spreadsheet is connected, `sheetsRemote.load()` reads the tab list and then
+1. **Load once.** When a spreadsheet is connected, the Google ingest reads the tab list and then
    every tab's values in one batch: two requests in total. Pages never load anything themselves.
 2. **Edit locally.** `LedgerStore` holds the working copy. Edits apply at once (`useLedger()`
    re-renders) and are written to IndexedDB, so closing the page never loses them.
 3. **Save in one batch.** Every minute, when the page is hidden, or when the user presses Save
-   (`mod+s`), `sheetsRemote.save()` sends everything that changed in one `batchUpdate`. Changed
+   (`mod+s`), the `cloud` saver sends everything that changed in one `batchUpdate`. Changed
    account tabs are rewritten whole, in date order, with fresh Total formulas. `useSyncStatus()`
    reports `saved`, `unsaved`, `saving` or `error`.
 4. **Unsaved edits survive.** On the next load, edits still in IndexedDB are replayed on top of the
@@ -141,7 +193,7 @@ redating a transaction can change other rows' numbers, so read rows from the lat
 
 ## Shared contracts
 
-These are in the scaffold and should not change without agreement across threads:
+These should not change without agreement:
 
 - `src/lib/domain/types.ts`
 - `src/lib/data/repository.ts` (`LedgerRepository`)
@@ -149,52 +201,12 @@ These are in the scaffold and should not change without agreement across threads
 - `src/state/ledgerData.tsx` (`useLedger`, `useRepository`, `useSyncStatus`; `useLedgerQuery` and
   `useLedgerMutation` remain for older code)
 - `src/lib/store/` (`LedgerStore`, `LedgerSnapshot`, `LedgerRemote`)
+- `src/modules/*/types.ts` (`Ingest`, `Saver`, `Importer`, `Graph`)
 - `src/state/shortcuts.tsx` and `src/ui/ActionButton.tsx`
 - `src/app/paths.ts`
 
 If a feature needs a contract change (e.g. a new repository method), add it to the interface **and**
 `LedgerStore` with a test, keep it additive, and call it out in the PR description.
-
-## Ownership for the parallel work
-
-Each thread owns its folders and replaces its placeholder page. Files outside your folders are only
-touched additively.
-
-| Thread                                | Owns                                                                                                                          |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 1. Google connection and landing page | `features/landing`, `features/connect`, `lib/google`, `lib/connection`, Google mode in `state/session.tsx`, `public/_headers` |
-| 2. Accounts and transactions          | `features/accounts`, `features/categories`, `lib/transactions`, `lib/categories`                                              |
-| 3. Dashboard                          | `features/dashboard`, `lib/metrics`                                                                                           |
-| 4. CSV import                         | `features/import`, `lib/csv`                                                                                                  |
-
-Shared files each thread may edit additively:
-
-- `src/lib/shortcuts/bindings.ts`: add entries in your section only. Keys for the planned actions are
-  already reserved there.
-- `package.json` / `pnpm-lock.yaml`: add dependencies you need (e.g. a chart library for step 3, a
-  CSV parser for step 4). Expect a trivial lockfile merge.
-- `src/lib/data/repository.ts` + `src/lib/store/`: additive methods only, as above.
-
-### Notes per thread
-
-1. **Google connection.** Use Google Identity Services (token model) for sign-in and the Google
-   Picker with the `drive.file` scope, so the app only sees sheets the user picks or creates.
-   Implement `GoogleSheetsRepository implements LedgerRepository` in `lib/google/` and switch
-   `SessionProvider` to it when `VITE_DATA_SOURCE=google`. Creating a sheet creates one account tab
-   and `_Categories` with sensible defaults. Update the CSP in `public/_headers` for Google domains.
-2. **Accounts and transactions.** `/accounts` is a read-only summary of every account (balance,
-   transaction count, last activity) where accounts can be renamed or added; `/accounts/:accountId`
-   shows one account's transactions, newest date first. Account menu with `/` to switch and
-   `[`/`]` to cycle, inline editing (select a row to edit it; `enter` edit, `mod+enter` save,
-   `escape` cancel), `n` adds a row at the top of the editor. Category picker with "add new"
-   inline. Categories page for add / rename (`renameCategory`) / recolour / delete.
-3. **Dashboard.** Pure functions in `lib/metrics/` (net worth over time across accounts, spend per
-   category per month, month-over-month totals), charts in `features/dashboard/`.
-4. **CSV import.** `lib/csv/` parses, guesses the mapping from the header row (date, amount or
-   debit/credit columns, description), normalises dates and amounts, and reconciles against existing
-   transactions (same date + amount + note counts as existing). UI: an "Import data" button on each
-   account page opens a dialog with a drop zone and file picker, editable column mapping, preview
-   showing new vs already-present rows, confirm.
 
 ## Running
 

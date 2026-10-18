@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
-import { defaultDashboard, type DashboardConfig } from '../../lib/dashboard/config';
+import type { DashboardConfig } from '../../lib/dashboard/config';
+import { defaultDashboard } from '../../modules/graphs';
 import { parsePaychecks } from '../../lib/paychecks/serialize';
 import { parseDashboard, serializeDashboard } from '../../lib/dashboard/serialize';
 import type { JsonValue } from '../../lib/store/ledgerData';
