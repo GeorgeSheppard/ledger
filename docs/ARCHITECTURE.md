@@ -55,12 +55,11 @@ src/
     store/                     LedgerStore (working copy, autosave), LedgerRemote, IndexedDB cache
     shortcuts/                 key parsing and formatting, the bindings table
     transactions/              running totals, sorting, selection, validation, formatting
-    virtual/                   windowing maths for long lists (which items to render)
     categories/                category list operations
     google/                    Sheets API client and the sheet format parser (shared by Google and .xlsx)
     files/                     ExcelJS loading shared by reading and writing .xlsx files
     metrics/                   net worth series, monthly spend by category
-    csv/                       the CSV text parser
+    csv/                       CSV text → rows (Papa Parse)
     dashboard/                 dashboard layout (widgets) and how it is stored
     paychecks/                 paychecks and the money-flow calculation
   modules/                     the pick-and-choose parts of the app, see "Modules" below

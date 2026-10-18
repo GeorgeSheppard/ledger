@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { defaultRangeExtractor, useWindowVirtualizer } from '@tanstack/react-virtual';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { addCategory } from '../../lib/categories/categories';
 import type { Account, Category, Transaction } from '../../lib/domain/types';
 import { formatAmount } from '../../lib/transactions/amount';
@@ -56,7 +57,6 @@ import { TransactionFilterPanel } from './TransactionFilterPanel';
 import { TransactionRow } from './TransactionRow';
 import { MONTH_HEIGHT, ROW_HEIGHT, TRANSACTION_GRID } from './rowStyles';
 import { useAccountActions } from './useAccountsData';
-import { useWindowedList } from './useWindowedList';
 
 interface TransactionTableProps {
   account: Account;
@@ -91,7 +91,7 @@ const COLUMNS: { key: SortKey; label: string; align?: 'right' }[] = [
  * shown and Delete removes the selection. The search box and filter panel narrow the list; the menu
  * at the end of each row has the common "show me…" actions.
  *
- * Only the rows near the viewport are in the DOM (see `useWindowedList`), so a sheet with tens of
+ * Only the rows near the viewport are in the DOM (see `useWindowVirtualizer`), so a sheet with tens of
  * thousands of rows costs the same to show as one with fifty. Render with `key={account.id}` so
  * switching accounts starts fresh.
  */
@@ -137,19 +137,11 @@ export function TransactionTable({
   const browsing = !isEditing && !paused;
 
   const mobile = useMediaQuery('(max-width: 767px)');
-  const [editorHeight, setEditorHeight] = useState(EDITOR_ESTIMATE);
   const items = useMemo<ListItem[]>(
     () =>
       grouped ? flattenGroups(groups) : shown.map((transaction) => ({ kind: 'row', transaction })),
     [grouped, groups, shown]
   );
-  const heights = useMemo(() => {
-    const row = mobile ? ROW_HEIGHT.mobile : ROW_HEIGHT.desktop;
-    return items.map((item) =>
-      item.kind === 'month' ? MONTH_HEIGHT : item.transaction.id === editingRow ? editorHeight : row
-    );
-  }, [items, mobile, editingRow, editorHeight]);
-  const { listRef, layout, range, reveal } = useWindowedList(heights);
   const editingIndex = useMemo(
     () =>
       editingRow === null
@@ -157,6 +149,36 @@ export function TransactionTable({
         : items.findIndex((item) => item.kind === 'row' && item.transaction.id === editingRow),
     [items, editingRow]
   );
+  const listRef = useRef<HTMLDivElement>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
+  useLayoutEffect(() => {
+    setScrollMargin(listRef.current?.offsetTop ?? 0);
+  }, []);
+  const virtualizer = useWindowVirtualizer({
+    count: items.length,
+    estimateSize: (index) => {
+      const item = items[index];
+      if (item?.kind === 'month') return MONTH_HEIGHT;
+      if (item?.transaction.id === editingRow) return EDITOR_ESTIMATE;
+      return mobile ? ROW_HEIGHT.mobile : ROW_HEIGHT.desktop;
+    },
+    getItemKey: (index) => {
+      const item = items[index];
+      return item ? (item.kind === 'month' ? `month-${item.key}` : item.transaction.id) : index;
+    },
+    overscan: 8,
+    scrollMargin,
+    // The row being edited stays rendered even when scrolled out of the window, so it keeps focus.
+    rangeExtractor: (range) => {
+      const indexes = defaultRangeExtractor(range);
+      return editingIndex === -1 || indexes.includes(editingIndex)
+        ? indexes
+        : [...indexes, editingIndex].sort((a, b) => a - b);
+    },
+  });
+  // Row sizes depend on the viewport and on which row is open, so they are measured again then.
+  useEffect(() => virtualizer.measure(), [virtualizer, mobile, editingRow]);
+  const reveal = (index: number) => virtualizer.scrollToIndex(index, { align: 'auto' });
 
   // Keyboard moves and new rows scroll the selection into view. Selecting from the mouse or
   // selecting everything must not move the page, so those leave `revealKey` alone.
@@ -423,10 +445,16 @@ export function TransactionTable({
     />
   );
 
-  const renderItem = (index: number) => {
+  const renderItem = ({ index, start, size }: { index: number; start: number; size: number }) => {
     const item = items[index];
     if (!item) return null;
-    const style = { position: 'absolute', top: layout.offsets[index], left: 0, right: 0 } as const;
+    const style = {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      transform: `translateY(${start - scrollMargin}px)`,
+    } as const;
     if (item.kind === 'month')
       return (
         <div
@@ -447,12 +475,18 @@ export function TransactionTable({
     const { transaction } = item;
     if (editingRow === transaction.id)
       return (
-        <div key={transaction.id} data-row-id={transaction.id} style={style}>
-          <Measured onHeight={setEditorHeight}>{editor}</Measured>
+        <div
+          key={transaction.id}
+          ref={virtualizer.measureElement}
+          data-index={index}
+          data-row-id={transaction.id}
+          style={style}
+        >
+          {editor}
         </div>
       );
     return (
-      <div key={transaction.id} style={{ ...style, height: heights[index] }}>
+      <div key={transaction.id} style={{ ...style, height: size }}>
         <TransactionRow
           transaction={transaction}
           categories={categories}
@@ -463,12 +497,6 @@ export function TransactionTable({
       </div>
     );
   };
-
-  // The row being edited stays rendered even when scrolled out of the window, so it keeps focus.
-  const rendered: number[] = [];
-  for (let i = range.start; i < range.end; i++) rendered.push(i);
-  if (editingIndex !== -1 && (editingIndex < range.start || editingIndex >= range.end))
-    rendered.push(editingIndex);
 
   const filterCount = countFilters(filters);
 
@@ -652,8 +680,8 @@ export function TransactionTable({
             </ActionButton>
           </div>
         )}
-        <div ref={listRef} className="relative" style={{ height: layout.total }}>
-          {rendered.map(renderItem)}
+        <div ref={listRef} className="relative" style={{ height: virtualizer.getTotalSize() }}>
+          {virtualizer.getVirtualItems().map(renderItem)}
         </div>
       </div>
     </section>
@@ -662,21 +690,6 @@ export function TransactionTable({
 
 /** Until the editor has been measured: roughly its height with the footer, in pixels. */
 const EDITOR_ESTIMATE = 128;
-
-/** Reports its content's height, so the windowed list can make room for the open editor. */
-function Measured({ onHeight, children }: { onHeight(height: number): void; children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-    const report = () => onHeight(element.offsetHeight);
-    report();
-    const observer = new ResizeObserver(report);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [onHeight]);
-  return <div ref={ref}>{children}</div>;
-}
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() => window.matchMedia(query).matches);

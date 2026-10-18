@@ -1,3 +1,4 @@
+import { area as d3Area, line as d3Line } from 'd3-shape';
 import { useState } from 'react';
 import { cn } from '../../../ui/cn';
 import type { Account } from '../../../lib/domain/types';
@@ -35,9 +36,16 @@ export function NetWorthChart({ points, accounts }: NetWorthChartProps) {
   const step = points.length > 1 ? (right - left) / (points.length - 1) : 0;
   const x = (i: number) => (points.length > 1 ? left + i * step : (left + right) / 2);
 
-  const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(i)},${y(p.total)}`).join(' ');
   const baseline = y(y.domain[0]);
-  const area = `${line} L${x(points.length - 1)},${baseline} L${x(0)},${baseline} Z`;
+  const line =
+    d3Line<number>()
+      .x((_, i) => x(i))
+      .y((_, i) => y(points[i]!.total))(points.map((_, i) => i)) ?? '';
+  const area =
+    d3Area<number>()
+      .x((_, i) => x(i))
+      .y0(baseline)
+      .y1((_, i) => y(points[i]!.total))(points.map((_, i) => i)) ?? '';
   const last = points.length - 1;
   const first = points[0]!;
   const lastPoint = points[last]!;
