@@ -38,6 +38,7 @@ export interface SheetLayout {
   sheetIds: number[];
   categoriesSheetId?: number;
   dashboardSheetId?: number;
+  paychecksSheetId?: number;
 }
 
 export const EMPTY_LAYOUT: SheetLayout = { rowCounts: {}, sheetIds: [] };

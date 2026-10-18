@@ -163,3 +163,7 @@ export function parseDashboardCell(value: unknown): JsonValue | null {
 export function dashboardRow(config: JsonValue | null): RowData {
   return { values: [config === null ? {} : stringCell(JSON.stringify(config))] };
 }
+
+/** `_Paychecks` stores its list as JSON text in cell A2, like `_Dashboard`. */
+export const parsePaychecksCell = parseDashboardCell;
+export const paychecksRow = dashboardRow;

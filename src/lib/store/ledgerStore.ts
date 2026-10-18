@@ -218,6 +218,14 @@ export class LedgerStore implements LedgerRepository {
     this.apply(edit.setDashboard(this.current, config));
   }
 
+  async getPaychecks(): Promise<JsonValue | null> {
+    return structuredClone(this.snapshot.paychecks);
+  }
+
+  async savePaychecks(config: JsonValue | null): Promise<void> {
+    this.apply(edit.setPaychecks(this.current, config));
+  }
+
   // --- Internals ---
 
   /** Tabs that are not accounts but still own their name in the spreadsheet. */
