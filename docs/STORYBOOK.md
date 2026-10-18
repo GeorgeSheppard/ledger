@@ -53,12 +53,21 @@ For any change a user can see:
 2. Take screenshots of the affected stories on your branch. For a change to something that already
    exists, also take them on `main` (`git stash`, or a second checkout) and name the output folders
    `before` and `after`.
-3. Commit the PNGs you want reviewers to see under `.github/pr-screenshots/<branch-name>/`, push, and
-   link them in the PR description with commit-pinned URLs so they keep working:
-   `![Sankey](https://github.com/GeorgeSheppard/ledger/blob/<commit-sha>/.github/pr-screenshots/<branch-name>/after.png?raw=true)`.
+3. Never commit the PNGs to a feature branch or `main`: `main` holds only images the app itself uses.
+   Publish them to the `pr-screenshots` branch, which is separate from the code, and link them from
+   the PR description with commit-pinned URLs so they keep working:
+
+   ```sh
+   git worktree add --orphan -b pr-screenshots /tmp/pr-shots 2>/dev/null || git worktree add /tmp/pr-shots pr-screenshots
+   mkdir -p /tmp/pr-shots/<branch-name> && cp screenshots/*.png /tmp/pr-shots/<branch-name>/
+   git -C /tmp/pr-shots add . && git -C /tmp/pr-shots commit -m "Screenshots for <branch-name>"
+   git -C /tmp/pr-shots push -u origin pr-screenshots   # then: git -C /tmp/pr-shots rev-parse HEAD
+   ```
+
+   `![Sankey](https://github.com/GeorgeSheppard/ledger/blob/<that-sha>/<branch-name>/after.png?raw=true)`.
    Keep it to the few images that matter (a PR needs a handful, not every story).
+
 4. Put a **Before** / **After** pair in the description where something changed, and say which story
    id each came from so it can be reproduced.
 
-The screenshots folder can be deleted once the PR is merged; the commit-pinned links in the merged PR
-keep working.
+Local PNGs (`screenshots/`, git-ignored) can be deleted any time; the commit-pinned links keep working.
