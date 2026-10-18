@@ -1,5 +1,8 @@
+import { Link } from 'react-router';
+import { paths } from '../../app/paths';
 import { isGlobal } from '../../lib/categories/categories';
 import type { Category } from '../../lib/domain/types';
+import { categoryTransactionsPath } from '../../lib/transactions/filterParams';
 import { Badge } from '../../ui/Badge';
 import { selectableRow } from '../accounts/rowStyles';
 
@@ -34,7 +37,18 @@ export function CategoryRow({ category, usage, selected, onOpen }: CategoryRowPr
         )}
       </span>
       <span role="cell" className="text-[0.8125rem] text-muted tabular-nums">
-        {usage === 0 ? 'Unused' : `${usage} ${usage === 1 ? 'transaction' : 'transactions'}`}
+        {usage === 0 ? (
+          'Unused'
+        ) : (
+          <Link
+            to={categoryTransactionsPath(paths.transactions, category.name)}
+            className="underline decoration-dotted underline-offset-2 hover:text-fg hover:decoration-solid"
+            title={`Show the ${category.name} transactions`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            {usage} {usage === 1 ? 'transaction' : 'transactions'}
+          </Link>
+        )}
       </span>
     </div>
   );
