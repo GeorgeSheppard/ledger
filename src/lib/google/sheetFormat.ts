@@ -135,14 +135,16 @@ export function headerRow(columns: readonly string[] = ACCOUNT_COLUMNS): RowData
 }
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
-const FALLBACK_COLOR = '#8b8d98';
 
-/** `_Categories` values (from row 2, columns A–B) as categories. Blank names are skipped. */
+/**
+ * `_Categories` values (from row 2, columns A–B) as categories. Blank names are skipped. A missing
+ * or invalid colour comes back as `''`; the store gives those a palette colour when it opens.
+ */
 export function rowsToCategories(values: readonly (readonly unknown[])[]): Category[] {
   return values
     .map((cells) => ({ name: textCell(cells[0]), color: textCell(cells[1]) }))
     .filter((c) => c.name !== '')
-    .map((c) => ({ name: c.name, color: HEX_COLOR.test(c.color) ? c.color : FALLBACK_COLOR }));
+    .map((c) => ({ name: c.name, color: HEX_COLOR.test(c.color) ? c.color : '' }));
 }
 
 export function categoryRow(category: Category): RowData {

@@ -18,6 +18,19 @@ afterEach(() => {
 });
 
 describe('LedgerStore', () => {
+  it('builds missing categories from transactions and saves them', async () => {
+    const data = fixtureData();
+    data.categories = [];
+    data.rows[1] = [{ date: '2026-01-01', category: 'Travel', amount: 5, note: '' }];
+    const { store, remote } = await open(data);
+    const categories = await store.listCategories();
+    expect(categories.map((c) => c.name)).toContain('Travel');
+    expect(categories.every((c) => /^#[0-9a-f]{6}$/.test(c.color))).toBe(true);
+    expect(store.hasUnsavedChanges).toBe(true);
+    await store.save();
+    expect(remote.data.categories.map((c) => c.name)).toContain('Travel');
+  });
+
   it('loads once and serves every read from memory', async () => {
     const { store, remote } = await open();
     await store.listAccounts();

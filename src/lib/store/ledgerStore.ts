@@ -7,6 +7,7 @@ import {
   sameData,
   sortAllByDate,
   toSnapshot,
+  withUsedCategories,
   type JsonValue,
   type LedgerData,
   type LedgerSnapshot,
@@ -62,7 +63,14 @@ export class LedgerStore implements LedgerRepository {
     let current = fresh.data;
     if (cached && !sameData(cached.current, cached.saved.data))
       current = rebase(fresh.data, cached.saved.data, cached.current);
-    const store = new LedgerStore(spreadsheetId, remote, cache, now, fresh, sortAllByDate(current));
+    const store = new LedgerStore(
+      spreadsheetId,
+      remote,
+      cache,
+      now,
+      fresh,
+      withUsedCategories(sortAllByDate(current))
+    );
     store.persist();
     return store;
   }
