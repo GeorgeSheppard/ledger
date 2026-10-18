@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import { Select } from '../../../ui/Select';
 import type { Graph } from '../types';
-import { NoData } from '../shared/NoData';
+import { NO_ACTIVITY, NoData } from '../shared/NoData';
 import { METRIC_LABELS, STAT_METRICS, statMetric } from './metrics';
 import { StatTile } from './StatTile';
 
@@ -34,6 +34,8 @@ export const statGraph: Graph = {
   },
   View({ widget, dashboard }) {
     if (!dashboard) return <NoData>No transactions in these accounts yet.</NoData>;
+    if (!dashboard.hasActivity && statMetric(widget.metric) !== 'netWorth')
+      return <NoData>{NO_ACTIVITY}</NoData>;
     return <StatTile dashboard={dashboard} metric={statMetric(widget.metric)} />;
   },
 };

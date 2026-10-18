@@ -131,7 +131,10 @@ export function DashboardPage() {
   };
 
   const description = overall
-    ? `${formatMonthLong(overall.months[0]!)} to ${formatMonthLong(overall.latest.month)}`
+    ? `${formatMonthLong(overall.months[0]!)} to ${formatMonthLong(overall.latest.month)}` +
+      (overall.laterTransactions
+        ? ` · ${overall.laterTransactions} transaction${overall.laterTransactions === 1 ? '' : 's'} dated later than this are not included`
+        : '')
     : undefined;
 
   const actions = editing ? (

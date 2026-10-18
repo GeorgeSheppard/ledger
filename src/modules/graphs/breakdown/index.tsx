@@ -2,7 +2,7 @@ import { categoryBreakdown } from '../../../lib/metrics/dashboard';
 import { ActionButton } from '../../../ui/ActionButton';
 import type { Graph } from '../types';
 import { formatMonthLong } from '../shared/format';
-import { NoData } from '../shared/NoData';
+import { NO_ACTIVITY, NoData } from '../shared/NoData';
 import { CategoryBreakdown } from './CategoryBreakdown';
 
 export const breakdownGraph: Graph = {
@@ -20,6 +20,7 @@ export const breakdownGraph: Graph = {
     const rows = categoryBreakdown(dashboard, shown).filter(
       (row) => !chosen.length || chosen.includes(row.category)
     );
+    if (!dashboard.hasActivity) return <NoData>{NO_ACTIVITY}</NoData>;
     return (
       <>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

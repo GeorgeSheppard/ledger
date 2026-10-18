@@ -43,6 +43,39 @@ describe('buildDashboard', () => {
     expect(dashboard.latest.netWorth).toBe(buildDashboard(ledgers, 'all')!.latest.netWorth);
   });
 
+  it('ends the window at this month so one future-dated row does not empty the dashboard', () => {
+    const withFuture = [
+      {
+        ...ledgers[0]!,
+        transactions: [
+          ...ledgers[0]!.transactions,
+          ...makeTransactions(1, [['2099-01-01', -50, 'Typo']]),
+        ],
+      },
+      ledgers[1]!,
+    ];
+    const dashboard = buildDashboard(withFuture, 3, undefined, '2026-05')!;
+    expect(dashboard.months).toEqual(['2026-01', '2026-02', '2026-03']);
+    expect(dashboard.laterTransactions).toBe(1);
+    expect(dashboard.hasActivity).toBe(true);
+    expect(dashboard.latest.spending).toBeGreaterThan(0);
+  });
+
+  it('follows data that ends before this month, and data that is all in the future', () => {
+    expect(buildDashboard(ledgers, 3, undefined, '2027-01')!.months.at(-1)).toBe('2026-03');
+    expect(buildDashboard(ledgers, 3, undefined, '2025-06')!.months.at(-1)).toBe('2026-03');
+  });
+
+  it('reports no activity when the range holds only balances', () => {
+    const quiet = [
+      {
+        account: { id: 1, name: 'A' },
+        transactions: makeTransactions(1, [['2026-01-01', 100, '', 'Opening balance']]),
+      },
+    ];
+    expect(buildDashboard(quiet, 6, undefined, '2026-04')!.hasActivity).toBe(false);
+  });
+
   it('limits to the chosen accounts but still matches transfers across all of them', () => {
     const current = buildDashboard(ledgers, 3, [1])!;
     expect(current.accounts.map((a) => a.account.id)).toEqual([1]);

@@ -68,7 +68,14 @@ export function flowWindow(
   today: IsoDate
 ): { from: MonthKey; to: MonthKey } {
   const span = dataMonthRange(ledgers);
-  const to = span?.last ?? monthOf(today);
+  // The latest month with data that is not in the future, like `buildDashboard`.
+  const now = monthOf(today);
+  const past = ledgers
+    .flatMap((l) => l.transactions.map((t) => t.date))
+    .filter(isIsoDate)
+    .map(monthOf)
+    .filter((m) => m <= now);
+  const to = past.length ? past.reduce((a, b) => (a > b ? a : b)) : (span?.last ?? now);
   if (range !== 'all') return { from: addMonths(to, 1 - range), to };
   const starts = paychecks
     .map((p) => p.date)

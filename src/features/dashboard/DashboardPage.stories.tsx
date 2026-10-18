@@ -68,3 +68,12 @@ export const CashFlow: Story = {
     </Connected>
   ),
 };
+
+/** One mistyped, far-future transaction: the dashboard still shows the real data and says what it left out. */
+export const FutureDatedRow: Story = {
+  render: () => (
+    <Connected shell futureDated>
+      <DashboardPage />
+    </Connected>
+  ),
+};

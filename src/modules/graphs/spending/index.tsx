@@ -1,7 +1,7 @@
 import { onlyCategories } from '../../../lib/metrics/cashFlow';
 import type { Graph } from '../types';
 import { ChartLegend } from '../shared/ChartLegend';
-import { NoData } from '../shared/NoData';
+import { NO_ACTIVITY, NoData } from '../shared/NoData';
 import { SpendingChart } from './SpendingChart';
 
 export const spendingGraph: Graph = {
@@ -16,7 +16,12 @@ export const spendingGraph: Graph = {
     const categories = chosen.length
       ? dashboard.categories.filter((c) => chosen.includes(c))
       : dashboard.categories;
-    if (!categories.length) return <NoData>No spending in range.</NoData>;
+    if (!categories.length)
+      return (
+        <NoData>
+          {chosen.length ? 'No spending in the chosen categories in this period.' : NO_ACTIVITY}
+        </NoData>
+      );
     return (
       <>
         <ChartLegend items={categories.map((c) => ({ label: c, color: colorOf(c) }))} />

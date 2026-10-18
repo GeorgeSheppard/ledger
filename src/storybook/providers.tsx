@@ -29,23 +29,29 @@ export function AppProviders({ route = '/', children }: { route?: string; childr
 function Seed({
   dashboard,
   creditCard,
+  futureDated,
   children,
 }: {
   dashboard?: DashboardConfig;
   creditCard?: boolean;
+  futureDated?: boolean;
   children: ReactNode;
 }) {
   const repository = useRepository();
-  const [ready, setReady] = useState(!dashboard && !creditCard);
+  const [ready, setReady] = useState(!dashboard && !creditCard && !futureDated);
   useEffect(() => {
-    if (!dashboard && !creditCard) return;
+    if (!dashboard && !creditCard && !futureDated) return;
     (async () => {
       if (dashboard)
         await repository.saveDashboardConfig(serializeDashboard(dashboard) as unknown as JsonValue);
       if (creditCard) await addCreditCard(repository);
+      if (futureDated)
+        await repository.addTransactions(1, [
+          { date: '2099-01-01', category: 'Rent', amount: -50, note: 'Mistyped year' },
+        ]);
       setReady(true);
     })();
-  }, [repository, dashboard, creditCard]);
+  }, [repository, dashboard, creditCard, futureDated]);
   return ready ? children : null;
 }
 
@@ -70,6 +76,8 @@ interface ConnectedProps {
   dashboard?: DashboardConfig;
   /** Adds an inverted "Credit card" account (purchases positive) to the demo spreadsheet. */
   creditCard?: boolean;
+  /** Adds one transaction dated far in the future, which the dashboard must not let empty it. */
+  futureDated?: boolean;
   /** Wraps `children` in the sidebar and header, as pages are in the app. */
   shell?: boolean;
   children: ReactNode;
@@ -80,13 +88,14 @@ export function Connected({
   route = '/',
   dashboard,
   creditCard,
+  futureDated,
   shell = false,
   children,
 }: ConnectedProps) {
   return (
     <AppProviders route={route}>
       <LedgerDataProvider>
-        <Seed dashboard={dashboard} creditCard={creditCard}>
+        <Seed dashboard={dashboard} creditCard={creditCard} futureDated={futureDated}>
           {shell ? <AppShell>{children}</AppShell> : children}
         </Seed>
       </LedgerDataProvider>

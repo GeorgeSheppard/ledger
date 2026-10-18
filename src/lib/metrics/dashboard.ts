@@ -1,6 +1,6 @@
 import type { Account } from '../domain/types';
 import { monthlyCashFlow, spendingCategories, type MonthCashFlow } from './cashFlow';
-import { addMonths, isIsoDate, monthsBetween, type MonthKey } from './months';
+import { addMonths, isIsoDate, monthOf, monthsBetween, type MonthKey } from './months';
 import {
   dataMonthRange,
   netWorthByMonth,
@@ -36,6 +36,10 @@ export interface CategorySpend {
 
 export interface Dashboard {
   months: MonthKey[];
+  /** Transactions dated after the last month shown (future-dated rows), left out of every number. */
+  laterTransactions: number;
+  /** Whether any month shown has income or spending. False means the range holds only balances. */
+  hasActivity: boolean;
   netWorth: NetWorthPoint[];
   cashFlow: MonthCashFlow[];
   /** Cash flow for the month before the range, or null if the data starts inside the range. */
@@ -63,8 +67,17 @@ function round(amount: number): number {
   return Math.round(amount * 100) / 100;
 }
 
+/** The current month, `YYYY-MM`, in local time. */
+export function currentMonth(now: Date = new Date()): MonthKey {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
 /**
- * Returns null when there are no dated transactions in the chosen accounts. `accountIds` limits
+ * Returns null when there are no dated transactions in the chosen accounts. The window ends at the
+ * latest month with data that is not after `thisMonth`: one future-dated or mistyped row (a
+ * scheduled payment, a year typo) would otherwise push the window past all the real data and leave
+ * every graph empty. If all the data is in the future the window ends at its latest month instead.
+ * `accountIds` limits
  * the dashboard to some accounts (all when omitted). Transfers are still matched across every
  * account, so money moved out of a chosen account into one that is not chosen is not counted as
  * spending.
@@ -72,7 +85,8 @@ function round(amount: number): number {
 export function buildDashboard(
   allLedgers: readonly AccountLedger[],
   range: DashboardRange,
-  accountIds?: readonly number[]
+  accountIds?: readonly number[],
+  thisMonth: MonthKey = currentMonth()
 ): Dashboard | null {
   // A row without a readable date cannot be placed in a month. Leave it out rather than letting it
   // sink the whole dashboard.
@@ -81,8 +95,20 @@ export function buildDashboard(
     transactions: l.transactions.filter((t) => isIsoDate(t.date)),
   }));
   const ledgers = accountIds ? dated.filter((l) => accountIds.includes(l.account.id)) : dated;
-  const span = dataMonthRange(ledgers);
-  if (!span) return null;
+  const dataSpan = dataMonthRange(ledgers);
+  if (!dataSpan) return null;
+  // The latest month with data that is not in the future; the sheet may not have this month yet.
+  const pastMonths = ledgers.flatMap((l) =>
+    l.transactions.map((t) => monthOf(t.date)).filter((m) => m <= thisMonth)
+  );
+  const span = {
+    first: dataSpan.first,
+    last: pastMonths.length ? pastMonths.reduce((a, b) => (a > b ? a : b)) : dataSpan.last,
+  };
+  const laterTransactions = ledgers.reduce(
+    (sum, l) => sum + l.transactions.filter((t) => monthOf(t.date) > span.last).length,
+    0
+  );
 
   const start =
     range === 'all' || addMonths(span.last, 1 - range) < span.first
@@ -110,6 +136,8 @@ export function buildDashboard(
 
   return {
     months,
+    laterTransactions,
+    hasActivity: cashFlow.some((f) => f.income > 0 || f.spending > 0),
     netWorth,
     cashFlow,
     previousCashFlow: hasPrevious ? flowsWithPrevious[0]! : null,
