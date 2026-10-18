@@ -119,7 +119,10 @@ try {
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(400); // charts and the play function settle
       const file = join(options.out, `${story.id}.${colorScheme}.png`);
-      await page.screenshot({ path: file, fullPage: true });
+      // A modal's backdrop and position are tied to the viewport, so a full-page capture would
+      // leave it grey over the first screen only. Capture just the viewport when one is open.
+      const modalOpen = await page.evaluate(() => !!document.querySelector('dialog[open]'));
+      await page.screenshot({ path: file, fullPage: !modalOpen });
       console.log(file);
       await page.close();
     }

@@ -41,7 +41,7 @@ pnpm screenshots all --scheme dark --out /tmp/shots  # everything, dark only
 pnpm screenshots pages-paychecks --no-build          # reuse the last build
 ```
 
-It builds Storybook, serves it locally, and saves `<story-id>.<light|dark>.png` (full page, 1280 px
+It builds Storybook, serves it locally, and saves `<story-id>.<light|dark>.png` (full page, or just the viewport when a modal is open; 1280 px
 wide by default; `--width` changes it) into `screenshots/`, which is git-ignored. It uses the Chromium
 already installed on the machine (`CHROMIUM_PATH` overrides where) and never downloads one.
 

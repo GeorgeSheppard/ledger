@@ -1,34 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
 import { paths } from '../../app/paths';
-import { DEFAULT_SPREADSHEET_TITLE } from '../../modules/ingest/google/newSpreadsheet';
+import { GoogleSpreadsheetStep } from '../../modules/ingest';
 import { useSession } from '../../state/session';
 import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
 import { Page } from '../../ui/Page';
-import { LocalFileCard } from '../../modules/ingest/local-file/LocalFileCard';
-import { useAsyncAction } from './useAsyncAction';
+import { GetStartedDialog } from './GetStartedDialog';
 
-/** After sign-in: choose an existing spreadsheet with the Google Picker, or create a new one. */
+/** After sign-in, or when switching: choose a Google Sheet, or one of the other ways to start. */
 export function ConnectPage() {
-  const { session, spreadsheets, connect, signOut } = useSession();
+  const { session, signOut } = useSession();
   const navigate = useNavigate();
-  const [title, setTitle] = useState(DEFAULT_SPREADSHEET_TITLE);
-  const { busy, error, run } = useAsyncAction<'pick' | 'create'>();
-
-  useEffect(() => spreadsheets.preload?.(), [spreadsheets]);
+  const [others, setOthers] = useState(false);
 
   if (session.status === 'signed-out') return <Navigate to={paths.home} replace />;
   const current = session.status === 'connected' ? session.spreadsheet : null;
-
-  const open = (key: 'pick' | 'create') =>
-    run(key, async () => {
-      const spreadsheet =
-        key === 'pick' ? await spreadsheets.pick() : await spreadsheets.create(title);
-      if (!spreadsheet) return;
-      await connect(spreadsheet);
-      navigate(paths.home);
-    });
 
   return (
     <Page
@@ -40,7 +27,7 @@ export function ConnectPage() {
           : 'Ledger reads and writes one Google Sheet in your Drive.'
       }
       actions={
-        <ActionButton shortcut="connect.signOut" variant="ghost" onAction={signOut}>
+        <ActionButton variant="ghost" onAction={signOut}>
           Sign out
         </ActionButton>
       }
@@ -53,76 +40,24 @@ export function ConnectPage() {
             </span>
             <strong className="block truncate">{current.title}</strong>
           </span>
-          <ActionButton shortcut="connect.back" onAction={() => navigate(paths.home)}>
-            Back to dashboard
-          </ActionButton>
+          <ActionButton onAction={() => navigate(paths.home)}>Back to dashboard</ActionButton>
         </Card>
       )}
+
+      <GoogleSpreadsheetStep onOpened={() => navigate(paths.home)} />
 
       <p className="text-sm text-muted">
-        Each tab in the spreadsheet is an account, with the columns{' '}
-        <strong className="text-fg">Date, Category, Amount, Note, Total</strong>.
+        Not using Google?{' '}
+        <button
+          type="button"
+          className="cursor-pointer text-accent underline"
+          onClick={() => setOthers(true)}
+        >
+          See the other ways to start
+        </button>
+        .
       </p>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="flex flex-col items-start gap-3 p-6">
-          <h2 className="text-lg font-semibold">Start fresh</h2>
-          <p className="flex-1 text-sm text-muted">
-            Creates a new spreadsheet with a <em>Current account</em> tab and a starter set of
-            categories. You can add more accounts later.
-          </p>
-          <form
-            className="flex w-full flex-col items-start gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void open('create');
-            }}
-          >
-            <label className="text-sm text-muted" htmlFor="new-sheet-title">
-              Spreadsheet name
-            </label>
-            <input
-              id="new-sheet-title"
-              className="w-full rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-sm text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              maxLength={100}
-              disabled={busy !== null}
-            />
-            <ActionButton
-              shortcut="connect.create"
-              variant="primary"
-              onAction={() => void open('create')}
-              disabled={busy !== null}
-            >
-              {busy === 'create' ? 'Creating…' : 'Create spreadsheet'}
-            </ActionButton>
-          </form>
-        </Card>
-
-        <Card className="flex flex-col items-start gap-3 p-6">
-          <h2 className="text-lg font-semibold">Use a sheet you already have</h2>
-          <p className="flex-1 text-sm text-muted">
-            Choose a spreadsheet from your Drive. Ledger only gets access to the one you pick, never
-            the rest of your files.
-          </p>
-          <ActionButton
-            shortcut="connect.pick"
-            onAction={() => void open('pick')}
-            disabled={busy !== null}
-          >
-            {busy === 'pick' ? 'Opening…' : 'Choose from Google Drive'}
-          </ActionButton>
-        </Card>
-      </div>
-
-      <LocalFileCard scope="connect" onOpened={() => navigate(paths.home)} />
-
-      {error && (
-        <p role="alert" className="rounded-lg bg-negative/10 px-4 py-3 text-sm text-negative">
-          {error}
-        </p>
-      )}
+      {others && <GetStartedDialog onClose={() => setOthers(false)} />}
     </Page>
   );
 }

@@ -1,11 +1,8 @@
-import { Link } from 'react-router';
-import { paths } from '../../app/paths';
-import { useSession } from '../../state/session';
+import { useState } from 'react';
 import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
 import { DonateLink } from '../../ui/DonateLink';
-import { useAsyncAction } from '../connect/useAsyncAction';
-import { LocalFileCard } from '../../modules/ingest/local-file/LocalFileCard';
+import { GetStartedDialog } from '../connect/GetStartedDialog';
 import { LegalLinks } from '../legal/LegalPage';
 import { SheetPreview } from './SheetPreview';
 
@@ -26,11 +23,11 @@ const FEATURES = [
 
 const STEPS = [
   {
-    title: 'Sign in with Google',
-    body: 'Ledger asks only for access to the files you use with it.',
+    title: 'Choose where your data lives',
+    body: 'Connect a Google Sheet, upload a spreadsheet file, or start with a blank ledger.',
   },
   {
-    title: 'Pick or create a sheet',
+    title: 'Bring in your data',
     body: 'Use a spreadsheet you already have, or start a fresh one.',
   },
   {
@@ -40,34 +37,21 @@ const STEPS = [
 ];
 
 /**
- * The public homepage: what Ledger is, how your data is handled, and the sign-in button. A
- * marketing layout rather than `<Page>`, but on the same width and padding.
+ * The public homepage: what Ledger is and how your data is handled. "Get started" opens the dialog
+ * that offers every way of bringing data in. A marketing layout rather than `<Page>`, but on the
+ * same width and padding.
  */
 export function LandingPage() {
-  const { signIn, rememberedSpreadsheet } = useSession();
-  const { busy, error, run } = useAsyncAction<'sign-in'>();
+  const [starting, setStarting] = useState(false);
 
   const cta = (
-    <div className="flex flex-col items-start gap-3">
-      <ActionButton
-        shortcut="landing.signIn"
-        variant="primary"
-        onAction={() => void run('sign-in', signIn)}
-        disabled={busy !== null}
-        className="px-4 py-2.5 text-base"
-      >
-        {busy
-          ? 'Waiting for Google…'
-          : rememberedSpreadsheet
-            ? `Sign in to open ${rememberedSpreadsheet.title}`
-            : 'Agree and sign in with Google'}
-      </ActionButton>
-      {error && (
-        <p role="alert" className="rounded-lg bg-negative/10 px-3 py-2 text-sm text-negative">
-          {error}
-        </p>
-      )}
-    </div>
+    <ActionButton
+      variant="primary"
+      onAction={() => setStarting(true)}
+      className="self-start px-4 py-2.5 text-base"
+    >
+      Get started
+    </ActionButton>
   );
 
   return (
@@ -85,17 +69,9 @@ export function LandingPage() {
             in a spreadsheet file on your device, so you stay in control of it.
           </p>
           {cta}
-          <p className="max-w-md text-sm text-muted">
-            By signing in you agree to let Ledger read and change the spreadsheets you choose or
-            create with it, and to the <Link to={paths.terms}>terms of service</Link> and{' '}
-            <Link to={paths.privacy}>privacy policy</Link>. Nothing else in your Google account is
-            shared.
-          </p>
         </div>
         <SheetPreview />
       </section>
-
-      <LocalFileCard scope="landing" className="max-w-3xl" />
 
       <section className="grid gap-4 md:grid-cols-3" aria-label="Why Ledger">
         {FEATURES.map((feature) => (
@@ -149,6 +125,7 @@ export function LandingPage() {
         <DonateLink />
         <LegalLinks />
       </footer>
+      {starting && <GetStartedDialog onClose={() => setStarting(false)} />}
     </div>
   );
 }

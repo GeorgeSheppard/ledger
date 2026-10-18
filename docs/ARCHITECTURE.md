@@ -69,7 +69,7 @@ src/
     save/                      pushing changes back where the ledger came from
   features/                    one folder per page: pages, components, feature hooks
     landing/                   public homepage
-    connect/                   sign in, pick or create a sheet, open a file
+    connect/                   Get started dialog (driven by the ingest options), switch spreadsheet
     accounts/                  accounts summary, account menu, transaction table, inline editing
     categories/                category management page
     dashboard/                 the dashboard page: layout editing, widget frame
@@ -110,6 +110,10 @@ src/modules/
   with the saver that writes back to where the data came from: `cloud` flushes the batched updates
   to the sheet, `local-file` turns Save into Download. A new source is an `Ingest` that returns a
   `Connection` with its own saver.
+- **Get started.** The homepage only explains Ledger; its Get started button opens a dialog listing
+  `INGEST_OPTIONS` (`modules/ingest/index.ts`). Each `IngestOption` has a title, a description and a
+  `Setup` component that walks through that option. A new ingest module adds its option to the
+  registry and appears in the dialog with no change to the landing or connect features.
 - **Import.** Every importer returns the same `ParsedImport` (a table, the guessed column mapping,
   warnings and, for free-form dates, the day/month order), so the preview, mapping editor and
   import plan do not know which one ran. Register new importers in `import/index.ts`.
