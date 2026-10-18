@@ -215,6 +215,17 @@ export function deleteTransaction(data: LedgerData, accountId: number, row: numb
   return { ...data, rows: { ...data.rows, [accountId]: rows.filter((_, i) => i !== index) } };
 }
 
+/** Deletes several rows at once. Row numbers are those before the delete, so order does not matter. */
+export function deleteTransactions(
+  data: LedgerData,
+  accountId: number,
+  rowNumbers: readonly number[]
+): LedgerData {
+  const rows = accountRows(data, accountId);
+  const doomed = new Set(rowNumbers.map((row) => rowIndex(rows, row)));
+  return { ...data, rows: { ...data.rows, [accountId]: rows.filter((_, i) => !doomed.has(i)) } };
+}
+
 export function saveCategories(data: LedgerData, categories: readonly Category[]): LedgerData {
   return { ...data, categories: categories.map((c) => ({ ...c })) };
 }
