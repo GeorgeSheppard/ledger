@@ -29,3 +29,13 @@ export const AccountScope: Story = {
     await expect(canvas.getByRole('checkbox', { name: 'Current account' })).toBeChecked();
   },
 };
+
+/** The "N transactions" count is a link to those transactions; unused categories show plain text. */
+export const TransactionsLink: Story = {
+  render: Default.render,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const link = (await canvas.findAllByRole('link', { name: /transactions?$/ }))[0]!;
+    await expect(link).toHaveAttribute('href', expect.stringMatching(/^\/transactions\?cat=/));
+  },
+};

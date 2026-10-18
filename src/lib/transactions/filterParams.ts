@@ -35,3 +35,8 @@ export function filtersFromParams(params: URLSearchParams): TransactionFilters {
     accounts: params.getAll('acct').map(Number).filter(Number.isInteger),
   };
 }
+
+/** The transactions page's URL showing every transaction in `category`, whatever its date or account. */
+export function categoryTransactionsPath(basePath: string, category: string): string {
+  return `${basePath}?${filterParams({ categories: [category] })}`;
+}

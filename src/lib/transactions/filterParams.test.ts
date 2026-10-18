@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterParams, filtersFromParams } from './filterParams';
+import { categoryTransactionsPath, filterParams, filtersFromParams } from './filterParams';
 import { noFilters } from './filters';
 
 describe('filterParams', () => {
@@ -22,5 +22,18 @@ describe('filterParams', () => {
   it('is empty for no filters, and ignores malformed dates', () => {
     expect(filterParams({})).toBe('');
     expect(filtersFromParams(new URLSearchParams('from=yesterday'))).toEqual(noFilters);
+  });
+});
+
+describe('categoryTransactionsPath', () => {
+  it('opens the list filtered to one category with no dates or accounts', () => {
+    const [path, query] = categoryTransactionsPath('/transactions', 'Eating out & drinks').split(
+      '?'
+    );
+    expect(path).toBe('/transactions');
+    expect(filtersFromParams(new URLSearchParams(query))).toEqual({
+      ...noFilters,
+      categories: ['Eating out & drinks'],
+    });
   });
 });
