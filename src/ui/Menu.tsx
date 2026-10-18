@@ -17,13 +17,15 @@ interface MenuProps {
   /** What the button shows; defaults to a "more" icon. */
   children?: ReactNode;
   className?: string;
+  /** Replaces the round icon-button look, e.g. for a menu that opens from a text button. */
+  buttonClassName?: string;
 }
 
 /**
  * A button that opens a small list of actions. Arrow keys move, Enter picks, Escape or a click
  * outside closes it and puts focus back on the button.
  */
-export function Menu({ label, items, children, className }: MenuProps) {
+export function Menu({ label, items, children, className, buttonClassName }: MenuProps) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
@@ -79,7 +81,10 @@ export function Menu({ label, items, children, className }: MenuProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
-        className="inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent"
+        className={cn(
+          'inline-flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-accent',
+          buttonClassName
+        )}
         onClick={(event) => {
           event.stopPropagation();
           setOpen((o) => !o);

@@ -2,6 +2,8 @@ import type { Graph } from '../types';
 import { ChartLegend } from '../shared/ChartLegend';
 import { NoData } from '../shared/NoData';
 import { INCOME_COLOR, NET_COLOR, SPENDING_COLOR } from '../shared/theme';
+import { ViewTransactions } from '../shared/ViewTransactions';
+import { useTimeSeries } from '../shared/useTimeSeries';
 import { CashFlowChart } from './CashFlowChart';
 
 export const cashFlowGraph: Graph = {
@@ -9,8 +11,9 @@ export const cashFlowGraph: Graph = {
   label: 'Income and spending',
   defaultWidth: 2,
   title: () => 'Income and spending',
-  View({ dashboard }) {
-    if (!dashboard) return <NoData>No transactions in these accounts yet.</NoData>;
+  View(props) {
+    const series = useTimeSeries(props);
+    if (!props.dashboard || !series) return <NoData>No transactions in these accounts yet.</NoData>;
     return (
       <>
         <ChartLegend
@@ -20,7 +23,17 @@ export const cashFlowGraph: Graph = {
             { label: 'Net', color: NET_COLOR, shape: 'dot' },
           ]}
         />
-        <CashFlowChart flows={dashboard.cashFlow} />
+        <CashFlowChart
+          series={series}
+          toolbar={({ dates }) => (
+            <ViewTransactions
+              ledgers={props.ledgers}
+              accountIds={props.accountIds}
+              {...dates}
+              open={props.openTransactions}
+            />
+          )}
+        />
       </>
     );
   },

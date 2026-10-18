@@ -31,6 +31,17 @@ export const AccountPage: Story = {
   ),
 };
 
+/** Opened from a graph's "View transactions": a date range and category are already filtered. */
+export const OpenedFromAGraph: Story = {
+  render: () => (
+    <Connected shell route="/accounts/1?from=2026-09-01&to=2026-09-30&cat=Groceries">
+      <Routes>
+        <Route path="/accounts/:accountId" element={<AccountsPage />} />
+      </Routes>
+    </Connected>
+  ),
+};
+
 function AccountRoute() {
   return (
     <Connected shell route="/accounts/1">

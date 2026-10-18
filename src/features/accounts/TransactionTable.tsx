@@ -113,7 +113,9 @@ export function TransactionTable({
   const [writeError, setWriteError] = useState<string | null>(null);
   const [filters, setFilters] = useState<TransactionFilters>(initialFilters ?? noFilters);
   const [sort, setSort] = useState<Sort>(defaultSort);
-  const [panelOpen, setPanelOpen] = useState(() => initialFilters !== undefined && hasFilters(initialFilters));
+  const [panelOpen, setPanelOpen] = useState(
+    () => initialFilters !== undefined && hasFilters(initialFilters)
+  );
   const searchRef = useRef<HTMLInputElement>(null);
 
   const shown = useMemo(

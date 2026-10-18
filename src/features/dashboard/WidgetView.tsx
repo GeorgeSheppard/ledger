@@ -4,6 +4,7 @@ import { buildDashboard, type DashboardRange } from '../../lib/metrics/dashboard
 import type { MonthKey } from '../../lib/metrics/months';
 import type { AccountLedger } from '../../lib/metrics/netWorth';
 import type { Paycheck } from '../../lib/paychecks/paychecks';
+import type { LinkedFilters } from '../../lib/transactions/filterParams';
 import { graphOf } from '../../modules/graphs';
 
 export interface WidgetViewProps {
@@ -20,6 +21,7 @@ export interface WidgetViewProps {
   onSelectMonth(month: MonthKey): void;
   /** Month stepping shortcuts are off while the layout is being edited. */
   interactive: boolean;
+  openTransactions(accountId: number, filters: LinkedFilters): void;
 }
 
 /**
@@ -36,6 +38,7 @@ export function WidgetView({
   selectedMonth,
   onSelectMonth,
   interactive,
+  openTransactions,
 }: WidgetViewProps) {
   const range = widget.range ?? pageRange;
   const accountIds = useMemo(
@@ -68,6 +71,7 @@ export function WidgetView({
       month={month}
       onSelectMonth={onSelectMonth}
       interactive={interactive}
+      openTransactions={openTransactions}
     />
   );
 }

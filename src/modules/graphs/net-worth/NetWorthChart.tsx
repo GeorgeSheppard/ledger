@@ -1,128 +1,110 @@
-import { area as d3Area, line as d3Line } from 'd3-shape';
-import { useState } from 'react';
-import { cn } from '../../../ui/cn';
+import type { ChartData, ChartOptions } from 'chart.js';
+import { Line } from 'react-chartjs-2';
 import type { Account } from '../../../lib/domain/types';
-import type { NetWorthPoint } from '../../../lib/metrics/netWorth';
-import { formatMoney, formatMonthLong, formatWhole } from '../shared/format';
-import { MonthAxis, YGrid } from '../shared/Axes';
-import { ChartTooltip } from '../shared/ChartTooltip';
-import { linearScale } from '../shared/scale';
-import { CHART_CLASSES } from '../shared/theme';
-import { useElementWidth } from '../shared/useElementWidth';
+import type { TimeSeries } from '../../../lib/metrics/timeSeries';
+import { useChartColors, useChartsReady } from '../shared/chartjs';
+import { formatBucket, formatCompact, formatMoney } from '../shared/format';
+import {
+  anchorTime,
+  timeScale,
+  useZoomView,
+  zoomPlugin,
+  ZoomControls,
+  type ZoomView,
+} from '../shared/zoom';
+import type { ReactNode } from 'react';
 
-const HEIGHT = 240;
-const MARGIN = { top: 16, right: 56, bottom: 28, left: 48 };
-
-interface NetWorthChartProps {
-  /** At least one point. */
-  points: NetWorthPoint[];
-  accounts: Account[];
+interface Point {
+  x: number;
+  y: number;
+  label: string;
+  byAccount: Record<number, number>;
 }
 
-/** Net worth at each month end: a 2px line over a light wash, with a crosshair tooltip. */
-export function NetWorthChart({ points, accounts }: NetWorthChartProps) {
-  const [ref, width] = useElementWidth<HTMLDivElement>();
-  const [hover, setHover] = useState<number | null>(null);
+interface NetWorthChartProps {
+  series: TimeSeries;
+  accounts: Account[];
+  toolbar?: (view: ZoomView) => ReactNode;
+}
 
-  const totals = points.map((p) => p.total);
-  const y = linearScale(
-    Math.min(...totals),
-    Math.max(...totals),
-    HEIGHT - MARGIN.bottom,
-    MARGIN.top
-  );
-  const left = MARGIN.left;
-  const right = width - MARGIN.right;
-  const step = points.length > 1 ? (right - left) / (points.length - 1) : 0;
-  const x = (i: number) => (points.length > 1 ? left + i * step : (left + right) / 2);
+/** Net worth over time: a 2px line over a light wash. Drag to pan, pinch or Ctrl+scroll to zoom. */
+export function NetWorthChart({ series, accounts, toolbar }: NetWorthChartProps) {
+  const view = useZoomView(series);
+  const colors = useChartColors();
+  const ready = useChartsReady();
+  const worth = series.netWorth(view.granularity);
 
-  const baseline = y(y.domain[0]);
-  const line =
-    d3Line<number>()
-      .x((_, i) => x(i))
-      .y((_, i) => y(points[i]!.total))(points.map((_, i) => i)) ?? '';
-  const area =
-    d3Area<number>()
-      .x((_, i) => x(i))
-      .y0(baseline)
-      .y1((_, i) => y(points[i]!.total))(points.map((_, i) => i)) ?? '';
-  const last = points.length - 1;
-  const first = points[0]!;
-  const lastPoint = points[last]!;
-  const focus = points[hover ?? last]!;
-  const active = hover === null ? null : focus;
+  const points = view.shown.map<Point>(({ bucket, index }) => ({
+    x: anchorTime(bucket, 'end'),
+    y: worth[index]!.total,
+    label: formatBucket(bucket, view.granularity),
+    byAccount: worth[index]!.byAccount,
+  }));
+
+  const data: ChartData<'line', Point[]> = {
+    datasets: [
+      {
+        data: points,
+        parsing: false,
+        borderColor: colors.accent,
+        backgroundColor: `${colors.accent}1a`,
+        fill: 'start',
+        borderWidth: 2,
+        borderJoinStyle: 'round',
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: colors.accent,
+        pointHoverBorderColor: colors.surface,
+        pointHoverBorderWidth: 2,
+        tension: 0,
+      },
+    ],
+  };
+  const options: ChartOptions<'line'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { top: 8, right: 8 } },
+    interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    scales: {
+      x: timeScale(view, 'end', colors.muted),
+      y: {
+        border: { display: false },
+        grid: { color: (ctx) => (ctx.tick.value === 0 ? colors.muted : colors.line) },
+        ticks: { color: colors.muted, callback: (v) => formatCompact(Number(v)) },
+      },
+    },
+    plugins: {
+      legend: { display: false },
+      zoom: zoomPlugin(view),
+      tooltip: {
+        backgroundColor: colors.surface,
+        titleColor: colors.fg,
+        bodyColor: colors.fg,
+        borderColor: colors.line,
+        borderWidth: 1,
+        padding: 10,
+        displayColors: false,
+        callbacks: {
+          title: (items) => (items[0]?.raw as Point | undefined)?.label ?? '',
+          label: (item) => `Net worth  ${formatMoney((item.raw as Point).y)}`,
+          afterBody: (items) =>
+            accounts.map(
+              (a) =>
+                `${a.name}  ${formatMoney((items[0]?.raw as Point | undefined)?.byAccount[a.id] ?? 0)}`
+            ),
+        },
+      },
+    },
+  };
 
   return (
-    <div className={CHART_CLASSES.frame} ref={ref}>
-      <svg
-        className={CHART_CLASSES.svg}
-        width={width}
-        height={HEIGHT}
-        role="img"
-        aria-label={`Net worth from ${formatMonthLong(first.month)} to ${formatMonthLong(lastPoint.month)}`}
-        onMouseLeave={() => setHover(null)}
-      >
-        <YGrid y={y} left={left} right={right} />
-        <MonthAxis months={points.map((p) => p.month)} x={x} y={HEIGHT - 6} width={right - left} />
-        <path className="pointer-events-none fill-accent/10" d={area} />
-        <path
-          className="pointer-events-none fill-none stroke-accent stroke-2"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          d={line}
-        />
-        {hover !== null && (
-          <line
-            className={CHART_CLASSES.crosshair}
-            x1={x(hover)}
-            x2={x(hover)}
-            y1={MARGIN.top}
-            y2={HEIGHT - MARGIN.bottom}
-          />
+    <div>
+      <ZoomControls view={view}>{toolbar?.(view)}</ZoomControls>
+      <div className="relative h-60 w-full">
+        {ready && (
+          <Line data={data} options={options} aria-label="Net worth over time" role="img" />
         )}
-        <circle
-          className={cn(CHART_CLASSES.dot, 'fill-accent')}
-          cx={x(hover ?? last)}
-          cy={y(focus.total)}
-          r={4.5}
-        />
-        {hover === null && (
-          <text
-            className={CHART_CLASSES.valueLabel}
-            x={x(last) + 10}
-            y={y(lastPoint.total)}
-            dy="0.32em"
-          >
-            {formatWhole(lastPoint.total)}
-          </text>
-        )}
-        {points.map((p, i) => (
-          <rect
-            key={p.month}
-            className={CHART_CLASSES.hit}
-            x={x(i) - Math.max(step, 24) / 2}
-            y={MARGIN.top}
-            width={Math.max(step, 24)}
-            height={HEIGHT - MARGIN.top - MARGIN.bottom}
-            onMouseEnter={() => setHover(i)}
-          />
-        ))}
-      </svg>
-      {hover !== null && active && (
-        <ChartTooltip
-          title={formatMonthLong(active.month)}
-          x={x(hover)}
-          y={y(active.total)}
-          chartWidth={width}
-          rows={[
-            { label: 'Net worth', value: formatMoney(active.total), emphasis: true },
-            ...accounts.map((account) => ({
-              label: account.name,
-              value: formatMoney(active.byAccount[account.id] ?? 0),
-            })),
-          ]}
-        />
-      )}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import { filterParams, type LinkedFilters } from '../../lib/transactions/filterParams';
 import { paths } from '../../app/paths';
 import {
   addWidget,
@@ -45,6 +46,7 @@ const SPANS: Record<WidgetWidth, string> = {
 
 /** The signed-in homepage: a grid of graphs the user can add, configure and arrange. */
 export function DashboardPage() {
+  const navigate = useNavigate();
   const { query, layout, saveLayout, paychecks } = useDashboardData();
   const [range, setRange] = useState<DashboardRange>(6);
   const [pickedMonth, setPickedMonth] = useState<MonthKey | null>(null);
@@ -88,6 +90,10 @@ export function DashboardPage() {
   const selected = selectedIndex >= 0 ? widgets[selectedIndex] : undefined;
   const editorOpen = editor !== null;
 
+  const openTransactions = (accountId: number, filters: LinkedFilters) => {
+    const query = filterParams(filters);
+    navigate(`${paths.account(accountId)}${query ? `?${query}` : ''}`);
+  };
   const startEditing = () => {
     setDraft(layout);
     setSelectedId(layout.widgets[0]?.id ?? null);
@@ -332,6 +338,7 @@ export function DashboardPage() {
                     selectedMonth={pickedMonth}
                     onSelectMonth={setPickedMonth}
                     interactive={!editing}
+                    openTransactions={openTransactions}
                   />
                 </div>
               </Card>

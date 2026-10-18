@@ -1,129 +1,160 @@
-import { useState } from 'react';
-import { cn } from '../../../ui/cn';
-import type { MonthCashFlow } from '../../../lib/metrics/cashFlow';
-import type { MonthKey } from '../../../lib/metrics/months';
-import { formatMoney, formatMonthLong } from '../shared/format';
-import { MonthAxis, YGrid } from '../shared/Axes';
-import { ChartTooltip } from '../shared/ChartTooltip';
-import { bandCenter, barPath, linearScale } from '../shared/scale';
-import { CHART_CLASSES } from '../shared/theme';
-import { useElementWidth } from '../shared/useElementWidth';
+import type { ChartData, ChartOptions, Plugin } from 'chart.js';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { Bar } from 'react-chartjs-2';
+import { dayStart, DAY_MS } from '../../../lib/metrics/buckets';
+import { monthEnd, type MonthKey } from '../../../lib/metrics/months';
+import type { TimeSeries } from '../../../lib/metrics/timeSeries';
+import { useChartColors, useChartsReady } from '../shared/chartjs';
+import { formatBucket, formatCompact, formatMoney } from '../shared/format';
+import {
+  anchorTime,
+  timeScale,
+  useZoomView,
+  zoomPlugin,
+  ZoomControls,
+  type ZoomView,
+} from '../shared/zoom';
 
-const HEIGHT = 260;
-const MARGIN = { top: 16, right: 16, bottom: 28, left: 48 };
-const MAX_BAR = 24;
-const GAP = 2;
+interface BarPoint {
+  x: number;
+  y: number;
+  label: string;
+  /** First day of the bucket, to know which month a click picks. */
+  start: string;
+}
 
 interface SpendingChartProps {
-  flows: MonthCashFlow[];
+  series: TimeSeries;
   /** Stack order, bottom first. */
   categories: string[];
   colorOf(category: string): string;
   selectedMonth: MonthKey;
   onSelectMonth(month: MonthKey): void;
+  toolbar?: (view: ZoomView) => ReactNode;
 }
 
-/** Spending per month as stacked columns, one segment per category. Click a month to select it. */
+/**
+ * Spending as stacked columns, one segment per category, a month at a time until zoomed in to
+ * weeks and days. Click a column to select its month. Drag to pan, pinch or Ctrl+scroll to zoom.
+ */
 export function SpendingChart({
-  flows,
+  series,
   categories,
   colorOf,
   selectedMonth,
   onSelectMonth,
+  toolbar,
 }: SpendingChartProps) {
-  const [ref, width] = useElementWidth<HTMLDivElement>();
-  const [hover, setHover] = useState<{ month: number; category: string } | null>(null);
+  const view = useZoomView(series);
+  const colors = useChartColors();
+  const ready = useChartsReady();
+  const flows = series.cashFlow(view.granularity);
 
-  const y = linearScale(
-    0,
-    Math.max(...flows.map((f) => f.spending), 0),
-    HEIGHT - MARGIN.bottom,
-    MARGIN.top
+  const datasets = categories.map((category) => ({
+    label: category,
+    backgroundColor: colors.resolve(colorOf(category)),
+    borderColor: colors.surface,
+    borderWidth: 1,
+    maxBarThickness: 28,
+    parsing: false as const,
+    data: view.shown.map<BarPoint>(({ bucket, index }) => ({
+      x: anchorTime(bucket, 'middle'),
+      y: flows[index]!.spendingByCategory[category] ?? 0,
+      label: formatBucket(bucket, view.granularity),
+      start: bucket.start,
+    })),
+  }));
+  const data: ChartData<'bar', BarPoint[]> = { datasets };
+
+  // The selected month is shaded behind the columns. The plugin outlives renders, so it reads the
+  // month from a ref.
+  const selected = useRef({ month: selectedMonth, fill: colors.surfaceHover, stroke: colors.line });
+  useEffect(() => {
+    selected.current = { month: selectedMonth, fill: colors.surfaceHover, stroke: colors.line };
+  });
+  const shade = useMemo<Plugin<'bar'>>(
+    () => ({
+      id: 'selectedMonth',
+      beforeDatasetsDraw(chart) {
+        const { ctx, chartArea, scales } = chart;
+        const x = scales.x;
+        if (!x) return;
+        const from = x.getPixelForValue(dayStart(`${selected.current.month}-01`));
+        const to = x.getPixelForValue(dayStart(monthEnd(selected.current.month)) + DAY_MS);
+        const left = Math.max(chartArea.left, from);
+        const right = Math.min(chartArea.right, to);
+        if (right <= left) return;
+        ctx.save();
+        ctx.fillStyle = selected.current.fill;
+        ctx.strokeStyle = selected.current.stroke;
+        ctx.fillRect(left, chartArea.top, right - left, chartArea.height);
+        ctx.strokeRect(left, chartArea.top, right - left, chartArea.height);
+        ctx.restore();
+      },
+    }),
+    []
   );
-  const left = MARGIN.left;
-  const right = width - MARGIN.right;
-  const slot = (right - left) / flows.length;
-  const barWidth = Math.min(MAX_BAR, slot * 0.6);
-  const x = (i: number) => bandCenter(i, flows.length, left, right);
-  const baseline = y(0);
 
-  const hovered = hover && flows[hover.month];
+  const options: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { top: 8 } },
+    interaction: { mode: 'index', axis: 'x', intersect: false },
+    onClick: (_event, elements, chart) => {
+      const first = elements[0];
+      if (!first) return;
+      const raw = chart.data.datasets[first.datasetIndex]?.data[first.index] as
+        BarPoint | undefined;
+      if (raw) onSelectMonth(raw.start.slice(0, 7));
+    },
+    scales: {
+      x: { ...timeScale(view, 'middle', colors.muted), stacked: true },
+      y: {
+        stacked: true,
+        border: { display: false },
+        grid: { color: colors.line },
+        ticks: { color: colors.muted, callback: (v) => formatCompact(Number(v)) },
+      },
+    },
+    plugins: {
+      legend: { display: false },
+      zoom: zoomPlugin(view),
+      tooltip: {
+        itemSort: (a, b) => b.datasetIndex - a.datasetIndex,
+        filter: (item) => (item.raw as BarPoint).y > 0,
+        backgroundColor: colors.surface,
+        titleColor: colors.fg,
+        bodyColor: colors.fg,
+        footerColor: colors.fg,
+        borderColor: colors.line,
+        borderWidth: 1,
+        padding: 10,
+        boxWidth: 8,
+        boxHeight: 8,
+        callbacks: {
+          title: (items) => (items[0]?.raw as BarPoint | undefined)?.label ?? '',
+          label: (item) => `${item.dataset.label}  ${formatMoney((item.raw as BarPoint).y)}`,
+          footer: (items) =>
+            `Total spending  ${formatMoney(items.reduce((sum, i) => sum + (i.raw as BarPoint).y, 0))}`,
+        },
+      },
+    },
+  };
 
   return (
-    <div className={CHART_CLASSES.frame} ref={ref}>
-      <svg
-        className={CHART_CLASSES.svg}
-        width={width}
-        height={HEIGHT}
-        role="img"
-        aria-label="Monthly spending by category"
-        onMouseLeave={() => setHover(null)}
-      >
-        <YGrid y={y} left={left} right={right} />
-        <MonthAxis months={flows.map((f) => f.month)} x={x} y={HEIGHT - 6} width={right - left} />
-        {flows.map((flow, i) => {
-          const present = categories.filter((c) => flow.spendingByCategory[c]);
-          let top = baseline;
-          const selected = flow.month === selectedMonth;
-          return (
-            <g
-              key={flow.month}
-              className="group cursor-pointer"
-              onClick={() => onSelectMonth(flow.month)}
-            >
-              <rect
-                className={cn(
-                  selected
-                    ? 'fill-surface-hover stroke-line'
-                    : 'fill-transparent group-hover:fill-surface-hover'
-                )}
-                x={x(i) - slot / 2}
-                y={MARGIN.top}
-                width={Math.max(0, slot)}
-                height={baseline - MARGIN.top}
-              />
-              {present.map((category, s) => {
-                const height = baseline - y(flow.spendingByCategory[category] ?? 0);
-                const start = top;
-                top -= height;
-                const isTop = s === present.length - 1;
-                // Leave a surface-coloured gap above every segment but the top one.
-                const end = isTop ? top : Math.min(start, top + GAP);
-                if (start - end < 0.5) return null;
-                return (
-                  <path
-                    key={category}
-                    d={
-                      isTop
-                        ? barPath(x(i) - barWidth / 2, barWidth, start, end)
-                        : `M${x(i) - barWidth / 2},${start} H${x(i) + barWidth / 2} V${end} H${x(i) - barWidth / 2} Z`
-                    }
-                    fill={colorOf(category)}
-                    onMouseEnter={() => setHover({ month: i, category })}
-                  />
-                );
-              })}
-            </g>
-          );
-        })}
-      </svg>
-      {hover && hovered && (
-        <ChartTooltip
-          title={formatMonthLong(hovered.month)}
-          x={x(hover.month)}
-          y={y(hovered.spending)}
-          chartWidth={width}
-          rows={[
-            {
-              label: hover.category,
-              value: formatMoney(hovered.spendingByCategory[hover.category] ?? 0),
-              color: colorOf(hover.category),
-              emphasis: true,
-            },
-            { label: 'Total spending', value: formatMoney(hovered.spending) },
-          ]}
-        />
-      )}
+    <div>
+      <ZoomControls view={view}>{toolbar?.(view)}</ZoomControls>
+      <div className="relative h-64 w-full">
+        {ready && (
+          <Bar
+            data={data}
+            options={options}
+            plugins={[shade]}
+            aria-label="Spending by category"
+            role="img"
+          />
+        )}
+      </div>
     </div>
   );
 }
