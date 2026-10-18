@@ -1,19 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { bandCenter, barPath, linearScale, niceTicks } from './scale';
+import { bandCenter, barPath, linearScale } from './scale';
 
-describe('niceTicks', () => {
+describe('linearScale ticks', () => {
   it('picks round steps covering the range', () => {
-    expect(niceTicks(0, 9300)).toEqual([0, 2500, 5000, 7500, 10000]);
-    expect(niceTicks(9100, 13800)).toEqual([8000, 10000, 12000, 14000]);
+    expect(linearScale(0, 9300, 0, 1).ticks).toEqual([0, 2000, 4000, 6000, 8000, 10000]);
+    expect(linearScale(9100, 13800, 0, 1).ticks).toEqual([9000, 10000, 11000, 12000, 13000, 14000]);
   });
 
   it('includes zero for ranges crossing it', () => {
-    expect(niceTicks(-1800, 2900)).toContain(0);
+    expect(linearScale(-1800, 2900, 0, 1).ticks).toContain(0);
   });
 
   it('handles flat data', () => {
-    expect(niceTicks(0, 0)).toEqual([0, 1]);
-    expect(niceTicks(500, 500)[0]).toBe(0);
+    expect(linearScale(0, 0, 0, 1).domain).toEqual([0, 1]);
+    expect(linearScale(500, 500, 0, 1).domain[0]).toBe(0);
   });
 });
 
