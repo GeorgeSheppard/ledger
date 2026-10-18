@@ -125,7 +125,7 @@ src/modules/
   (or use the buttons); zooming in re-cuts the data into weeks and then days
   (`lib/metrics/buckets.ts`, `timeSeries.ts`; the choice is `granularityFor`). `shared/zoom.tsx`
   owns the visible range and feeds it to Chart.js, whose zoom plugin is loaded on first use. Sankey
-  and the breakdown stay on d3 and plain markup. A graph's "View transactions" button
+  and the breakdown stay on d3 and plain markup. The graphs that show transactions (spending, income/spending, breakdown) have a "View transactions" button; net worth, a total, does not. The button
   (`shared/ViewTransactions.tsx`) opens `/transactions` (`features/accounts/TransactionsPage.tsx`),
   every account's transactions in one list with an Account column, with the graph's dates,
   categories and accounts as URL filters (`lib/transactions/filterParams.ts`).
