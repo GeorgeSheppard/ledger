@@ -79,7 +79,7 @@ export function SpendingChart({
                 )}
                 x={x(i) - slot / 2}
                 y={MARGIN.top}
-                width={slot}
+                width={Math.max(0, slot)}
                 height={baseline - MARGIN.top}
               />
               {present.map((category, s) => {

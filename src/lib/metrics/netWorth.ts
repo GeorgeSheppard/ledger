@@ -1,5 +1,5 @@
 import type { Account, Transaction } from '../domain/types';
-import { monthEnd, monthOf, type MonthKey } from './months';
+import { isIsoDate, monthEnd, monthOf, type MonthKey } from './months';
 
 export interface AccountLedger {
   account: Account;
@@ -57,7 +57,10 @@ export function netWorthByMonth(
 export function dataMonthRange(
   ledgers: readonly AccountLedger[]
 ): { first: MonthKey; last: MonthKey } | null {
-  const dates = ledgers.flatMap((l) => l.transactions.map((t) => t.date)).sort();
+  const dates = ledgers
+    .flatMap((l) => l.transactions.map((t) => t.date))
+    .filter(isIsoDate)
+    .sort();
   const [first, last] = [dates[0], dates.at(-1)];
   return first && last ? { first: monthOf(first), last: monthOf(last) } : null;
 }

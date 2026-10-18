@@ -3,6 +3,13 @@ import type { IsoDate } from '../domain/types';
 /** Calendar month, `YYYY-MM`. Sorts correctly as a string. */
 export type MonthKey = string;
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Whether `date` is a `YYYY-MM-DD` date. Transactions from a hand-edited sheet may not be. */
+export function isIsoDate(date: string): boolean {
+  return ISO_DATE.test(date);
+}
+
 export function monthOf(date: IsoDate): MonthKey {
   return date.slice(0, 7);
 }

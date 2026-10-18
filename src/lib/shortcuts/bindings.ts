@@ -58,6 +58,54 @@ export const SHORTCUTS = {
     scope: 'dashboard',
   },
   'dashboard.nextMonth': { keys: ']', description: 'Next month in breakdown', scope: 'dashboard' },
+  'dashboard.edit': { keys: 'e', description: 'Edit dashboard layout', scope: 'dashboard' },
+  'dashboard.addWidget': { keys: 'a', description: 'Add a graph', scope: 'dashboard' },
+  // Shared by the layout and the graph editor; only one of them is listening at a time.
+  'dashboard.save': {
+    keys: 'mod+enter',
+    description: 'Save layout or graph',
+    scope: 'dashboard',
+    allowInInputs: true,
+  },
+  'dashboard.cancel': {
+    keys: 'escape',
+    description: 'Cancel editing',
+    scope: 'dashboard',
+    allowInInputs: true,
+  },
+  'dashboard.resetLayout': {
+    keys: 'shift+r',
+    description: 'Reset to the default layout',
+    scope: 'dashboard',
+  },
+  'dashboard.nextWidget': { keys: 'j', description: 'Select next graph', scope: 'dashboard' },
+  'dashboard.previousWidget': {
+    keys: 'k',
+    description: 'Select previous graph',
+    scope: 'dashboard',
+  },
+  'dashboard.editWidget': { keys: 'enter', description: 'Edit selected graph', scope: 'dashboard' },
+  'dashboard.moveEarlier': {
+    keys: 'shift+arrowleft',
+    description: 'Move selected graph earlier',
+    scope: 'dashboard',
+  },
+  'dashboard.moveLater': {
+    keys: 'shift+arrowright',
+    description: 'Move selected graph later',
+    scope: 'dashboard',
+  },
+  'dashboard.narrower': {
+    keys: '-',
+    description: 'Make selected graph narrower',
+    scope: 'dashboard',
+  },
+  'dashboard.wider': { keys: '=', description: 'Make selected graph wider', scope: 'dashboard' },
+  'dashboard.removeWidget': {
+    keys: 'backspace',
+    description: 'Remove selected graph',
+    scope: 'dashboard',
+  },
 
   // Accounts and transactions (step 2)
   'accounts.switch': { keys: '/', description: 'Switch account', scope: 'accounts' },
