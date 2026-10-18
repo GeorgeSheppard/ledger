@@ -6,7 +6,6 @@ import {
   type MappedField,
 } from '../../lib/csv/mapping';
 import { DATE_FORMATS, type DateFormat } from '../../lib/csv/values';
-import type { Account } from '../../lib/domain/types';
 import { useShortcut } from '../../state/shortcuts';
 import { Card } from '../../ui/Card';
 import { Kbd } from '../../ui/Kbd';
@@ -17,9 +16,6 @@ interface MappingEditorProps {
   mapping: ColumnMapping;
   onMappingChange(mapping: ColumnMapping): void;
   onHasHeaderChange(hasHeader: boolean): void;
-  accounts: Account[];
-  accountId: number | null;
-  onAccountChange(accountId: number): void;
 }
 
 const NONE = '';
@@ -32,19 +28,14 @@ function FieldLabel({ children }: { children: ReactNode }) {
   );
 }
 
-/** Account picker plus one dropdown per field, each showing the first row's value as a hint. */
+/** One dropdown per field, each showing the first row's value as a hint. */
 export function MappingEditor({
   table,
   mapping,
   onMappingChange,
   onHasHeaderChange,
-  accounts,
-  accountId,
-  onAccountChange,
 }: MappingEditorProps) {
-  const accountSelect = useRef<HTMLSelectElement>(null);
   const firstField = useRef<HTMLSelectElement>(null);
-  useShortcut('import.account', () => accountSelect.current?.focus());
   useShortcut('import.mapping', () => firstField.current?.focus());
   useShortcut('import.invert', () =>
     onMappingChange({ ...mapping, invertAmounts: !mapping.invertAmounts })
@@ -61,23 +52,6 @@ export function MappingEditor({
 
   return (
     <Card className="flex flex-col gap-5 p-5" aria-label="Import settings">
-      <label className="flex max-w-xs flex-col gap-1">
-        <FieldLabel>
-          Import into <Kbd shortcut="import.account" />
-        </FieldLabel>
-        <Select
-          ref={accountSelect}
-          value={accountId ?? ''}
-          onChange={(e) => onAccountChange(Number(e.target.value))}
-        >
-          {accounts.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </Select>
-      </label>
-
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold">Columns</h2>

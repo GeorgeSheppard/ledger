@@ -13,7 +13,6 @@ const NAV: { to: string; label: string; shortcut: ShortcutId }[] = [
   { to: paths.home, label: 'Dashboard', shortcut: 'nav.dashboard' },
   { to: paths.accounts, label: 'Accounts', shortcut: 'nav.accounts' },
   { to: paths.categories, label: 'Categories', shortcut: 'nav.categories' },
-  { to: paths.import, label: 'Import CSV', shortcut: 'nav.import' },
 ];
 
 function NavItem({ to, label, shortcut }: (typeof NAV)[number]) {
