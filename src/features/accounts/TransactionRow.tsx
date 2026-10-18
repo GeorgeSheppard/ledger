@@ -1,7 +1,7 @@
 import type { CSSProperties, MouseEvent } from 'react';
 import type { Category, Transaction } from '../../lib/domain/types';
 import { formatAmount } from '../../lib/transactions/amount';
-import { formatDay } from '../../lib/transactions/dates';
+import { formatDay, yearOf } from '../../lib/transactions/dates';
 import type { DraftField } from '../../lib/transactions/draft';
 import type { ClickModifiers } from '../../lib/transactions/selection';
 import { categoryColor } from '../../lib/categories/categories';
@@ -65,6 +65,7 @@ export function TransactionRow({
         data-field="date"
       >
         {formatDay(transaction.date)}
+        <span className="max-md:block md:ml-1">{yearOf(transaction.date)}</span>
       </div>
       <div
         role="cell"
