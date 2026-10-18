@@ -1,0 +1,9 @@
+{
+  // Storybook as its own Cloudflare worker, separate from the site. See docs/STORYBOOK.md.
+  "name": "ledger-storybook",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./storybook-static",
+  },
+  "previews": {},
+}
