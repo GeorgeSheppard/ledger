@@ -1,10 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Account, Category, Transaction } from '../../lib/domain/types';
 import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
+import { Select } from '../../ui/Select';
 import { DropZone } from './DropZone';
 import { ImportPreview } from './ImportPreview';
 import { MappingEditor } from './MappingEditor';
+import { PasteBox } from './PasteBox';
 import { useCsvImport } from './useCsvImport';
 
 function plural(count: number, one: string, many = `${one}s`): string {
@@ -26,7 +28,8 @@ interface ImportDialogProps {
 export function ImportDialog({ account, transactions, categories, onClose }: ImportDialogProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const importer = useCsvImport(account.id, transactions, categories);
-  const { file, mapping, plan, result } = importer;
+  const { file, mapping, plan, result, pasted } = importer;
+  const [pasting, setPasting] = useState(false);
 
   useEffect(() => {
     dialog.current?.showModal();
@@ -44,7 +47,8 @@ export function ImportDialog({ account, transactions, categories, onClose }: Imp
           <div>
             <h2 className="text-lg font-semibold">Import data into {account.name}</h2>
             <p className="mt-1 text-sm text-muted">
-              Add a CSV export from your bank. Rows already in the account are skipped.
+              Add a CSV export from your bank, or paste text copied from its website. Rows already
+              in the account are skipped.
             </p>
           </div>
           <ActionButton shortcut="import.close" variant="ghost" onAction={onClose}>
@@ -64,7 +68,38 @@ export function ImportDialog({ account, transactions, categories, onClose }: Imp
           </Card>
         )}
 
-        <DropZone onFile={importer.loadFile} compact={!!file} fileName={file?.name} />
+        {pasting && !file ? (
+          <PasteBox onText={importer.loadText} onUseFile={() => setPasting(false)} />
+        ) : (
+          <DropZone
+            onFile={importer.loadFile}
+            onPasteText={() => setPasting(true)}
+            compact={!!file}
+            fileName={file?.name}
+          />
+        )}
+
+        {pasted && (
+          <Card className="flex flex-col gap-2 px-4 py-3 text-sm" aria-label="Pasted text">
+            {pasted.warnings.map((warning) => (
+              <p key={warning} role="status">
+                {warning}
+              </p>
+            ))}
+            {pasted.ambiguousDates && (
+              <label className="inline-flex items-center gap-2">
+                Dates like 03/04/2026 are
+                <Select
+                  value={pasted.dayFirst ? 'day' : 'month'}
+                  onChange={(e) => importer.loadText(pasted.text, e.target.value === 'day')}
+                >
+                  <option value="day">day first (3 April)</option>
+                  <option value="month">month first (4 March)</option>
+                </Select>
+              </label>
+            )}
+          </Card>
+        )}
 
         {importer.error && (
           <p className="text-sm text-negative" role="alert">
@@ -100,7 +135,14 @@ export function ImportDialog({ account, transactions, categories, onClose }: Imp
                   </>
                 )}
               </p>
-              <ActionButton shortcut="import.reset" variant="ghost" onAction={importer.reset}>
+              <ActionButton
+                shortcut="import.reset"
+                variant="ghost"
+                onAction={() => {
+                  setPasting(false);
+                  importer.reset();
+                }}
+              >
                 Start over
               </ActionButton>
               <ActionButton

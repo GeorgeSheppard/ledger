@@ -51,3 +51,35 @@ export const Preview: Story = {
     await within(canvasElement).findByText(/bank-export\.csv/);
   },
 };
+
+/** Text copied from a bank's website: navigation, a column header and a balance line included. */
+const PASTED = `Your accounts > Current account
+Showing 1-5 of 134
+Date Description Money out Money in Balance
+12 Oct 2026 TESCO STORES 3412 £23.45 £1,204.10
+11 Oct 2026 ACME LTD SALARY £2,400.00 £1,227.55
+10 Oct 2026 CARD PAYMENT TO PRET A MANGER £4.20 -£1,172.45
+09 Oct 2026 NETFLIX.COM £10.99 -£1,168.25
+Page 1 of 34`;
+
+export const PasteText: Story = {
+  render,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole('button', { name: /paste text instead/i }));
+    const box = await canvas.findByRole('textbox');
+    await userEvent.click(box);
+    await userEvent.paste(PASTED);
+    await canvas.findByText(/Pasted text/);
+  },
+};
+
+export const PasteBox: Story = {
+  render,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      await within(canvasElement).findByRole('button', { name: /paste text instead/i })
+    );
+    await within(canvasElement).findByRole('textbox');
+  },
+};

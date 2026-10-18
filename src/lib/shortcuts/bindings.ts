@@ -222,10 +222,16 @@ export const SHORTCUTS = {
     scope: 'import',
     allowInInputs: true,
   },
+  'import.paste': { keys: 'p', description: 'Paste text from your bank', scope: 'import' },
+  'import.readPaste': { keys: 'r', description: 'Read the pasted text', scope: 'import' },
   'import.mapping': { keys: 'm', description: 'Edit column mapping', scope: 'import' },
   'import.invert': { keys: 'i', description: 'Flip amount signs', scope: 'import' },
   'import.filter': { keys: 'f', description: 'Cycle preview filter', scope: 'import' },
-  'import.reset': { keys: 'x', description: 'Start over with another file', scope: 'import' },
+  'import.reset': {
+    keys: 'x',
+    description: 'Start over with another file or text',
+    scope: 'import',
+  },
   'import.close': {
     keys: 'escape',
     description: 'Close import',
