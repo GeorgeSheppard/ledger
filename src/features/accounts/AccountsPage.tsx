@@ -1,11 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { paths } from '../../app/paths';
-import { adjacentAccount, findAccountByParam } from '../../lib/accounts/accounts';
+import { findAccountByParam } from '../../lib/accounts/accounts';
 import type { Account } from '../../lib/domain/types';
 import { ActionButton } from '../../ui/ActionButton';
 import { ImportDialog } from '../../modules/import/ui/ImportDialog';
-import { useShortcut } from '../../state/shortcuts';
 import { AccountNameForm } from './AccountNameForm';
 import { AccountSummary } from './AccountSummary';
 import { AccountSwitcher } from './AccountSwitcher';
@@ -27,8 +26,6 @@ export function AccountsPage() {
   const actions = useAccountActions();
   const [nameForm, setNameForm] = useState<NameForm>(null);
   const [importing, setImporting] = useState(false);
-  // The switcher menu lists "New account" with this shortcut.
-  useShortcut('accounts.new', () => setNameForm({ kind: 'new' }), !nameForm && !importing);
 
   if (meta.status === 'loading')
     return (
@@ -68,7 +65,6 @@ export function AccountsPage() {
     );
   }
 
-  const several = meta.data.accounts.length > 1;
   const editingName = !!nameForm;
   // The import dialog has its own shortcuts, so the page's are off while it is open.
   const blocked = editingName || importing;
@@ -87,36 +83,13 @@ export function AccountsPage() {
             onNew={() => setNameForm({ kind: 'new' })}
           />
           <ActionButton
-            shortcut="accounts.previous"
-            variant="ghost"
-            disabled={!several || blocked}
-            aria-label="Previous account"
-            onAction={() => go(adjacentAccount(meta.data.accounts, account.id, -1))}
-          >
-            ‹
-          </ActionButton>
-          <ActionButton
-            shortcut="accounts.next"
-            variant="ghost"
-            disabled={!several || blocked}
-            aria-label="Next account"
-            onAction={() => go(adjacentAccount(meta.data.accounts, account.id, 1))}
-          >
-            ›
-          </ActionButton>
-          <ActionButton
-            shortcut="accounts.rename"
             variant="ghost"
             disabled={blocked}
             onAction={() => setNameForm({ kind: 'rename', account })}
           >
             Rename
           </ActionButton>
-          <ActionButton
-            shortcut="accounts.import"
-            disabled={blocked || !ready}
-            onAction={() => setImporting(true)}
-          >
+          <ActionButton disabled={blocked || !ready} onAction={() => setImporting(true)}>
             Import data
           </ActionButton>
         </>
