@@ -64,6 +64,8 @@ interface TransactionTableProps {
   categories: Category[];
   /** Turns the table's shortcuts off, e.g. while a dialog is open over it. */
   paused?: boolean;
+  /** Filters to open with, e.g. from a graph's "view transactions" link. The panel opens too. */
+  initialFilters?: TransactionFilters;
 }
 
 type Mode = { kind: 'browse' } | { kind: 'edit'; id: string } | { kind: 'new' };
@@ -100,6 +102,7 @@ export function TransactionTable({
   transactions,
   categories,
   paused = false,
+  initialFilters,
 }: TransactionTableProps) {
   const actions = useAccountActions();
   const [mode, setMode] = useState<Mode>({ kind: 'browse' });
@@ -108,9 +111,11 @@ export function TransactionTable({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [saving, setSaving] = useState(false);
   const [writeError, setWriteError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<TransactionFilters>(noFilters);
+  const [filters, setFilters] = useState<TransactionFilters>(initialFilters ?? noFilters);
   const [sort, setSort] = useState<Sort>(defaultSort);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(
+    () => initialFilters !== undefined && hasFilters(initialFilters)
+  );
   const searchRef = useRef<HTMLInputElement>(null);
 
   const shown = useMemo(

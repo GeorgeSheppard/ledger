@@ -4,6 +4,8 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { paths } from '../../app/paths';
 import { findAccountByParam } from '../../lib/accounts/accounts';
 import { asMoney } from '../../lib/accounts/inverted';
+import { filtersFromParams } from '../../lib/transactions/filterParams';
+import { hasFilters } from '../../lib/transactions/filters';
 import { ActionButton } from '../../ui/ActionButton';
 import { ImportDialog } from '../../modules/import/ui/ImportDialog';
 import { EditableTitle } from './EditableTitle';
@@ -32,6 +34,7 @@ export function AccountsPage() {
   const [importing, setImporting] = useState(false);
   const [params, setParams] = useSearchParams();
   const tab: AccountTab = params.get('tab') === 'settings' ? 'settings' : 'transactions';
+  const linked = hasFilters(filtersFromParams(params)) ? filtersFromParams(params) : undefined;
   const showTab = (next: AccountTab) =>
     setParams(next === 'settings' ? { tab: 'settings' } : {}, { replace: true });
 
@@ -124,8 +127,9 @@ export function AccountsPage() {
             />
           ) : (
             <TransactionTable
-              key={account.id}
+              key={`${account.id}?${params.toString()}`}
               account={account}
+              initialFilters={linked}
               transactions={transactions.data}
               categories={categories}
               paused={importing}

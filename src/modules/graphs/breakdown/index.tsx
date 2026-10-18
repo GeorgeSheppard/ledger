@@ -1,6 +1,8 @@
 import { categoryBreakdown } from '../../../lib/metrics/dashboard';
 import { ActionButton } from '../../../ui/ActionButton';
 import type { Graph } from '../types';
+import { monthEnd } from '../../../lib/metrics/months';
+import { ViewTransactions } from '../shared/ViewTransactions';
 import { formatMonthLong } from '../shared/format';
 import { NoData } from '../shared/NoData';
 import { CategoryBreakdown } from './CategoryBreakdown';
@@ -11,7 +13,17 @@ export const breakdownGraph: Graph = {
   defaultWidth: 2,
   usesCategories: true,
   title: () => 'Category breakdown',
-  View({ widget, dashboard, month, onSelectMonth, colorOf, interactive }) {
+  View({
+    widget,
+    dashboard,
+    month,
+    onSelectMonth,
+    colorOf,
+    interactive,
+    ledgers,
+    accountIds,
+    openTransactions,
+  }) {
     if (!dashboard) return <NoData>No transactions in these accounts yet.</NoData>;
     const months = dashboard.months;
     const shown = month ?? months.at(-1)!;
@@ -24,7 +36,15 @@ export const breakdownGraph: Graph = {
       <>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <span className="text-sm font-medium">{formatMonthLong(shown)}</span>
-          <div className="flex gap-1">
+          <div className="flex flex-wrap gap-1">
+            <ViewTransactions
+              ledgers={ledgers}
+              accountIds={accountIds}
+              from={`${shown}-01`}
+              to={monthEnd(shown)}
+              categories={chosen}
+              open={openTransactions}
+            />
             <ActionButton
               shortcut="dashboard.previousMonth"
               variant="ghost"

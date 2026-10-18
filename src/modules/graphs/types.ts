@@ -4,6 +4,7 @@ import type { Dashboard, DashboardRange } from '../../lib/metrics/dashboard';
 import type { MonthKey } from '../../lib/metrics/months';
 import type { AccountLedger } from '../../lib/metrics/netWorth';
 import type { Paycheck } from '../../lib/paychecks/paychecks';
+import type { LinkedFilters } from '../../lib/transactions/filterParams';
 
 /** What every graph is given to draw. The dashboard page works all of this out once per widget. */
 export interface GraphViewProps {
@@ -24,6 +25,8 @@ export interface GraphViewProps {
   onSelectMonth(month: MonthKey): void;
   /** Month stepping shortcuts are off while the layout is being edited. */
   interactive: boolean;
+  /** Opens one account's transactions narrowed to `filters`; the "view transactions" button calls it. */
+  openTransactions(accountId: number, filters: LinkedFilters): void;
 }
 
 export interface GraphOptionsProps {

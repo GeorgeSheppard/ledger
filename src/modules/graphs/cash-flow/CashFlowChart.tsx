@@ -1,97 +1,129 @@
-import { useState } from 'react';
-import type { MonthCashFlow } from '../../../lib/metrics/cashFlow';
-import { formatChange, formatMoney, formatMonthLong } from '../shared/format';
-import { MonthAxis, YGrid } from '../shared/Axes';
-import { ChartTooltip } from '../shared/ChartTooltip';
-import { bandCenter, barPath, linearScale } from '../shared/scale';
-import { CHART_CLASSES, INCOME_COLOR, NET_COLOR, SPENDING_COLOR } from '../shared/theme';
-import { useElementWidth } from '../shared/useElementWidth';
+import type { ChartData, ChartOptions } from 'chart.js';
+import type { ReactNode } from 'react';
+import { Chart } from 'react-chartjs-2';
+import type { TimeSeries } from '../../../lib/metrics/timeSeries';
+import { useChartColors, useChartsReady } from '../shared/chartjs';
+import { formatBucket, formatChange, formatCompact, formatMoney } from '../shared/format';
+import {
+  anchorTime,
+  timeScale,
+  useZoomView,
+  zoomPlugin,
+  ZoomControls,
+  type ZoomView,
+} from '../shared/zoom';
 
-const HEIGHT = 240;
-const MARGIN = { top: 16, right: 16, bottom: 28, left: 48 };
-const MAX_BAR = 24;
+interface Point {
+  x: number;
+  y: number;
+  label: string;
+  income: number;
+  spending: number;
+  net: number;
+}
 
-/** Income above the zero line, spending below it, and the month's net as a dot, on one axis. */
-export function CashFlowChart({ flows }: { flows: MonthCashFlow[] }) {
-  const [ref, width] = useElementWidth<HTMLDivElement>();
-  const [hover, setHover] = useState<number | null>(null);
+/** Income above the zero line, spending below it, and the net as a dot, on one axis. */
+export function CashFlowChart({
+  series,
+  toolbar,
+}: {
+  series: TimeSeries;
+  toolbar?: (view: ZoomView) => ReactNode;
+}) {
+  const view = useZoomView(series);
+  const colors = useChartColors();
+  const ready = useChartsReady();
+  const flows = series.cashFlow(view.granularity);
 
-  const y = linearScale(
-    Math.min(0, ...flows.map((f) => -f.spending)),
-    Math.max(0, ...flows.map((f) => f.income)),
-    HEIGHT - MARGIN.bottom,
-    MARGIN.top
-  );
-  const left = MARGIN.left;
-  const right = width - MARGIN.right;
-  const slot = (right - left) / flows.length;
-  const barWidth = Math.min(MAX_BAR, slot * 0.5);
-  const x = (i: number) => bandCenter(i, flows.length, left, right);
-  const zero = y(0);
-  const hovered = hover === null ? undefined : flows[hover];
+  const points = view.shown.map(({ bucket, index }) => {
+    const flow = flows[index]!;
+    return {
+      x: anchorTime(bucket, 'middle'),
+      label: formatBucket(bucket, view.granularity),
+      income: flow.income,
+      spending: flow.spending,
+      net: flow.net,
+    };
+  });
+  const bar = (key: 'income' | 'spending', color: string, sign: 1 | -1) => ({
+    type: 'bar' as const,
+    label: key === 'income' ? 'Income' : 'Spending',
+    backgroundColor: color,
+    maxBarThickness: 24,
+    parsing: false as const,
+    data: points.map<Point>((p) => ({ ...p, y: sign * p[key] })),
+  });
+  const data = {
+    datasets: [
+      bar('income', colors.positive, 1),
+      bar('spending', colors.negative, -1),
+      {
+        type: 'line' as const,
+        label: 'Net',
+        showLine: false,
+        parsing: false as const,
+        pointRadius: 4.5,
+        pointHoverRadius: 5.5,
+        backgroundColor: colors.fg,
+        borderColor: colors.surface,
+        borderWidth: 2,
+        data: points.map<Point>((p) => ({ ...p, y: p.net })),
+      },
+    ],
+  } as ChartData<'bar', Point[]>;
+
+  const options: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: { top: 8 } },
+    interaction: { mode: 'index', axis: 'x', intersect: false },
+    scales: {
+      x: { ...timeScale(view, 'middle', colors.muted), stacked: true },
+      y: {
+        stacked: true,
+        border: { display: false },
+        grid: { color: (ctx) => (ctx.tick.value === 0 ? colors.muted : colors.line) },
+        ticks: { color: colors.muted, callback: (v) => formatCompact(Number(v)) },
+      },
+    },
+    plugins: {
+      legend: { display: false },
+      zoom: zoomPlugin(view),
+      tooltip: {
+        backgroundColor: colors.surface,
+        titleColor: colors.fg,
+        bodyColor: colors.fg,
+        borderColor: colors.line,
+        borderWidth: 1,
+        padding: 10,
+        boxWidth: 8,
+        boxHeight: 8,
+        callbacks: {
+          title: (items) => (items[0]?.raw as Point | undefined)?.label ?? '',
+          label: (item) => {
+            const p = item.raw as Point;
+            if (item.dataset.label === 'Net') return `Net  ${formatChange(p.net)}`;
+            return `${item.dataset.label}  ${formatMoney(Math.abs(p.y))}`;
+          },
+        },
+      },
+    },
+  };
 
   return (
-    <div className={CHART_CLASSES.frame} ref={ref}>
-      <svg
-        className={CHART_CLASSES.svg}
-        width={width}
-        height={HEIGHT}
-        role="img"
-        aria-label="Monthly income and spending"
-        onMouseLeave={() => setHover(null)}
-      >
-        <YGrid y={y} left={left} right={right} />
-        <MonthAxis months={flows.map((f) => f.month)} x={x} y={HEIGHT - 6} width={right - left} />
-        {flows.map((flow, i) => (
-          <g key={flow.month} className={hover !== null && hover !== i ? 'opacity-40' : undefined}>
-            {flow.income > 0 && (
-              <path
-                d={barPath(x(i) - barWidth / 2, barWidth, zero - 1, y(flow.income))}
-                fill={INCOME_COLOR}
-              />
-            )}
-            {flow.spending > 0 && (
-              <path
-                d={barPath(x(i) - barWidth / 2, barWidth, zero + 1, y(-flow.spending))}
-                fill={SPENDING_COLOR}
-              />
-            )}
-            <circle
-              className={CHART_CLASSES.dot}
-              cx={x(i)}
-              cy={y(flow.net)}
-              r={4.5}
-              fill={NET_COLOR}
-            />
-            <rect
-              className={CHART_CLASSES.hit}
-              x={x(i) - slot / 2}
-              y={MARGIN.top}
-              width={Math.max(0, slot)}
-              height={HEIGHT - MARGIN.top - MARGIN.bottom}
-              onMouseEnter={() => setHover(i)}
-            />
-          </g>
-        ))}
-      </svg>
-      {hover !== null && hovered && (
-        <ChartTooltip
-          title={formatMonthLong(hovered.month)}
-          x={x(hover)}
-          y={y(hovered.income)}
-          chartWidth={width}
-          rows={[
-            { label: 'Income', value: formatMoney(hovered.income), color: INCOME_COLOR },
-            { label: 'Spending', value: formatMoney(hovered.spending), color: SPENDING_COLOR },
-            {
-              label: 'Net',
-              value: formatChange(hovered.net),
-              color: NET_COLOR,
-              emphasis: true,
-            },
-          ]}
-        />
-      )}
+    <div>
+      <ZoomControls view={view}>{toolbar?.(view)}</ZoomControls>
+      <div className="relative h-60 w-full">
+        {ready && (
+          <Chart
+            type="bar"
+            data={data}
+            options={options}
+            aria-label="Income and spending"
+            role="img"
+          />
+        )}
+      </div>
     </div>
   );
 }
