@@ -4,6 +4,7 @@ import { Kbd } from './Kbd';
 
 const SCOPE_LABELS: Record<ShortcutScope, string> = {
   global: 'Everywhere',
+  dashboard: 'Dashboard',
   accounts: 'Accounts',
   transactions: 'Transactions',
   categories: 'Categories',

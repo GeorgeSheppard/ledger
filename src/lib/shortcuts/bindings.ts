@@ -6,7 +6,8 @@
  * Add new shortcuts to the section for your feature. `bindings.test.ts` fails on duplicates.
  */
 
-export type ShortcutScope = 'global' | 'transactions' | 'accounts' | 'categories' | 'import';
+export type ShortcutScope =
+  'global' | 'dashboard' | 'transactions' | 'accounts' | 'categories' | 'import';
 
 export interface ShortcutBinding {
   keys: string;
@@ -23,6 +24,18 @@ export const SHORTCUTS = {
   'nav.categories': { keys: 'g c', description: 'Go to categories', scope: 'global' },
   'nav.import': { keys: 'g i', description: 'Go to CSV import', scope: 'global' },
   'help.toggle': { keys: '?', description: 'Show keyboard shortcuts', scope: 'global' },
+
+  // Dashboard (step 3)
+  'dashboard.range3': { keys: '1', description: 'Show last 3 months', scope: 'dashboard' },
+  'dashboard.range6': { keys: '2', description: 'Show last 6 months', scope: 'dashboard' },
+  'dashboard.range12': { keys: '3', description: 'Show last 12 months', scope: 'dashboard' },
+  'dashboard.rangeAll': { keys: '4', description: 'Show all months', scope: 'dashboard' },
+  'dashboard.previousMonth': {
+    keys: '[',
+    description: 'Previous month in breakdown',
+    scope: 'dashboard',
+  },
+  'dashboard.nextMonth': { keys: ']', description: 'Next month in breakdown', scope: 'dashboard' },
 
   // Accounts and transactions (step 2)
   'accounts.switch': { keys: '/', description: 'Switch account', scope: 'accounts' },
