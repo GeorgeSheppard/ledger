@@ -11,12 +11,20 @@ pnpm build-storybook   # static build in storybook-static/
 
 ## Preview link on a PR
 
-Every PR preview deploy also serves Storybook at `/storybook/`: take the preview URL from the
-Cloudflare Workers Builds check on the PR (`https://<hash>-ledger.<account>.workers.dev`) and add
-`/storybook/`, e.g. `.../storybook/?path=/story/pages-dashboard--sankey`. `pnpm build` (via `scripts/storybook-preview.sh`)
-adds it when `WORKERS_CI_BRANCH` (set by Cloudflare) is not `main`, so the production site never
-contains it. It needs no extra secrets or settings. Set `PRODUCTION_BRANCH` as a build variable if
-production ever deploys from another branch.
+Storybook is deployed as its own Cloudflare worker, `ledger-storybook`, separate from the site, so
+it is never part of `pnpm build` or the production site. It uses `wrangler.storybook.jsonc` and needs
+no secrets. Cloudflare builds it for every branch, posts a preview URL on each PR (the same bot
+comment as the site), and the preview URL is the Storybook itself; `main` deploys the stable one.
+
+One-time setup in Cloudflare (Workers & Pages → Create → Import a repository → `ledger`):
+
+- **Worker name:** `ledger-storybook`
+- **Build command:** `pnpm build-storybook`
+- **Deploy command:** `npx wrangler deploy --config wrangler.storybook.jsonc`
+- **Non-production branch deploy command:** `npx wrangler versions upload --config wrangler.storybook.jsonc`
+- **Build watch paths** (optional): leave default, or include `src/**`, `.storybook/**` and `package.json` so
+  unrelated changes do not rebuild it.
+- No variables or secrets are needed.
 
 Light and dark follow the browser's colour scheme, like the app (the tokens in `styles/global.css`
 use `prefers-color-scheme`). To see dark in Storybook, switch your OS or use the browser's rendering
