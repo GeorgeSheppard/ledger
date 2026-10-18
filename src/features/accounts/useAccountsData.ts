@@ -67,6 +67,8 @@ export function useAccountActions() {
       mutate((r) => r.updateTransaction(accountId, row, input)),
     deleteTransaction: (accountId: number, row: number) =>
       mutate((r) => r.deleteTransaction(accountId, row)),
+    deleteTransactions: (accountId: number, rows: number[]) =>
+      mutate((r) => r.deleteTransactions(accountId, rows)),
     saveCategories: (categories: Category[]) => mutate((r) => r.saveCategories(categories)),
   };
 }

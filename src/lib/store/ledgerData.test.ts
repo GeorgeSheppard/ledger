@@ -3,6 +3,7 @@ import type { TransactionInput } from '../domain/types';
 import {
   addTransactions,
   deleteTransaction,
+  deleteTransactions,
   rebase,
   renameCategory,
   sameData,
@@ -74,6 +75,8 @@ describe('updateTransaction and deleteTransaction', () => {
   it('deletes by row and rejects unknown rows', () => {
     expect(notes(deleteTransaction(data, 1, 2))).toEqual(['b', 'c']);
     expect(() => deleteTransaction(data, 1, 5)).toThrow('Unknown row');
+    expect(notes(deleteTransactions(data, 1, [4, 2]))).toEqual(['b']);
+    expect(() => deleteTransactions(data, 1, [2, 9])).toThrow('Unknown row');
     expect(() => updateTransaction(data, 1, 1, tx('2026-01-01', 1))).toThrow('Unknown row');
   });
 });

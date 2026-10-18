@@ -31,6 +31,8 @@ export interface LedgerRepository {
   /** Replaces a row; if its date changed, it moves to stay in date order. */
   updateTransaction(accountId: number, row: number, input: TransactionInput): Promise<void>;
   deleteTransaction(accountId: number, row: number): Promise<void>;
+  /** Deletes several rows in one step. `rows` are the row numbers as they are now. */
+  deleteTransactions(accountId: number, rows: number[]): Promise<void>;
 
   listCategories(): Promise<Category[]>;
   /** Replaces the whole category list. */
