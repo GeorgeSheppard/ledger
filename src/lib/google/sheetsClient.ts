@@ -1,4 +1,12 @@
-import type { GridRange, NewSpreadsheet, SheetsRequest, SpreadsheetMetadata } from './sheetsTypes';
+import { z } from 'zod';
+import { describeIssue } from '../domain/schemas';
+import {
+  spreadsheetMetadataSchema,
+  type GridRange,
+  type NewSpreadsheet,
+  type SheetsRequest,
+  type SpreadsheetMetadata,
+} from './sheetsTypes';
 
 /**
  * A thin, typed wrapper around the Sheets REST API. It knows URLs and auth headers, nothing about
@@ -31,6 +39,25 @@ export class GoogleApiError extends Error {
   }
 }
 
+/** Google answered successfully, but not with the shape the API documents. */
+export class UnexpectedResponseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UnexpectedResponseError';
+  }
+}
+
+const valuesResponseSchema = z.object({
+  valueRanges: z
+    .array(
+      z.object({
+        valueRange: z.object({ values: z.array(z.array(z.unknown())).optional() }).optional(),
+        dataFilters: z.array(z.object({ gridRange: z.custom<GridRange>().optional() })).optional(),
+      })
+    )
+    .optional(),
+});
+
 export interface AccessTokenProvider {
   /** A valid access token. `forceRefresh` asks for a new one after the API rejected the last. */
   getAccessToken(options?: { forceRefresh?: boolean }): Promise<string>;
@@ -50,25 +77,27 @@ export class HttpSheetsClient implements SheetsClient {
   async getMetadata(spreadsheetId: string): Promise<SpreadsheetMetadata> {
     const fields =
       'spreadsheetId,properties.title,sheets.properties(sheetId,title,index,gridProperties)';
-    return this.request(`${BASE}/${enc(spreadsheetId)}?fields=${encodeURIComponent(fields)}`);
+    return this.request(
+      `${BASE}/${enc(spreadsheetId)}?fields=${encodeURIComponent(fields)}`,
+      spreadsheetMetadataSchema
+    );
   }
 
   async readRanges(spreadsheetId: string, ranges: GridRange[]): Promise<unknown[][][]> {
     if (ranges.length === 0) return [];
-    const response = await this.request<{
-      valueRanges?: {
-        valueRange?: { values?: unknown[][] };
-        dataFilters?: { gridRange?: GridRange }[];
-      }[];
-    }>(`${BASE}/${enc(spreadsheetId)}/values:batchGetByDataFilter`, {
-      method: 'POST',
-      body: {
-        dataFilters: ranges.map((gridRange) => ({ gridRange })),
-        majorDimension: 'ROWS',
-        valueRenderOption: 'UNFORMATTED_VALUE',
-        dateTimeRenderOption: 'SERIAL_NUMBER',
-      },
-    });
+    const response = await this.request(
+      `${BASE}/${enc(spreadsheetId)}/values:batchGetByDataFilter`,
+      valuesResponseSchema,
+      {
+        method: 'POST',
+        body: {
+          dataFilters: ranges.map((gridRange) => ({ gridRange })),
+          majorDimension: 'ROWS',
+          valueRenderOption: 'UNFORMATTED_VALUE',
+          dateTimeRenderOption: 'SERIAL_NUMBER',
+        },
+      }
+    );
     // Each matched range echoes the filter that matched it; map results back to request order.
     const matched = response.valueRanges ?? [];
     return ranges.map((range, i) => {
@@ -81,29 +110,37 @@ export class HttpSheetsClient implements SheetsClient {
 
   async batchUpdate(spreadsheetId: string, requests: SheetsRequest[]): Promise<void> {
     if (requests.length === 0) return;
-    await this.request(`${BASE}/${enc(spreadsheetId)}:batchUpdate`, {
+    await this.request(`${BASE}/${enc(spreadsheetId)}:batchUpdate`, z.unknown(), {
       method: 'POST',
       body: { requests, includeSpreadsheetInResponse: false },
     });
   }
 
   async create(spreadsheet: NewSpreadsheet): Promise<{ spreadsheetId: string; title: string }> {
-    const created = await this.request<SpreadsheetMetadata>(
+    const created = await this.request(
       `${BASE}?fields=${encodeURIComponent('spreadsheetId,properties.title')}`,
+      spreadsheetMetadataSchema,
       { method: 'POST', body: spreadsheet }
     );
     return { spreadsheetId: created.spreadsheetId, title: created.properties.title };
   }
 
-  private async request<T>(
+  private async request<S extends z.ZodType>(
     url: string,
+    schema: S,
     init: { method?: string; body?: unknown } = {}
-  ): Promise<T> {
+  ): Promise<z.infer<S>> {
     let response = await this.send(url, init, false);
     // A token can expire between our check and Google's; retry once with a fresh one.
     if (response.status === 401) response = await this.send(url, init, true);
     if (!response.ok) throw new GoogleApiError(response.status, await errorMessage(response));
-    return (await response.json()) as T;
+    const body: unknown = await response.json();
+    const parsed = schema.safeParse(body);
+    if (!parsed.success)
+      throw new UnexpectedResponseError(
+        `Google Sheets sent a reply Ledger does not understand (${describeIssue(parsed.error)}).`
+      );
+    return parsed.data;
   }
 
   private async send(
@@ -139,10 +176,14 @@ function sameRange(a: GridRange | undefined, b: GridRange): boolean {
   return keys.every((k) => (a[k] ?? null) === (b[k] ?? null));
 }
 
+const errorBodySchema = z.object({
+  error: z.object({ message: z.string().optional() }).optional(),
+});
+
 async function errorMessage(response: Response): Promise<string> {
   try {
-    const body = (await response.json()) as { error?: { message?: string } };
-    if (body.error?.message) return body.error.message;
+    const body = errorBodySchema.safeParse(await response.json());
+    if (body.success && body.data.error?.message) return body.data.error.message;
   } catch {
     // Not JSON; fall through.
   }

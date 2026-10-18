@@ -1,6 +1,8 @@
+import type { z } from 'zod';
 import type { Account, Category, Transaction, TransactionInput } from '../domain/types';
 import { RESERVED_TAB_PREFIX } from '../domain/types';
 import { runningTotals } from '../transactions/runningTotal';
+import type { jsonSchema, ledgerDataSchema, skippedTabSchema } from './schemas';
 
 /**
  * The working copy of a whole spreadsheet, and the pure edits the store applies to it. Every edit
@@ -10,27 +12,9 @@ import { runningTotals } from '../transactions/runningTotal';
  * sheet after the next save and the running total is always right.
  */
 
-/** Anything `JSON.stringify` round-trips. Used for the dashboard config, whose shape the dashboard owns. */
-export type JsonValue =
-  null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
-
-export interface LedgerData {
-  /** Account tabs in tab order. */
-  accounts: Account[];
-  /** Rows per account id, oldest first. */
-  rows: Record<number, TransactionInput[]>;
-  categories: Category[];
-  /** Contents of the `_Dashboard` tab, or `null` when there is none yet. */
-  dashboard: JsonValue | null;
-  /** Contents of the `_Paychecks` tab, or `null` when there is none yet. */
-  paychecks: JsonValue | null;
-}
-
-/** A tab that is not an account because it does not match the sheet format. */
-export interface SkippedTab {
-  title: string;
-  reason: string;
-}
+export type JsonValue = z.infer<typeof jsonSchema>;
+export type LedgerData = z.infer<typeof ledgerDataSchema>;
+export type SkippedTab = z.infer<typeof skippedTabSchema>;
 
 /** What the UI reads: the working copy with row numbers and running totals filled in. */
 export interface LedgerSnapshot {

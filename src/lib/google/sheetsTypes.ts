@@ -3,6 +3,8 @@
  * Reference: https://developers.google.com/workspace/sheets/api/reference/rest
  */
 
+import { z } from 'zod';
+
 export interface ExtendedValue {
   numberValue?: number;
   stringValue?: string;
@@ -33,18 +35,26 @@ export interface GridRange {
   endColumnIndex?: number;
 }
 
-export interface SheetProperties {
-  sheetId: number;
-  title: string;
-  index: number;
-  gridProperties?: { rowCount?: number; columnCount?: number; frozenRowCount?: number };
-}
+export const sheetPropertiesSchema = z.object({
+  sheetId: z.number().int(),
+  title: z.string(),
+  index: z.number().int(),
+  gridProperties: z
+    .object({
+      rowCount: z.number().optional(),
+      columnCount: z.number().optional(),
+      frozenRowCount: z.number().optional(),
+    })
+    .optional(),
+});
+export type SheetProperties = z.infer<typeof sheetPropertiesSchema>;
 
-export interface SpreadsheetMetadata {
-  spreadsheetId: string;
-  properties: { title: string };
-  sheets: { properties: SheetProperties }[];
-}
+export const spreadsheetMetadataSchema = z.object({
+  spreadsheetId: z.string(),
+  properties: z.object({ title: z.string() }),
+  sheets: z.array(z.object({ properties: sheetPropertiesSchema })).default([]),
+});
+export type SpreadsheetMetadata = z.infer<typeof spreadsheetMetadataSchema>;
 
 /**
  * One entry of a `spreadsheets.batchUpdate` request. Kept as a loose record of the request kinds

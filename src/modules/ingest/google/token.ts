@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { KeyValueStore } from './rememberedSpreadsheet';
 
 /**
@@ -5,11 +6,13 @@ import type { KeyValueStore } from './rememberedSpreadsheet';
  * in. It is short-lived (about an hour), scoped to `drive.file`, and gone when the tab closes.
  */
 
-export interface StoredToken {
-  accessToken: string;
+const storedTokenSchema = z.object({
+  accessToken: z.string(),
   /** Epoch milliseconds. */
-  expiresAt: number;
-}
+  expiresAt: z.number(),
+});
+
+export type StoredToken = z.infer<typeof storedTokenSchema>;
 
 const KEY = 'ledger.googleToken';
 /** Treat tokens as expired a little early so a request never starts with a dying token. */
@@ -30,11 +33,8 @@ export function tokenFromResponse(
 
 export function loadToken(store: KeyValueStore): StoredToken | null {
   try {
-    const value: unknown = JSON.parse(store.getItem(KEY) ?? 'null');
-    if (typeof value !== 'object' || value === null) return null;
-    const { accessToken, expiresAt } = value as Record<string, unknown>;
-    if (typeof accessToken !== 'string' || typeof expiresAt !== 'number') return null;
-    return { accessToken, expiresAt };
+    const parsed = storedTokenSchema.safeParse(JSON.parse(store.getItem(KEY) ?? 'null'));
+    return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }

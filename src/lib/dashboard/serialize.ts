@@ -1,11 +1,5 @@
-import type { DashboardRange } from '../metrics/dashboard';
-import {
-  clampWidth,
-  newWidget,
-  type DashboardConfig,
-  type Widget,
-  type WidgetKind,
-} from './config';
+import { z } from 'zod';
+import { clampWidth, newWidget, type DashboardConfig, type Widget } from './config';
 
 /**
  * The dashboard layout as stored in the spreadsheet (the store keeps it as JSON in the
@@ -15,68 +9,76 @@ import {
 
 export const DASHBOARD_FORMAT_VERSION = 1;
 
+/** A field that falls back to `fallback` when it is missing or the wrong type. */
+const lenient = <S extends z.ZodType>(schema: S, fallback: z.infer<S>) => schema.catch(fallback);
+
+/** Any named kind is kept, so a layout survives a graph being removed and added back later. */
+const kindSchema = z.string().refine((kind) => kind.trim() !== '');
+const rangeSchema = z.union([z.literal('all'), z.number().int().positive()]);
+
+const storedWidgetSchema = z.object({
+  id: z.string().min(1),
+  kind: kindSchema,
+  title: lenient(z.string(), ''),
+  accounts: lenient(
+    z.array(z.unknown()).transform((items) => items.filter((i) => Number.isInteger(i)) as number[]),
+    []
+  ),
+  categories: lenient(
+    z
+      .array(z.unknown())
+      .transform((items) =>
+        items.filter((i): i is string => typeof i === 'string' && i.trim() !== '')
+      ),
+    []
+  ),
+  range: rangeSchema.nullable().catch(null),
+  width: z.number().finite().optional().catch(undefined),
+  metric: z.string().optional().catch(undefined),
+});
+
 /** The stored shape. Plain JSON: arrays, strings, numbers and null only. */
-export interface StoredDashboard {
+export type StoredDashboard = {
   version: number;
   widgets: {
     id: string;
-    kind: WidgetKind;
+    kind: string;
     title: string;
     accounts: number[];
     categories: string[];
-    range: DashboardRange | null;
+    range: 'all' | number | null;
     width: number;
     metric: string;
   }[];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/** Any named kind is kept, so a layout survives a graph being removed and added back later. */
-function isKind(value: unknown): value is WidgetKind {
-  return typeof value === 'string' && value.trim() !== '';
-}
-
-function parseRange(value: unknown): DashboardRange | null {
-  if (value === 'all') return 'all';
-  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : null;
-}
-
-function arrayOf<T>(value: unknown, keep: (item: unknown) => item is T): T[] {
-  return Array.isArray(value) ? value.filter(keep) : [];
-}
-
-const isAccountId = (item: unknown): item is number => Number.isInteger(item);
-const isName = (item: unknown): item is string => typeof item === 'string' && item.trim() !== '';
+};
 
 /** One stored widget, or null when its id or kind is missing or unknown. */
 export function parseWidget(value: unknown): Widget | null {
-  if (!isRecord(value)) return null;
-  const { id, kind } = value;
-  if (typeof id !== 'string' || !id || !isKind(kind)) return null;
+  const parsed = storedWidgetSchema.safeParse(value);
+  if (!parsed.success) return null;
+  const { id, kind, title, accounts, categories, range, width, metric } = parsed.data;
   return newWidget(kind, id, {
-    title: typeof value.title === 'string' ? value.title : '',
-    accounts: arrayOf(value.accounts, isAccountId),
-    categories: arrayOf(value.categories, isName),
-    range: parseRange(value.range),
-    ...(typeof value.width === 'number' && Number.isFinite(value.width)
-      ? { width: clampWidth(value.width) }
-      : {}),
-    ...(typeof value.metric === 'string' ? { metric: value.metric } : {}),
+    title,
+    accounts,
+    categories,
+    range,
+    ...(width === undefined ? {} : { width: clampWidth(width) }),
+    ...(metric === undefined ? {} : { metric }),
   });
 }
+
+const storedDashboardSchema = z.object({ widgets: z.array(z.unknown()) });
 
 /**
  * The stored layout, or null when there is none (or it is unreadable), so the caller can use the
  * default layout. A stored layout with no widgets is a deliberately empty dashboard.
  */
 export function parseDashboard(value: unknown): DashboardConfig | null {
-  if (!isRecord(value) || !Array.isArray(value.widgets)) return null;
+  const parsed = storedDashboardSchema.safeParse(value);
+  if (!parsed.success) return null;
   const seen = new Set<string>();
   const widgets: Widget[] = [];
-  for (const item of value.widgets) {
+  for (const item of parsed.data.widgets) {
     const widget = parseWidget(item);
     if (!widget || seen.has(widget.id)) continue;
     seen.add(widget.id);
