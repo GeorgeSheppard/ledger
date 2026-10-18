@@ -9,6 +9,7 @@ const SCOPE_LABELS: Partial<Record<ShortcutScope, string>> = {
   accounts: 'Accounts',
   transactions: 'Transactions',
   categories: 'Categories',
+  paychecks: 'Paychecks',
   import: 'Import data',
 };
 

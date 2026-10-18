@@ -62,6 +62,20 @@ describe('dashboard config', () => {
   });
 });
 
+describe('sankey widget', () => {
+  it('is a full-width graph with a default title', () => {
+    const widget = newWidget('sankey', 'a');
+    expect(widget.width).toBe(4);
+    expect(widgetTitle(widget)).toBe('Where your money goes');
+  });
+
+  it('round-trips through the stored layout', () => {
+    const config = { widgets: [newWidget('sankey', 'a', { accounts: [2], range: 3 })] };
+    const stored = JSON.parse(JSON.stringify(serializeDashboard(config)));
+    expect(parseDashboard(stored)).toEqual(config);
+  });
+});
+
 describe('stored dashboard', () => {
   it('round-trips', () => {
     const config = defaultDashboard();

@@ -112,6 +112,11 @@ focus-visible:outline-offset-2 focus-visible:outline-accent`, `disabled:opacity-
     computes totals itself and never reads the Total column.
 - `_Categories` tab: header `Name | Color`, one category per row.
 - `_Dashboard` tab: header `Config`, the dashboard layout as JSON in cell A2.
+- `_Paychecks` tab: header `Paychecks`, the paychecks as JSON in cell A2 (`src/lib/paychecks`). A
+  paycheck is a name, first payment date, gross pay, free-form named deductions, the account its
+  take-home pay lands in, and an optional repeat (weekly to yearly) with an end date. The
+  dashboard's Sankey graph expands them into payments for the months shown and follows the money:
+  paychecks → deductions and take-home → accounts → spending categories and savings.
 
 ## Data flow
 

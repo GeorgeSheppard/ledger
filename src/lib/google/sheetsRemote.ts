@@ -1,5 +1,10 @@
 import type { Account, TransactionInput } from '../domain/types';
-import { ACCOUNT_COLUMNS, CATEGORIES_TAB, RESERVED_TAB_PREFIX } from '../domain/types';
+import {
+  ACCOUNT_COLUMNS,
+  CATEGORIES_TAB,
+  PAYCHECKS_TAB,
+  RESERVED_TAB_PREFIX,
+} from '../domain/types';
 import {
   sameCategories,
   sameJson,
@@ -11,9 +16,11 @@ import { newSheetId, type LedgerRemote, type RemoteState, type SheetLayout } fro
 import {
   categoryRow,
   dashboardRow,
+  paychecksRow,
   headerRow,
   parseAccountTab,
   parseDashboardCell,
+  parsePaychecksCell,
   rowsToCategories,
   transactionRow,
 } from './sheetFormat';
@@ -25,6 +32,7 @@ export const DASHBOARD_TAB = '_Dashboard';
 
 const CATEGORY_COLUMNS = ['Name', 'Color'] as const;
 const DASHBOARD_COLUMNS = ['Config'] as const;
+const PAYCHECKS_COLUMNS = ['Paychecks'] as const;
 /** Fields written for transaction rows: values plus the date format, never the user's styling. */
 const TRANSACTION_FIELDS = 'userEnteredValue,userEnteredFormat.numberFormat';
 const NEW_TAB_ROWS = 1000;
@@ -71,7 +79,7 @@ function readRange(tab: SheetProperties): GridRange | null {
     endColumnIndex: columns,
   });
   if (tab.title === CATEGORIES_TAB) return range(CATEGORY_COLUMNS.length);
-  if (tab.title === DASHBOARD_TAB) return range(1, 2);
+  if (tab.title === DASHBOARD_TAB || tab.title === PAYCHECKS_TAB) return range(1, 2);
   if (tab.title.startsWith(RESERVED_TAB_PREFIX)) return null;
   return range(ACCOUNT_COLUMNS.length + 1);
 }
@@ -81,7 +89,13 @@ export function parseSpreadsheet(
   tabs: readonly SheetProperties[],
   valuesById: ReadonlyMap<number, unknown[][]>
 ): RemoteState {
-  const data: LedgerData = { accounts: [], rows: {}, categories: [], dashboard: null };
+  const data: LedgerData = {
+    accounts: [],
+    rows: {},
+    categories: [],
+    dashboard: null,
+    paychecks: null,
+  };
   const skippedTabs: SkippedTab[] = [];
   const layout: SheetLayout = { rowCounts: {}, sheetIds: [] };
   for (const tab of [...tabs].sort((a, b) => a.index - b.index)) {
@@ -94,6 +108,9 @@ export function parseSpreadsheet(
     } else if (tab.title === DASHBOARD_TAB) {
       layout.dashboardSheetId = tab.sheetId;
       data.dashboard = parseDashboardCell(values[1]?.[0]);
+    } else if (tab.title === PAYCHECKS_TAB) {
+      layout.paychecksSheetId = tab.sheetId;
+      data.paychecks = parsePaychecksCell(values[1]?.[0]);
     } else if (!tab.title.startsWith(RESERVED_TAB_PREFIX)) {
       const parsed = parseAccountTab(values);
       if ('error' in parsed) {
@@ -178,6 +195,21 @@ export function saveRequests(
       updateCells: {
         range: { ...dataRange(sheetId, 1), endRowIndex: 2 },
         rows: [dashboardRow(next.dashboard)],
+        fields: 'userEnteredValue',
+      },
+    });
+  }
+
+  if (!sameJson(base.data.paychecks, next.paychecks)) {
+    let sheetId = layout.paychecksSheetId;
+    if (sheetId === undefined) {
+      sheetId = layout.paychecksSheetId = newSheetId(takenIds(layout, next));
+      addTab(sheetId, PAYCHECKS_TAB, PAYCHECKS_COLUMNS, 1);
+    }
+    requests.push({
+      updateCells: {
+        range: { ...dataRange(sheetId, 1), endRowIndex: 2 },
+        rows: [paychecksRow(next.paychecks)],
         fields: 'userEnteredValue',
       },
     });
