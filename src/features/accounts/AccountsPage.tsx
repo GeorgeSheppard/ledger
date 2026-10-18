@@ -129,6 +129,7 @@ export function AccountsPage() {
             <TransactionTable
               key={`${account.id}?${params.toString()}`}
               account={account}
+              accounts={meta.data.accounts}
               initialFilters={linked}
               transactions={transactions.data}
               categories={categories}
