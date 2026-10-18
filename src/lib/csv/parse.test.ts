@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectDelimiter, parseCsv } from './parse';
+import { parseCsv } from './parse';
 
 describe('parseCsv', () => {
   it('handles quotes, doubled quotes, embedded newlines and CRLF', () => {
@@ -18,8 +18,10 @@ describe('parseCsv', () => {
   });
 
   it('detects semicolon and tab delimiters', () => {
-    expect(detectDelimiter('Datum;Betrag;"a,b"\n')).toBe(';');
-    expect(detectDelimiter('Date\tAmount\n')).toBe('\t');
+    expect(parseCsv('Date\tAmount\n2026-01-02\t5')).toEqual([
+      ['Date', 'Amount'],
+      ['2026-01-02', '5'],
+    ]);
     expect(parseCsv('Datum;Betrag\n01.02.2026;-1,50')).toEqual([
       ['Datum', 'Betrag'],
       ['01.02.2026', '-1,50'],
