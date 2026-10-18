@@ -29,13 +29,13 @@ export const sankeyGraph: Graph = {
     if (paychecks.length === 0)
       return (
         <p className="text-sm text-muted">
-          Add your paychecks to follow your money from gross pay to spending.{' '}
+          Enter your payslips to follow your money from gross pay to spending.{' '}
           <Link to={paths.paychecks} className="text-accent">
             Add a paycheck
           </Link>
         </p>
       );
-    if (!flow) return <NoData>No paychecks pay into these accounts in this period.</NoData>;
+    if (!flow) return <NoData>No paychecks entered for this period.</NoData>;
     return (
       <>
         <p className="mb-3 text-sm text-muted tabular-nums">

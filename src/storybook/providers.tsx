@@ -30,25 +30,28 @@ function Seed({
   dashboard,
   creditCard,
   bigAccount,
+  noPaychecks,
   children,
 }: {
   dashboard?: DashboardConfig;
   creditCard?: boolean;
   bigAccount?: number;
+  noPaychecks?: boolean;
   children: ReactNode;
 }) {
   const repository = useRepository();
-  const [ready, setReady] = useState(!dashboard && !creditCard && !bigAccount);
+  const [ready, setReady] = useState(!dashboard && !creditCard && !bigAccount && !noPaychecks);
   useEffect(() => {
-    if (!dashboard && !creditCard && !bigAccount) return;
+    if (!dashboard && !creditCard && !bigAccount && !noPaychecks) return;
     (async () => {
+      if (noPaychecks) await repository.savePaychecks(null);
       if (bigAccount) await addBigAccount(repository, bigAccount);
       if (dashboard)
         await repository.saveDashboardConfig(serializeDashboard(dashboard) as unknown as JsonValue);
       if (creditCard) await addCreditCard(repository);
       setReady(true);
     })();
-  }, [repository, dashboard, creditCard, bigAccount]);
+  }, [repository, dashboard, creditCard, bigAccount, noPaychecks]);
   return ready ? children : null;
 }
 
@@ -95,6 +98,8 @@ interface ConnectedProps {
   creditCard?: boolean;
   /** Adds a "Big account" with this many transactions. */
   bigAccount?: number;
+  /** Starts with no paychecks entered. */
+  noPaychecks?: boolean;
   /** Wraps `children` in the sidebar and header, as pages are in the app. */
   shell?: boolean;
   children: ReactNode;
@@ -106,13 +111,14 @@ export function Connected({
   dashboard,
   creditCard,
   bigAccount,
+  noPaychecks,
   shell = false,
   children,
 }: ConnectedProps) {
   return (
     <AppProviders route={route}>
       <LedgerDataProvider>
-        <Seed dashboard={dashboard} creditCard={creditCard} bigAccount={bigAccount}>
+        <Seed dashboard={dashboard} creditCard={creditCard} bigAccount={bigAccount} noPaychecks={noPaychecks}>
           {shell ? <AppShell>{children}</AppShell> : children}
         </Seed>
       </LedgerDataProvider>
