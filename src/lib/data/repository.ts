@@ -36,4 +36,8 @@ export interface LedgerRepository {
   /** The dashboard layout saved in the `_Dashboard` tab, or `null` if none was saved yet. */
   getDashboardConfig(): Promise<JsonValue | null>;
   saveDashboardConfig(config: JsonValue | null): Promise<void>;
+
+  /** The paychecks saved in the `_Paychecks` tab, or `null` if none were saved yet. */
+  getPaychecks(): Promise<JsonValue | null>;
+  savePaychecks(config: JsonValue | null): Promise<void>;
 }

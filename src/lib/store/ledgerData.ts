@@ -22,6 +22,8 @@ export interface LedgerData {
   categories: Category[];
   /** Contents of the `_Dashboard` tab, or `null` when there is none yet. */
   dashboard: JsonValue | null;
+  /** Contents of the `_Paychecks` tab, or `null` when there is none yet. */
+  paychecks: JsonValue | null;
 }
 
 /** A tab that is not an account because it does not match the sheet format. */
@@ -37,6 +39,7 @@ export interface LedgerSnapshot {
   transactionsByAccount: Record<number, Transaction[]>;
   categories: Category[];
   dashboard: JsonValue | null;
+  paychecks: JsonValue | null;
   /** Tabs ignored on load, so the UI can say why a tab is missing. */
   skippedTabs: SkippedTab[];
 }
@@ -61,6 +64,7 @@ export function toSnapshot(data: LedgerData, skippedTabs: SkippedTab[]): LedgerS
     transactionsByAccount,
     categories: data.categories,
     dashboard: data.dashboard,
+    paychecks: data.paychecks ?? null,
     skippedTabs,
   };
 }
@@ -249,6 +253,10 @@ export function setDashboard(data: LedgerData, config: JsonValue | null): Ledger
   return { ...data, dashboard: structuredClone(config) };
 }
 
+export function setPaychecks(data: LedgerData, config: JsonValue | null): LedgerData {
+  return { ...data, paychecks: structuredClone(config) };
+}
+
 export function sameRows(a: readonly TransactionInput[], b: readonly TransactionInput[]): boolean {
   return (
     a.length === b.length &&
@@ -267,8 +275,8 @@ export function sameCategories(a: readonly Category[], b: readonly Category[]): 
   );
 }
 
-export function sameJson(a: JsonValue | null, b: JsonValue | null): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
+export function sameJson(a: JsonValue | null | undefined, b: JsonValue | null | undefined): boolean {
+  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
 export function sameData(a: LedgerData, b: LedgerData): boolean {
@@ -284,7 +292,8 @@ export function sameData(a: LedgerData, b: LedgerData): boolean {
       );
     }) &&
     sameCategories(a.categories, b.categories) &&
-    sameJson(a.dashboard, b.dashboard)
+    sameJson(a.dashboard, b.dashboard) &&
+    sameJson(a.paychecks, b.paychecks)
   );
 }
 
@@ -327,5 +336,8 @@ export function rebase(fresh: LedgerData, base: LedgerData, local: LedgerData): 
       ? fresh.categories
       : local.categories,
     dashboard: sameJson(local.dashboard, base.dashboard) ? fresh.dashboard : local.dashboard,
+    paychecks: sameJson(local.paychecks, base.paychecks)
+      ? (fresh.paychecks ?? null)
+      : (local.paychecks ?? null),
   };
 }

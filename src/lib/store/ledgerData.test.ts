@@ -25,6 +25,7 @@ function ledger(rows: TransactionInput[]): LedgerData {
     rows: { 1: rows },
     categories: [{ name: 'Food', color: '#4f7cff' }],
     dashboard: null,
+    paychecks: null,
   };
 }
 
@@ -105,6 +106,7 @@ describe('rebase', () => {
       rows: { 1: [tx('2026-01-01', 1)], 2: [tx('2026-01-01', 2)] },
       categories: [],
       dashboard: null,
+      paychecks: null,
     };
     const local: LedgerData = {
       ...base,

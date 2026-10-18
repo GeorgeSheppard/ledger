@@ -171,6 +171,7 @@ describe('saveRequests', () => {
       },
       categories: [{ name: 'Groceries', color: '#4f7cff' }],
       dashboard: { widgets: ['netWorth'] },
+      paychecks: null,
     };
     const { requests, layout } = saveRequests(base, next);
     const kinds = requests.map((r) => Object.keys(r)[0]);
@@ -194,6 +195,34 @@ describe('saveRequests', () => {
     });
     expect(layout.dashboardSheetId).toBeDefined();
     expect(layout.sheetIds).toContain(555);
+  });
+
+  it('reads and writes the _Paychecks tab', async () => {
+    const client = new FakeClient([tab(10, 'Current', 0), tab(30, '_Paychecks', 1)], {
+      10: [HEADER],
+      30: [['Paychecks'], ['{"paychecks":[]}']],
+    });
+    const base = await sheetsRemote(client, 'sheet').load();
+    expect(base.data.paychecks).toEqual({ paychecks: [] });
+    expect(base.layout.paychecksSheetId).toBe(30);
+    expect(base.data.accounts.map((a) => a.name)).toEqual(['Current']);
+
+    const next: LedgerData = { ...base.data, paychecks: { paychecks: [{ id: 'a' }] } };
+    const { requests } = saveRequests(base, next);
+    expect(requests).toHaveLength(1);
+    const write = requests[0] as Extract<SheetsRequest, { updateCells: unknown }>;
+    expect(write.updateCells.range?.sheetId).toBe(30);
+    expect(write.updateCells.rows[0]!.values[0]?.userEnteredValue).toEqual({
+      stringValue: '{"paychecks":[{"id":"a"}]}',
+    });
+  });
+
+  it('adds the _Paychecks tab the first time paychecks are saved', async () => {
+    const base = await loaded();
+    const { requests, layout } = saveRequests(base, { ...base.data, paychecks: { paychecks: [] } });
+    expect(requests.map((r) => Object.keys(r)[0])).toEqual(['addSheet', 'updateCells', 'updateCells']);
+    expect(requests[0]).toMatchObject({ addSheet: { properties: { title: '_Paychecks' } } });
+    expect(layout.paychecksSheetId).toBeDefined();
   });
 
   it('creates the categories tab when the sheet has none', async () => {
