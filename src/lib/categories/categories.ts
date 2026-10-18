@@ -25,6 +25,38 @@ export function ignoredCategoryNames(categories: readonly Category[]): Set<strin
   return new Set(categories.filter((c) => c.excluded).map((c) => c.name.trim().toLowerCase()));
 }
 
+/** True when every account offers the category (no account limit). */
+export function isGlobal(category: Category): boolean {
+  return !category.accounts?.length;
+}
+
+/** The categories the picker on `accountName` offers: the global ones plus that account's own. */
+export function categoriesForAccount(
+  categories: readonly Category[],
+  accountName: string
+): Category[] {
+  return categories.filter((c) => isGlobal(c) || c.accounts!.includes(accountName));
+}
+
+/** `category` limited to `accounts`, or global when the list is empty. */
+export function withAccounts(
+  category: Category,
+  accounts: readonly string[] | undefined
+): Category {
+  const rest = { ...category };
+  delete rest.accounts;
+  return accounts?.length ? { ...rest, accounts: [...accounts] } : rest;
+}
+
+/** Limits one category to the given accounts; an empty list makes it global. */
+export function setCategoryAccounts(
+  categories: readonly Category[],
+  name: string,
+  accounts: readonly string[]
+): Category[] {
+  return categories.map((c) => (sameName(c.name, name) ? withAccounts(c, accounts) : c));
+}
+
 /** Turns "exclude from calculations" on or off for one category. */
 export function setCategoryExcluded(
   categories: readonly Category[],
@@ -33,8 +65,9 @@ export function setCategoryExcluded(
 ): Category[] {
   return categories.map((c) => {
     if (!sameName(c.name, name)) return c;
-    const next: Category = { name: c.name, color: c.color };
-    return excluded ? { ...next, excluded: true } : next;
+    const rest = { ...c };
+    delete rest.excluded;
+    return excluded ? { ...rest, excluded: true } : rest;
   });
 }
 
@@ -64,13 +97,14 @@ export function addCategory(
   categories: readonly Category[],
   name: string,
   color: string = nextCategoryColor(categories),
-  excluded = false
+  excluded = false,
+  accounts?: readonly string[]
 ): Category[] {
   const error = validateCategoryName(categories, name);
   if (error) throw new Error(error);
   if (!isHexColor(color)) throw new Error(`Invalid colour ${color}`);
   const added: Category = { name: name.trim(), color: color.toLowerCase() };
-  return [...categories, excluded ? { ...added, excluded: true } : added];
+  return [...categories, withAccounts(excluded ? { ...added, excluded: true } : added, accounts)];
 }
 
 export function recolorCategory(

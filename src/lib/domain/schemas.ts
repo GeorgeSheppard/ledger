@@ -50,6 +50,11 @@ export const categorySchema = z.object({
   color: z.union([z.string().regex(HEX_COLOR), z.literal('')]).catch(''),
   /** Left out of spending, income, cash flow and the money-flow diagram (still counts towards balances). */
   excluded: z.boolean().optional().catch(undefined),
+  /**
+   * Names of the accounts (tabs) this category is offered on. Absent or empty means global: every
+   * account offers it. Transactions may still use the name in any account; only the picker is limited.
+   */
+  accounts: z.array(z.string()).optional().catch(undefined),
 });
 
 /** The spreadsheet the user has connected. */

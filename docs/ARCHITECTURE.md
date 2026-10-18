@@ -178,6 +178,10 @@ focus-visible:outline-offset-2 focus-visible:outline-accent`, `disabled:opacity-
 - `_Metadata` tab: header `Type | Name | Setting | Value`, one setting per row. It holds everything
   the app remembers about the spreadsheet that is not a transaction:
   - `category | Food | color | #4f7cff`: one row per category, in list order.
+  - `category | Interest | account | Savings`: limits the category to an account (tab name); one row
+    per account. A category with no `account` rows is global. The limit only decides what the
+    category picker on an account offers: charts and rules still group by name, and transactions
+    may use any name. Renaming an account updates these rows.
   - `account | Visa | inverted | TRUE`: the account (tab name) is a credit card or loan. Written only
     for inverted accounts; a missing row means off.
   - Rows of an unknown type or setting are ignored, and the app rewrites the tab whole when

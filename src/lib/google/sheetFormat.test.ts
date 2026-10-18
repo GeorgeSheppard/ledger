@@ -164,6 +164,29 @@ describe('_Metadata', () => {
     ]);
   });
 
+  it('reads and writes the accounts a category is limited to; none means global', () => {
+    const values = [
+      ['category', 'Interest', 'account', 'Savings'],
+      ['category', 'Interest', 'color', '#f2b84b'],
+      ['category', 'Interest', 'account', 'ISA'],
+      ['category', 'Interest', 'account', 'Savings'],
+      ['category', 'Food', 'color', '#4f7cff'],
+      ['category', 'Food', 'account', ''],
+      ['category', 'Fees', 'account', 'Current'],
+    ];
+    const { categories } = parseMetadata(values);
+    expect(categories).toEqual([
+      { name: 'Interest', color: '#f2b84b', accounts: ['Savings', 'ISA'] },
+      { name: 'Food', color: '#4f7cff' },
+      { name: 'Fees', color: '', accounts: ['Current'] },
+    ]);
+    expect(metadataEntries(categories, []).filter((e) => e.setting === 'account')).toEqual([
+      { type: 'category', name: 'Interest', setting: 'account', value: 'Savings' },
+      { type: 'category', name: 'Interest', setting: 'account', value: 'ISA' },
+      { type: 'category', name: 'Fees', setting: 'account', value: 'Current' },
+    ]);
+  });
+
   it('writes only the settings that differ from the default, categories first', () => {
     expect(
       metadataEntries(

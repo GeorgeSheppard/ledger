@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { usageOf } from '../../lib/categories/categories';
 import { nextCategoryColor } from '../../lib/categories/palette';
-import { METADATA_TAB, type Category } from '../../lib/domain/types';
+import { METADATA_TAB, type Account, type Category } from '../../lib/domain/types';
 import {
   initialRowEditorState,
   isEditing,
   neighbourAfterRemoval,
   rowEditorReducer,
 } from '../../lib/transactions/rowEditor';
+import { useLedger } from '../../state/ledgerData';
 import { useShortcut } from '../../state/shortcuts';
 import { ActionButton } from '../../ui/ActionButton';
 import { Kbd } from '../../ui/Kbd';
@@ -20,6 +21,7 @@ import { Page } from '../../ui/Page';
 /** `/categories`: add, rename, recolour, reorder and delete categories. */
 export function CategoriesPage() {
   const query = useCategoriesWithUsage();
+  const { accounts } = useLedger();
   return (
     <Page
       title="Categories"
@@ -36,7 +38,11 @@ export function CategoriesPage() {
         <p className="text-sm text-muted">Could not load categories: {query.error.message}</p>
       )}
       {query.status === 'ready' && (
-        <CategoryList categories={query.data.categories} usage={query.data.usage} />
+        <CategoryList
+          categories={query.data.categories}
+          accounts={accounts}
+          usage={query.data.usage}
+        />
       )}
     </Page>
   );
@@ -44,9 +50,11 @@ export function CategoriesPage() {
 
 function CategoryList({
   categories,
+  accounts,
   usage,
 }: {
   categories: Category[];
+  accounts: Account[];
   usage: Map<string, number>;
 }) {
   const actions = useCategoryActions();
@@ -88,7 +96,7 @@ function CategoryList({
 
   const save = (next: Category) => {
     if (mode.kind === 'new')
-      void run(() => actions.add(next.name, next.color, next.excluded), next.name);
+      void run(() => actions.add(next.name, next.color, next.excluded, next.accounts), next.name);
     else if (mode.kind === 'edit' && selected)
       void run(() => actions.edit(selected, next), next.name);
   };
@@ -119,6 +127,7 @@ function CategoryList({
     <CategoryEditor
       key={original?.name ?? 'new'}
       categories={categories}
+      accounts={accounts}
       original={original}
       initialColor={nextCategoryColor(categories)}
       usage={original ? usageOf(usage, original.name) : 0}

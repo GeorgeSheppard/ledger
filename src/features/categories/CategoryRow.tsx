@@ -1,3 +1,4 @@
+import { isGlobal } from '../../lib/categories/categories';
 import type { Category } from '../../lib/domain/types';
 import { Badge } from '../../ui/Badge';
 import { selectableRow } from '../accounts/rowStyles';
@@ -21,6 +22,13 @@ export function CategoryRow({ category, usage, selected, onOpen }: CategoryRowPr
       <span role="cell" className="size-3.5 rounded-full" style={{ background: category.color }} />
       <span role="cell" className="flex min-w-0 items-center gap-2">
         <span className="truncate">{category.name}</span>
+        {!isGlobal(category) && (
+          <Badge title={`Only offered on ${category.accounts!.join(', ')}`}>
+            {category.accounts!.length === 1
+              ? category.accounts![0]
+              : `${category.accounts!.length} accounts`}
+          </Badge>
+        )}
         {category.excluded && (
           <Badge title="Left out of spending, income and cash flow">Excluded</Badge>
         )}

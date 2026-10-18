@@ -11,6 +11,7 @@ export const FIXTURE_CATEGORIES: Category[] = [
   { name: 'Transport', color: '#d64b30' },
   { name: 'Bills', color: '#46bdfe' },
   { name: 'Savings', color: '#19d27f', excluded: true },
+  { name: 'Interest', color: '#f2b84b', accounts: ['Savings'] },
 ];
 
 function month(year: number, monthIndex: number, day: number): string {

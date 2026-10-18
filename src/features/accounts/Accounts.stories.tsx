@@ -71,6 +71,31 @@ export const EditOnClick: Story = {
   },
 };
 
+/**
+ * The category list on an account: global categories plus the ones limited to it. Interest is
+ * limited to Savings, so it is missing from the Current account's list (account 1) and present on
+ * Savings (account 2).
+ */
+export const CategoryPickerOnAccount: Story = {
+  render: () => (
+    <Connected shell route="/accounts/1">
+      <Routes>
+        <Route path="/accounts/:accountId" element={<AccountsPage />} />
+      </Routes>
+    </Connected>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const [dinner] = await canvas.findAllByText('Dinner');
+    await userEvent.click(dinner!);
+    await userEvent.click(dinner!);
+    const picker = await canvas.findByRole('combobox', { name: 'Category' });
+    await userEvent.clear(picker);
+    await canvas.findByRole('option', { name: 'Groceries' });
+    await expect(canvas.queryByRole('option', { name: 'Interest' })).toBeNull();
+  },
+};
+
 /** Click, Shift+click and Ctrl/⌘+click select several rows; Delete, Select all and Clear appear once something is selected. */
 export const SelectedRows: Story = {
   render: AccountRoute,
