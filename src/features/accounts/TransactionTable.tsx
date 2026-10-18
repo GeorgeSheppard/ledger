@@ -57,6 +57,7 @@ import {
   AmountFilter,
   CategoryFilter,
   DateFilter,
+  AccountFilter,
   NoteFilter,
   TransactionFilterPanel,
 } from './TransactionFilterPanel';
@@ -65,7 +66,10 @@ import { MONTH_HEIGHT, ROW_HEIGHT, TRANSACTION_GRID } from './rowStyles';
 import { useAccountActions } from './useAccountsData';
 
 interface TransactionTableProps {
-  account: Account;
+  /** The account these transactions belong to, or null when `transactions` mix several. */
+  account: Account | null;
+  /** Every account, to name and filter by when the list mixes them. */
+  accounts: Account[];
   transactions: Transaction[];
   categories: Category[];
   /** Turns the table's shortcuts off, e.g. while a dialog is open over it. */
@@ -105,6 +109,7 @@ const COLUMNS: { key: SortKey; label: string; align?: 'right' }[] = [
  */
 export function TransactionTable({
   account,
+  accounts,
   transactions,
   categories,
   paused = false,
@@ -124,6 +129,8 @@ export function TransactionTable({
   const [panelOpen, setPanelOpen] = useState(
     () => initialFilters !== undefined && hasFilters(initialFilters)
   );
+  const mixed = account === null;
+  const accountNames = useMemo(() => new Map(accounts.map((a) => [a.id, a.name])), [accounts]);
   const wide = useMediaQuery('(min-width: 768px)');
 
   const shown = useMemo(
@@ -246,12 +253,13 @@ export function TransactionTable({
     setWriteError(null);
     try {
       if (mode.kind === 'new') {
+        if (!account) throw new Error('Pick an account to add a transaction to.');
         const added = await actions.addTransaction(account.id, result.input);
         selectAndReveal(selectOnly(added?.id ?? null));
       } else if (mode.kind === 'edit') {
-        const row = transactions.find((t) => t.id === mode.id)?.row;
-        if (row === undefined) throw new Error('This transaction no longer exists.');
-        await actions.updateTransaction(account.id, row, result.input);
+        const existing = transactions.find((t) => t.id === mode.id);
+        if (!existing) throw new Error('This transaction no longer exists.');
+        await actions.updateTransaction(existing.accountId, existing.row, result.input);
       }
       stopEditing();
       return true;
@@ -304,6 +312,7 @@ export function TransactionTable({
   };
 
   const startNew = () => {
+    if (mixed) return;
     setConfirmingDelete(false);
     setMode({ kind: 'new' });
     beginEditing(emptyDraft(todayIso()), 'category');
@@ -338,10 +347,12 @@ export function TransactionTable({
     try {
       const only = selectedRows.length === 1 ? selectedRows[0] : undefined;
       const next = only ? selectionAfterDelete(transactions, only) : null;
-      await actions.deleteTransactions(
-        account.id,
-        selectedRows.map((t) => t.row)
-      );
+      // Rows are numbered within their own account, so each account is deleted from separately.
+      const rowsByAccount = new Map<number, number[]>();
+      for (const t of selectedRows)
+        rowsByAccount.set(t.accountId, [...(rowsByAccount.get(t.accountId) ?? []), t.row]);
+      for (const [accountId, rows] of rowsByAccount)
+        await actions.deleteTransactions(accountId, rows);
       setConfirmingDelete(false);
       // After deleting one row, keep going from the row that took its place.
       setSelection(selectOnly(next));
@@ -362,7 +373,12 @@ export function TransactionTable({
     setWriteError(null);
     try {
       const { date, category, amount, note } = transaction;
-      const added = await actions.addTransaction(account.id, { date, category, amount, note });
+      const added = await actions.addTransaction(transaction.accountId, {
+        date,
+        category,
+        amount,
+        note,
+      });
       selectAndReveal(selectOnly(added?.id ?? null));
     } catch (error) {
       setWriteError(error instanceof Error ? error.message : String(error));
@@ -459,7 +475,9 @@ export function TransactionTable({
       categories={categories}
       isNew={mode.kind === 'new'}
       saving={saving}
-      total={editingRow ? transactions.find((t) => t.id === editingRow)?.total : undefined}
+      total={
+        editingRow && !mixed ? transactions.find((t) => t.id === editingRow)?.total : undefined
+      }
       focusField={editing.focusField}
       focusKey={editing.focusKey}
       onChange={(draft) => setEditing({ ...editing, draft })}
@@ -517,6 +535,7 @@ export function TransactionTable({
           selected={selectedSet.has(transaction.id)}
           onActivate={activate}
           menuItems={menuFor(transaction)}
+          accountName={mixed ? accountNames.get(transaction.accountId) : undefined}
         />
       </div>
     );
@@ -536,7 +555,7 @@ export function TransactionTable({
       ),
       note: <NoteFilter filters={filters} set={setFilter} />,
       amount: <AmountFilter filters={filters} set={setFilter} />,
-      total: null,
+      total: mixed ? <AccountFilter filters={filters} set={setFilter} accounts={accounts} /> : null,
     }[key];
     if (!panel) return null;
     const active = {
@@ -548,11 +567,11 @@ export function TransactionTable({
         filters.min !== null ||
         filters.max !== null ||
         filters.exact !== null,
-      total: false,
+      total: filters.accounts.length > 0,
     }[key];
     return (
       <Popover
-        label={`Filter by ${key}`}
+        label={`Filter by ${key === 'total' ? 'account' : key}`}
         open={openFilter === key}
         onOpenChange={(open) => setOpenFilter(open ? key : null)}
         active={active}
@@ -567,17 +586,22 @@ export function TransactionTable({
   const filterCount = countFilters(filters);
 
   return (
-    <section className="flex min-w-0 flex-col" aria-label={`${account.name} transactions`}>
+    <section
+      className="flex min-w-0 flex-col"
+      aria-label={`${account?.name ?? 'All'} transactions`}
+    >
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <ActionButton
-          shortcut="transactions.new"
-          hideHint
-          variant="primary"
-          disabled={busy}
-          onAction={startNew}
-        >
-          New transaction
-        </ActionButton>
+        {!mixed && (
+          <ActionButton
+            shortcut="transactions.new"
+            hideHint
+            variant="primary"
+            disabled={busy}
+            onAction={startNew}
+          >
+            New transaction
+          </ActionButton>
+        )}
         <ActionButton
           className="md:hidden"
           variant={panelOpen ? 'primary' : 'secondary'}
@@ -628,6 +652,7 @@ export function TransactionTable({
           onChange={setFilters}
           categoryNames={categoryNames}
           categories={categories}
+          accounts={mixed ? accounts : undefined}
           sort={sort}
           onSortChange={setSort}
           autoFocusSearch={focusSearch}
@@ -687,6 +712,7 @@ export function TransactionTable({
       >
         {COLUMNS.map((column) => {
           const active = sort.key === column.key;
+          const isAccount = mixed && column.key === 'total';
           return (
             <span
               key={column.key}
@@ -697,19 +723,26 @@ export function TransactionTable({
                 column.align === 'right' && 'justify-end'
               )}
             >
-              <button
-                type="button"
-                className={cn(
-                  'inline-flex cursor-pointer items-center gap-1 uppercase hover:text-fg',
-                  active && 'text-fg'
-                )}
-                onClick={() => sortBy(column.key)}
-              >
-                {column.label}
-                <span aria-hidden="true" className={cn('text-[0.625rem]', !active && 'opacity-0')}>
-                  {sort.direction === 'asc' && active ? '▲' : '▼'}
-                </span>
-              </button>
+              {isAccount ? (
+                'Account'
+              ) : (
+                <button
+                  type="button"
+                  className={cn(
+                    'inline-flex cursor-pointer items-center gap-1 uppercase hover:text-fg',
+                    active && 'text-fg'
+                  )}
+                  onClick={() => sortBy(column.key)}
+                >
+                  {column.label}
+                  <span
+                    aria-hidden="true"
+                    className={cn('text-[0.625rem]', !active && 'opacity-0')}
+                  >
+                    {sort.direction === 'asc' && active ? '▲' : '▼'}
+                  </span>
+                </button>
+              )}
               {filterFor(column.key)}
             </span>
           );
@@ -721,10 +754,12 @@ export function TransactionTable({
         {mode.kind === 'new' && editor}
         {transactions.length === 0 && mode.kind !== 'new' && (
           <div className="flex flex-col items-center gap-1 px-4 py-8 text-center text-muted">
-            <p>No transactions in {account.name} yet.</p>
-            <p className="inline-flex items-center gap-1.5">
-              Press <Kbd shortcut="transactions.new" /> to add the first one.
-            </p>
+            <p>No transactions in {account ? account.name : 'these accounts'} yet.</p>
+            {!mixed && (
+              <p className="inline-flex items-center gap-1.5">
+                Press <Kbd shortcut="transactions.new" /> to add the first one.
+              </p>
+            )}
           </div>
         )}
         {transactions.length > 0 && shown.length === 0 && (

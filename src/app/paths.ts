@@ -4,6 +4,7 @@ export const paths = {
   connect: '/connect',
   accounts: '/accounts',
   account: (accountId: number) => `/accounts/${accountId}`,
+  transactions: '/transactions',
   categories: '/categories',
   paychecks: '/paychecks',
   import: '/import',

@@ -1,5 +1,5 @@
 import { useState, type Ref } from 'react';
-import type { Category } from '../../lib/domain/types';
+import type { Account, Category } from '../../lib/domain/types';
 import { amountToInput, parseAmount } from '../../lib/transactions/amount';
 import {
   hasFilters,
@@ -22,6 +22,8 @@ interface TransactionFilterPanelProps {
   /** Category names used by this account's transactions (`''` is "no category"). */
   categoryNames: readonly string[];
   categories: Category[];
+  /** Set when the list mixes accounts, so they can be filtered too. */
+  accounts?: Account[];
   sort: Sort;
   onSortChange(sort: Sort): void;
   /** Lets the table focus the notes search from its shortcut. */
@@ -195,6 +197,38 @@ export function CategoryFilter({
   );
 }
 
+export function AccountFilter({
+  filters,
+  set,
+  accounts,
+}: FilterFieldProps & { accounts: readonly Account[] }) {
+  const toggle = (id: number) =>
+    set({
+      accounts: filters.accounts.includes(id)
+        ? filters.accounts.filter((a) => a !== id)
+        : [...filters.accounts, id],
+    });
+  return (
+    <div className="flex max-w-96 flex-wrap gap-1.5">
+      {accounts.map((account) => (
+        <button
+          key={account.id}
+          type="button"
+          aria-pressed={filters.accounts.includes(account.id)}
+          className={cn(
+            'cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-sm transition-colors hover:bg-surface-hover',
+            filters.accounts.includes(account.id) &&
+              'border-accent bg-accent/10 ring-2 ring-accent/20'
+          )}
+          onClick={() => toggle(account.id)}
+        >
+          {account.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Every filter in one card, for small screens where there are no column headers to hang them on.
  * Wide screens use the same pieces in popovers on the headers.
@@ -204,6 +238,7 @@ export function TransactionFilterPanel({
   onChange,
   categoryNames,
   categories,
+  accounts,
   sort,
   onSortChange,
   searchRef,
@@ -230,6 +265,11 @@ export function TransactionFilterPanel({
           categories={categories}
         />
       </Section>
+      {accounts && (
+        <Section title="Account">
+          <AccountFilter filters={filters} set={set} accounts={accounts} />
+        </Section>
+      )}
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <label className="inline-flex items-center gap-2 text-sm">
           Sort by

@@ -10,6 +10,8 @@ export interface TransactionFilters {
   search: string;
   /** Keep only these categories. `''` stands for "no category". Empty keeps everything. */
   categories: readonly string[];
+  /** Keep only these accounts (ids). Empty keeps everything; only matters where accounts are mixed. */
+  accounts: readonly number[];
   from: IsoDate | null;
   to: IsoDate | null;
   sign: AmountSign;
@@ -27,6 +29,7 @@ export interface TransactionFilters {
 export const noFilters: TransactionFilters = {
   search: '',
   categories: [],
+  accounts: [],
   from: null,
   to: null,
   sign: 'any',
@@ -46,6 +49,7 @@ export function countFilters(f: TransactionFilters): number {
   return [
     f.search.trim() !== '',
     f.categories.length > 0,
+    f.accounts.length > 0,
     f.from !== null || f.to !== null,
     f.sign !== 'any',
     f.exact !== null || f.min !== null || f.max !== null,
@@ -59,6 +63,7 @@ export function filterTransactions(
 ): Transaction[] {
   const words = filters.search.toLowerCase().split(/\s+/).filter(Boolean);
   const categories = new Set(filters.categories);
+  const accounts = new Set(filters.accounts);
   const duplicates = filters.duplicatesOnly ? findDuplicateIds(transactions) : null;
   return transactions.filter((t) => {
     if (words.length > 0) {
@@ -66,6 +71,7 @@ export function filterTransactions(
       if (!words.every((w) => text.includes(w))) return false;
     }
     if (categories.size > 0 && !categories.has(t.category)) return false;
+    if (accounts.size > 0 && !accounts.has(t.accountId)) return false;
     if (filters.from && t.date < filters.from) return false;
     if (filters.to && t.date > filters.to) return false;
     if (filters.sign === 'in' && t.amount <= 0) return false;

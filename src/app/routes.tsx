@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, Outlet, Route, Routes } from 'react-router';
 import { AccountsOverviewPage } from '../features/accounts/AccountsOverviewPage';
+import { TransactionsPage } from '../features/accounts/TransactionsPage';
 import { AccountsPage } from '../features/accounts/AccountsPage';
 import { CategoriesPage } from '../features/categories/CategoriesPage';
 import { ConnectPage } from '../features/connect/ConnectPage';
@@ -56,6 +57,7 @@ export function AppRoutes() {
       <Route element={<RequireConnection />}>
         <Route path={paths.accounts} element={<AccountsOverviewPage />} />
         <Route path={`${paths.accounts}/:accountId`} element={<AccountsPage />} />
+        <Route path={paths.transactions} element={<TransactionsPage />} />
         <Route path={paths.categories} element={<CategoriesPage />} />
         <Route path={paths.paychecks} element={<PaychecksPage />} />
         {/* Importing now happens from each account page. */}
