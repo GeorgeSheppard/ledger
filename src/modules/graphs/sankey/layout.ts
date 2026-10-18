@@ -1,6 +1,8 @@
+import { sankey } from 'd3-sankey';
+
 /**
  * Lays out a Sankey diagram: nodes in columns, sized by the money through them, joined by ribbons
- * as wide as the money they carry. Pure geometry with no drawing, so it can be tested.
+ * as wide as the money they carry. A thin adapter over d3-sankey; no drawing, so it can be tested.
  */
 
 export interface SankeyNodeInput {
@@ -54,87 +56,65 @@ export interface SankeyLayout {
   links: LaidLink[];
 }
 
+interface SNode extends SankeyNodeInput {
+  /** The id the d3 layout identifies the node by. */
+  id: string;
+}
+
 export function layoutSankey(
   nodes: readonly SankeyNodeInput[],
   links: readonly SankeyLinkInput[],
   { width, height, nodeWidth = 14, nodePadding = 14, minNodeHeight = 2 }: SankeyOptions
 ): SankeyLayout {
-  const byId = new Map(nodes.map((n) => [n.id, n]));
-  const real = links.filter((l) => l.value > 0 && byId.has(l.source) && byId.has(l.target));
-  const columnCount = Math.max(1, ...nodes.map((n) => n.column + 1));
+  const columnOf = new Map(nodes.map((n) => [n.id, n.column]));
+  // d3-sankey rejects links that do not go forward, and ignores nothing, so filter them here.
+  const real = links.filter(
+    (l) =>
+      l.value > 0 &&
+      columnOf.has(l.source) &&
+      columnOf.has(l.target) &&
+      columnOf.get(l.source)! < columnOf.get(l.target)!
+  );
 
-  const inflow = new Map<string, number>();
-  const outflow = new Map<string, number>();
-  for (const l of real) {
-    outflow.set(l.source, (outflow.get(l.source) ?? 0) + l.value);
-    inflow.set(l.target, (inflow.get(l.target) ?? 0) + l.value);
-  }
-  const valueOf = (id: string) => Math.max(inflow.get(id) ?? 0, outflow.get(id) ?? 0);
-
-  // One scale for the whole diagram: the tightest column decides how many pixels a unit gets.
-  const columns: SankeyNodeInput[][] = Array.from({ length: columnCount }, () => []);
-  for (const node of nodes) columns[node.column]!.push(node);
-  let scale = Infinity;
-  for (const column of columns) {
-    const total = column.reduce((sum, n) => sum + valueOf(n.id), 0);
-    if (total <= 0) continue;
-    const room = height - Math.max(0, column.length - 1) * nodePadding;
-    scale = Math.min(scale, Math.max(room, 1) / total);
-  }
-  if (!Number.isFinite(scale)) scale = 0;
-
-  const laid = new Map<string, LaidNode>();
-  columns.forEach((column, c) => {
-    const heights = column.map((n) => Math.max(valueOf(n.id) * scale, minNodeHeight));
-    const used = heights.reduce((a, b) => a + b, 0) + Math.max(0, column.length - 1) * nodePadding;
-    let y = Math.max(0, (height - used) / 2);
-    const x = columnCount === 1 ? 0 : (c * (width - nodeWidth)) / (columnCount - 1);
-    column.forEach((n, i) => {
-      laid.set(n.id, {
-        id: n.id,
-        column: n.column,
-        x,
-        y,
-        width: nodeWidth,
-        height: heights[i]!,
-        value: valueOf(n.id),
-      });
-      y += heights[i]! + nodePadding;
-    });
+  const graph = sankey<SNode, SankeyLinkInput>()
+    .nodeId((n) => n.id)
+    // Columns are given, not inferred.
+    .nodeAlign((n) => n.column)
+    .nodeWidth(nodeWidth)
+    .nodePadding(nodePadding)
+    .extent([
+      [0, 0],
+      [width, height],
+    ])({
+    nodes: nodes.map((n) => ({ ...n })),
+    links: real.map((l) => ({ ...l })),
   });
 
-  // Stack each node's ribbons top to bottom in the order of the node they connect to, which keeps
-  // ribbons from crossing needlessly.
-  const outgoing = new Map<string, number>();
-  const incoming = new Map<string, number>();
-  const centre = (id: string) => laid.get(id)!.y + laid.get(id)!.height / 2;
-  const outOrder = [...real].sort((a, b) => centre(a.target) - centre(b.target));
-  const inOrder = [...real].sort((a, b) => centre(a.source) - centre(b.source));
-  const sourceY = new Map<SankeyLinkInput, number>();
-  const targetY = new Map<SankeyLinkInput, number>();
-  for (const l of outOrder) {
-    const used = outgoing.get(l.source) ?? 0;
-    sourceY.set(l, laid.get(l.source)!.y + used + (l.value * scale) / 2);
-    outgoing.set(l.source, used + l.value * scale);
-  }
-  for (const l of inOrder) {
-    const used = incoming.get(l.target) ?? 0;
-    targetY.set(l, laid.get(l.target)!.y + used + (l.value * scale) / 2);
-    incoming.set(l.target, used + l.value * scale);
-  }
-
+  const laid = graph.nodes.map((n): LaidNode => ({
+    id: n.id,
+    column: n.column,
+    x: n.x0 ?? 0,
+    y: n.y0 ?? 0,
+    width: nodeWidth,
+    height: Math.max((n.y1 ?? 0) - (n.y0 ?? 0), minNodeHeight),
+    value: n.value ?? 0,
+  }));
   return {
-    nodes: nodes.map((n) => laid.get(n.id)!),
-    links: real.map((l) => ({
-      source: l.source,
-      target: l.target,
-      value: l.value,
-      x0: laid.get(l.source)!.x + nodeWidth,
-      y0: sourceY.get(l)!,
-      x1: laid.get(l.target)!.x,
-      y1: targetY.get(l)!,
-      width: l.value * scale,
-    })),
+    nodes: laid,
+    links: graph.links.map((l) => {
+      const source = l.source as SNode & { x1?: number };
+      const target = l.target as SNode & { x0?: number };
+      return {
+        source: source.id,
+        target: target.id,
+        value: l.value,
+        x0: source.x1 ?? 0,
+        y0: l.y0 ?? 0,
+        x1: target.x0 ?? 0,
+        y1: l.y1 ?? 0,
+        width: l.width ?? 0,
+      };
+    }),
   };
 }
 
