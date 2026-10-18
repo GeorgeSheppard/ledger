@@ -70,7 +70,7 @@ export const EditOnClick: Story = {
   },
 };
 
-/** Click, Shift+click and Ctrl/⌘+click select several rows; Delete is enabled once something is selected. */
+/** Click, Shift+click and Ctrl/⌘+click select several rows; Delete, Select all and Clear appear once something is selected. */
 export const SelectedRows: Story = {
   render: AccountRoute,
   play: async ({ canvasElement }) => {
@@ -101,18 +101,20 @@ export const RowMenu: Story = {
   },
 };
 
-/** Search plus the filter panel: money out over 50, in a date range. */
+/** Filters live on the column headers: the Amount one is open, with money out over 70 typed in. */
 export const Filtered: Story = {
   render: AccountRoute,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole('button', { name: 'Filter by note' }));
     await userEvent.type(
-      await canvas.findByRole('searchbox', { name: 'Search transactions' }),
+      within(document.body).getByRole('searchbox', { name: 'Search transactions' }),
       'super'
     );
-    await userEvent.click(canvas.getByRole('button', { name: /^Filters/ }));
-    await userEvent.click(canvas.getByRole('button', { name: 'Money out' }));
-    await userEvent.type(canvas.getByRole('textbox', { name: 'Smallest amount' }), '70');
+    await userEvent.click(canvas.getByRole('button', { name: 'Filter by amount' }));
+    const body = within(document.body);
+    await userEvent.click(body.getByRole('button', { name: 'Money out' }));
+    await userEvent.type(body.getByRole('textbox', { name: 'Smallest amount' }), '70');
   },
 };
 
@@ -201,6 +203,7 @@ export const LargeAccount: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await canvas.findByText('Big account');
+    await userEvent.click((await rowsOf(canvasElement))[0]!);
     await userEvent.click(await canvas.findByRole('button', { name: /^Select all/ }));
     await expect(await canvas.findByText('20,000 selected')).toBeTruthy();
     // Selecting everything leaves the page where it was.

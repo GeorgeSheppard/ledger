@@ -50,10 +50,16 @@ import { ActionButton } from '../../ui/ActionButton';
 import { cn } from '../../ui/cn';
 import { Kbd } from '../../ui/Kbd';
 import type { MenuItem } from '../../ui/Menu';
-import { TextInput } from '../../ui/TextInput';
+import { FunnelIcon, Popover } from '../../ui/Popover';
 import { DeleteConfirm } from './DeleteConfirm';
 import { TransactionEditor } from './TransactionEditor';
-import { TransactionFilterPanel } from './TransactionFilterPanel';
+import {
+  AmountFilter,
+  CategoryFilter,
+  DateFilter,
+  NoteFilter,
+  TransactionFilterPanel,
+} from './TransactionFilterPanel';
 import { TransactionRow } from './TransactionRow';
 import { MONTH_HEIGHT, ROW_HEIGHT, TRANSACTION_GRID } from './rowStyles';
 import { useAccountActions } from './useAccountsData';
@@ -109,6 +115,8 @@ export function TransactionTable({
   const [editing, setEditing] = useState<Editing | null>(null);
   const [chosen, setSelection] = useState<Selection>(noSelection);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [openFilter, setOpenFilter] = useState<SortKey | null>(null);
+  const [focusSearch, setFocusSearch] = useState(false);
   const [saving, setSaving] = useState(false);
   const [writeError, setWriteError] = useState<string | null>(null);
   const [filters, setFilters] = useState<TransactionFilters>(initialFilters ?? noFilters);
@@ -116,7 +124,7 @@ export function TransactionTable({
   const [panelOpen, setPanelOpen] = useState(
     () => initialFilters !== undefined && hasFilters(initialFilters)
   );
-  const searchRef = useRef<HTMLInputElement>(null);
+  const wide = useMediaQuery('(min-width: 768px)');
 
   const shown = useMemo(
     () => sortTransactions(filterTransactions(transactions, filters), sort),
@@ -431,7 +439,18 @@ export function TransactionTable({
   );
   useShortcut('transactions.deleteKey', askToDelete, browsing && selectedRows.length > 0);
   useShortcut('transactions.deleteBackspace', askToDelete, browsing && selectedRows.length > 0);
-  useShortcut('transactions.search', () => searchRef.current?.focus(), !paused);
+  useShortcut(
+    'transactions.search',
+    () => {
+      // Wide screens search from the Note column's popover, small ones from the filter panel.
+      if (wide) setOpenFilter('note');
+      else {
+        setPanelOpen(true);
+        setFocusSearch(true);
+      }
+    },
+    !paused
+  );
 
   const editor = editing && (
     <TransactionEditor
@@ -503,6 +522,48 @@ export function TransactionTable({
     );
   };
 
+  const setFilter = (patch: Partial<TransactionFilters>) => setFilters({ ...filters, ...patch });
+  const filterFor = (key: SortKey) => {
+    const panel = {
+      date: <DateFilter filters={filters} set={setFilter} />,
+      category: (
+        <CategoryFilter
+          filters={filters}
+          set={setFilter}
+          categoryNames={categoryNames}
+          categories={categories}
+        />
+      ),
+      note: <NoteFilter filters={filters} set={setFilter} />,
+      amount: <AmountFilter filters={filters} set={setFilter} />,
+      total: null,
+    }[key];
+    if (!panel) return null;
+    const active = {
+      date: filters.from !== null || filters.to !== null,
+      category: filters.categories.length > 0,
+      note: filters.search.trim() !== '' || filters.duplicatesOnly || filters.twinsOf !== null,
+      amount:
+        filters.sign !== 'any' ||
+        filters.min !== null ||
+        filters.max !== null ||
+        filters.exact !== null,
+      total: false,
+    }[key];
+    return (
+      <Popover
+        label={`Filter by ${key}`}
+        open={openFilter === key}
+        onOpenChange={(open) => setOpenFilter(open ? key : null)}
+        active={active}
+        alignRight={key === 'amount'}
+        panel={panel}
+      >
+        <FunnelIcon />
+      </Popover>
+    );
+  };
+
   const filterCount = countFilters(filters);
 
   return (
@@ -510,6 +571,7 @@ export function TransactionTable({
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <ActionButton
           shortcut="transactions.new"
+          hideHint
           variant="primary"
           disabled={busy}
           onAction={startNew}
@@ -517,27 +579,29 @@ export function TransactionTable({
           New transaction
         </ActionButton>
         <ActionButton
-          shortcut="transactions.delete"
-          variant="danger"
-          className={cn(selectedRows.length === 0 && 'max-md:hidden')}
-          disabled={selectedRows.length === 0 || !browsing || saving}
-          onAction={askToDelete}
+          className="md:hidden"
+          variant={panelOpen ? 'primary' : 'secondary'}
+          aria-expanded={panelOpen}
+          onAction={() => {
+            setFocusSearch(false);
+            setPanelOpen((o) => !o);
+          }}
         >
-          {selectedRows.length > 1 ? `Delete ${selectedRows.length}` : 'Delete'}
+          Filters{filterCount > 0 ? ` (${filterCount})` : ''}
         </ActionButton>
-        <span className="inline-flex items-center gap-2 text-sm text-muted">
-          {selection.ids.length > 0 && <>{selection.ids.length.toLocaleString()} selected</>}
-          {selection.ids.length < shown.length && (
-            <button
-              type="button"
-              className="inline-flex cursor-pointer items-center gap-1.5 underline hover:text-fg disabled:cursor-default disabled:no-underline disabled:opacity-50 max-md:hidden"
-              disabled={!browsing}
-              onClick={() => setSelection(selectAll(shownIds))}
-            >
-              Select all <Kbd shortcut="transactions.selectAll" className="max-md:hidden" />
-            </button>
-          )}
-          {selection.ids.length > 0 && (
+        {selectedRows.length > 0 && (
+          <span className="ml-auto inline-flex items-center gap-3 text-sm text-muted">
+            {selection.ids.length.toLocaleString()} selected
+            {selection.ids.length < shown.length && (
+              <button
+                type="button"
+                className="cursor-pointer underline hover:text-fg disabled:cursor-default disabled:no-underline disabled:opacity-50"
+                disabled={!browsing}
+                onClick={() => setSelection(selectAll(shownIds))}
+              >
+                Select all
+              </button>
+            )}
             <button
               type="button"
               className="cursor-pointer underline hover:text-fg"
@@ -545,40 +609,20 @@ export function TransactionTable({
             >
               Clear
             </button>
-          )}
-        </span>
-        <div className="ml-auto flex items-center gap-2 max-md:order-first max-md:w-full">
-          <div className="relative flex items-center max-md:min-w-0 max-md:flex-1">
-            <TextInput
-              ref={searchRef}
-              type="search"
-              className="w-48 pr-9 max-md:w-full"
-              aria-label="Search transactions"
-              placeholder="Search notes…"
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              onKeyDown={(e) => {
-                if (e.key !== 'Escape') return;
-                e.nativeEvent.stopPropagation();
-                if (filters.search) setFilters({ ...filters, search: '' });
-                else e.currentTarget.blur();
-              }}
-            />
-            <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center max-md:hidden">
-              <Kbd shortcut="transactions.search" />
-            </span>
-          </div>
-          <ActionButton
-            variant={panelOpen ? 'primary' : 'secondary'}
-            aria-expanded={panelOpen}
-            onAction={() => setPanelOpen((o) => !o)}
-          >
-            Filters{filterCount > 0 ? ` (${filterCount})` : ''}
-          </ActionButton>
-        </div>
+            <ActionButton
+              shortcut="transactions.delete"
+              hideHint
+              variant="danger"
+              disabled={!browsing || saving}
+              onAction={askToDelete}
+            >
+              {selectedRows.length > 1 ? `Delete ${selectedRows.length}` : 'Delete'}
+            </ActionButton>
+          </span>
+        )}
       </div>
 
-      {panelOpen && (
+      {panelOpen && !wide && (
         <TransactionFilterPanel
           filters={filters}
           onChange={setFilters}
@@ -586,6 +630,7 @@ export function TransactionTable({
           categories={categories}
           sort={sort}
           onSortChange={setSort}
+          autoFocusSearch={focusSearch}
         />
       )}
 
@@ -607,7 +652,7 @@ export function TransactionTable({
             className="cursor-pointer underline hover:text-fg"
             onClick={() => setFilters(noFilters)}
           >
-            Clear filters
+            Reset filters
           </button>
         </p>
       )}
@@ -647,7 +692,10 @@ export function TransactionTable({
               key={column.key}
               role="columnheader"
               aria-sort={active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
-              className={cn(column.align === 'right' && 'text-right')}
+              className={cn(
+                'inline-flex items-center gap-1',
+                column.align === 'right' && 'justify-end'
+              )}
             >
               <button
                 type="button"
@@ -662,6 +710,7 @@ export function TransactionTable({
                   {sort.direction === 'asc' && active ? '▲' : '▼'}
                 </span>
               </button>
+              {filterFor(column.key)}
             </span>
           );
         })}
@@ -682,7 +731,7 @@ export function TransactionTable({
           <div className="flex flex-col items-center gap-2 px-4 py-8 text-center text-muted">
             <p>No transactions match these filters.</p>
             <ActionButton variant="secondary" onAction={() => setFilters(noFilters)}>
-              Clear filters
+              Reset filters
             </ActionButton>
           </div>
         )}
