@@ -31,6 +31,31 @@ describe('LedgerStore', () => {
     expect(remote.data.categories.map((c) => c.name)).toContain('Travel');
   });
 
+  it('marks an account as a credit card, keeps it across a reload, and clears it again', async () => {
+    const cache = new MemoryCache();
+    const { store, remote } = await open(fixtureData(), cache);
+    await store.setAccountInverted(2, true);
+    expect(store.getSnapshot().accounts[1]).toMatchObject({ id: 2, inverted: true });
+    expect(store.hasUnsavedChanges).toBe(true);
+    await store.flushCache();
+
+    // Closed before saving: the unsaved flag is replayed on the fresh copy.
+    const reopened = await open(remote.data, cache);
+    expect(reopened.store.getSnapshot().accounts[1]?.inverted).toBe(true);
+
+    await store.save();
+    expect(remote.data.accounts[1]?.inverted).toBe(true);
+    await store.setAccountInverted(2, false);
+    expect('inverted' in store.getSnapshot().accounts[1]!).toBe(false);
+    await store.save();
+    expect(remote.saves).toBe(2);
+  });
+
+  it('rejects an unknown account', async () => {
+    const { store } = await open();
+    await expect(store.setAccountInverted(99, true)).rejects.toThrow('Unknown account 99');
+  });
+
   it('loads once and serves every read from memory', async () => {
     const { store, remote } = await open();
     await store.listAccounts();

@@ -167,7 +167,25 @@ focus-visible:outline-offset-2 focus-visible:outline-accent`, `disabled:opacity-
   - Rows are kept in date order (oldest first). Total is a running-balance formula written by the
     app (e.g. `=SUM($C$2:C2)`), so it stays correct when the user edits the sheet directly. The app
     computes totals itself and never reads the Total column.
-- `_Categories` tab: header `Name | Color`, one category per row.
+- `_Metadata` tab: header `Type | Name | Setting | Value`, one setting per row. It holds everything
+  the app remembers about the spreadsheet that is not a transaction:
+  - `category | Food | color | #4f7cff`: one row per category, in list order.
+  - `account | Visa | inverted | TRUE`: the account (tab name) is a credit card or loan. Written only
+    for inverted accounts; a missing row means off.
+  - Rows of an unknown type or setting are ignored, and the app rewrites the tab whole when
+    categories or account settings change, so put hand notes elsewhere.
+  - Old sheets have `_Categories` (`Name | Color`) instead. It is still read when there is no
+    `_Metadata`; the next save of any change writes `_Metadata` and deletes `_Categories` in the same
+    batch (the `.xlsx` writer does the same).
+- **Inverted accounts.** A credit card or loan is recorded the way its statement reads: purchases and
+  interest are positive, payments negative, so a card's CSV imports unchanged. Marking the account
+  inverted (the checkbox in its page header, `LedgerRepository.setAccountInverted`) makes Ledger flip
+  the sign of its amounts and running totals wherever it counts money (`src/lib/accounts/inverted.ts`):
+  the accounts list and its total, the account page's balance and in/out summary, net worth, the
+  balances graph, income and spending, and the Sankey. A purchase is money out and the balance owed
+  is a negative contribution to net worth; paying the card from a bank account pairs up with the
+  card's payment row as a transfer. The tab, its Total column and the transaction table stay as the
+  sheet has them.
 - `_Dashboard` tab: header `Config`, the dashboard layout as JSON in cell A2.
 - `_Paychecks` tab: header `Paychecks`, the paychecks as JSON in cell A2 (`src/lib/paychecks`). A
   paycheck is a name, first payment date, gross pay, free-form named deductions, the account its

@@ -62,6 +62,7 @@ export type SpreadsheetMetadata = z.infer<typeof spreadsheetMetadataSchema>;
  */
 export type SheetsRequest =
   | { addSheet: { properties: Partial<SheetProperties> } }
+  | { deleteSheet: { sheetId: number } }
   | { updateSheetProperties: { properties: Partial<SheetProperties>; fields: string } }
   | { appendDimension: { sheetId: number; dimension: 'ROWS' | 'COLUMNS'; length: number } }
   | {

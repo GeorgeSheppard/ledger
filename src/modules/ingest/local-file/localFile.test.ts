@@ -98,6 +98,39 @@ describe('writing a workbook', () => {
     expect(state.data.paychecks).toEqual(data.paychecks);
   });
 
+  it('round-trips inverted accounts through _Metadata and drops an old _Categories tab', async () => {
+    const book = new ExcelJS.Workbook();
+    await book.xlsx.load(await userWorkbook());
+    book.addWorksheet('_Categories').addRows([
+      ['Name', 'Color'],
+      ['Rent', '#d9534f'],
+    ]);
+    const original = asBuffer(new Uint8Array(await book.xlsx.writeBuffer()));
+
+    const state = ledgerFromTabs(await readWorkbookTabs(original));
+    const remote = fileRemote('mine', state, original);
+    const store = await LedgerStore.open({ spreadsheetId: 'file', remote });
+    const [bank] = await store.listAccounts();
+    await store.setAccountInverted(bank!.id, true);
+    const file = await store.download();
+
+    const written = new ExcelJS.Workbook();
+    await written.xlsx.load(asBuffer(file.bytes));
+    expect(written.getWorksheet('_Categories')).toBeUndefined();
+    expect(written.getWorksheet('_Metadata')!.getRow(1).values).toEqual([
+      undefined,
+      'Type',
+      'Name',
+      'Setting',
+      'Value',
+    ]);
+
+    const reread = ledgerFromTabs(await readWorkbookTabs(file.bytes));
+    expect(reread.data.accounts.find((a) => a.name === bank!.name)?.inverted).toBe(true);
+    expect(reread.data.categories).toEqual(await store.listCategories());
+    expect(reread.data.categories[0]).toEqual({ name: 'Rent', color: '#d9534f' });
+  });
+
   it('writes dates as date cells and Total as a running SUM formula', async () => {
     const book = new ExcelJS.Workbook();
     await book.xlsx.load(asBuffer(await writeWorkbook(null, [], fixtureData())));
@@ -108,7 +141,7 @@ describe('writing a workbook', () => {
     expect(book.worksheets.map((w) => w.name)).toEqual([
       'Current account',
       'Savings',
-      '_Categories',
+      '_Metadata',
       '_Paychecks',
     ]);
   });
@@ -130,7 +163,7 @@ describe('writing a workbook', () => {
       'Current',
       'Budget 2026',
       '_Notes',
-      '_Categories',
+      '_Metadata',
     ]);
     expect(book.getWorksheet('_Notes')!.getCell('B2').value).toMatchObject({
       formula: 'A2*0.2',

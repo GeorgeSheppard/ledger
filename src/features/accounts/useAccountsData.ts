@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Account, Category, Transaction, TransactionInput } from '../../lib/domain/types';
+import { asMoney } from '../../lib/accounts/inverted';
 import { useLedger, useLedgerMutation, type QueryState } from '../../state/ledgerData';
 
 const NO_TRANSACTIONS: Transaction[] = [];
@@ -21,7 +22,10 @@ export interface AccountOverview {
   transactions: Transaction[];
 }
 
-/** Every account with its transactions, for the accounts summary page. Always ready. */
+/**
+ * Every account with its transactions in money terms (an inverted account's signs flipped, see
+ * `lib/accounts/inverted.ts`), for the accounts summary page. Always ready.
+ */
 export function useAccountOverview(): QueryState<AccountOverview[]> {
   const { accounts, transactionsByAccount } = useLedger();
   return useMemo(
@@ -29,7 +33,7 @@ export function useAccountOverview(): QueryState<AccountOverview[]> {
       status: 'ready',
       data: accounts.map((account) => ({
         account,
-        transactions: transactionsByAccount[account.id] ?? NO_TRANSACTIONS,
+        transactions: asMoney(account, transactionsByAccount[account.id] ?? NO_TRANSACTIONS),
       })),
     }),
     [accounts, transactionsByAccount]
@@ -53,6 +57,8 @@ export function useAccountActions() {
     createAccount: (name: string) => mutate((r) => r.createAccount(name.trim())),
     renameAccount: (accountId: number, name: string) =>
       mutate((r) => r.renameAccount(accountId, name.trim())),
+    setAccountInverted: (accountId: number, inverted: boolean) =>
+      mutate((r) => r.setAccountInverted(accountId, inverted)),
     addTransaction: async (accountId: number, input: TransactionInput) => {
       const [added] = await mutate((r) => r.addTransactions(accountId, [input]));
       return added;

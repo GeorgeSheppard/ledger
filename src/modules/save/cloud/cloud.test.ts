@@ -131,7 +131,79 @@ describe('saveRequests', () => {
     expect(layout.paychecksSheetId).toBeDefined();
   });
 
-  it('creates the categories tab when the sheet has none', async () => {
+  it('moves an old _Categories tab to _Metadata on the next save, in one batch', async () => {
+    const connection = googleConnection(fakeSheet({ legacy: true }), {
+      id: 'sheet',
+      title: 'Ledger',
+    });
+    const base = await connection.load();
+    expect(saveRequests(base, base.data).requests).toEqual([]);
+
+    const next: LedgerData = {
+      ...base.data,
+      accounts: base.data.accounts.map((a) => (a.id === 20 ? { ...a, inverted: true } : a)),
+    };
+    const { requests, layout } = saveRequests(base, next);
+    expect(requests.map((r) => Object.keys(r)[0])).toEqual([
+      'addSheet',
+      'updateCells',
+      'updateCells',
+      'deleteSheet',
+    ]);
+    expect(requests[0]).toMatchObject({ addSheet: { properties: { title: '_Metadata' } } });
+    const write = requests[2] as Extract<SheetsRequest, { updateCells: unknown }>;
+    expect(write.updateCells.rows.map((r) => r.values.map((c) => c.userEnteredValue))).toEqual([
+      [
+        { stringValue: 'category' },
+        { stringValue: 'Food' },
+        { stringValue: 'color' },
+        { stringValue: '#4f7cff' },
+      ],
+      [
+        { stringValue: 'account' },
+        { stringValue: 'Savings' },
+        { stringValue: 'inverted' },
+        { boolValue: true },
+      ],
+    ]);
+    expect(requests[3]).toEqual({ deleteSheet: { sheetId: 99 } });
+    expect(layout.categoriesSheetId).toBeUndefined();
+    expect(layout.metadataSheetId).toBeDefined();
+    expect(layout.sheetIds).not.toContain(99);
+  });
+
+  it('migrates on any save, even one that changes nothing in the categories', async () => {
+    const base = await googleConnection(fakeSheet({ legacy: true }), {
+      id: 'sheet',
+      title: 'Ledger',
+    }).load();
+    const next: LedgerData = {
+      ...base.data,
+      rows: { ...base.data.rows, 20: [] },
+    };
+    const kinds = saveRequests(base, next).requests.map((r) => Object.keys(r)[0]);
+    expect(kinds).toContain('deleteSheet');
+  });
+
+  it('rewrites _Metadata when an account is marked inverted or renamed', async () => {
+    const base = await loaded();
+    const toggled: LedgerData = {
+      ...base.data,
+      accounts: base.data.accounts.map((a) => (a.id === 10 ? { ...a, inverted: true } : a)),
+    };
+    const { requests } = saveRequests(base, toggled);
+    expect(requests).toHaveLength(1);
+    const write = requests[0] as Extract<SheetsRequest, { updateCells: unknown }>;
+    expect(write.updateCells.range?.sheetId).toBe(99);
+    // Savings was already inverted in the sheet, and Current now is too.
+    expect(write.updateCells.rows.map((r) => r.values[1]?.userEnteredValue)).toEqual([
+      { stringValue: 'Food' },
+      { stringValue: 'Current' },
+      { stringValue: 'Savings' },
+    ]);
+  });
+
+  it('creates the metadata tab when the sheet has none', async () => {
     const client = new FakeClient([tab(10, 'Current', 0)], { 10: [HEADER] });
     const connection = googleConnection(client, { id: 'sheet', title: 'Ledger' });
     const base = await connection.load();
@@ -141,9 +213,9 @@ describe('saveRequests', () => {
     });
     expect(client.updates).toHaveLength(1);
     expect(client.updates[0]![0]).toMatchObject({
-      addSheet: { properties: { title: '_Categories' } },
+      addSheet: { properties: { title: '_Metadata' } },
     });
-    expect(saved.layout.categoriesSheetId).toBeDefined();
+    expect(saved.layout.metadataSheetId).toBeDefined();
     expect(saved.data.categories).toHaveLength(1);
   });
 });

@@ -29,7 +29,9 @@ export const sheetLayoutSchema = z.object({
   rowCounts: z.record(z.coerce.number().int(), z.number()),
   /** Every sheet id in use, including skipped and reserved tabs, so new tabs get a fresh one. */
   sheetIds: z.array(z.number().int()),
+  /** The legacy `_Categories` tab, deleted when `_Metadata` takes over on the next save. */
   categoriesSheetId: z.number().int().optional(),
+  metadataSheetId: z.number().int().optional(),
   dashboardSheetId: z.number().int().optional(),
   paychecksSheetId: z.number().int().optional(),
 });

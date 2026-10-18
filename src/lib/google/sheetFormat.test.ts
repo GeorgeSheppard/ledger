@@ -3,6 +3,8 @@ import {
   isoDateToSerial,
   parseDateCell,
   parseNumberCell,
+  metadataEntries,
+  parseMetadata,
   rowsToCategories,
   parseAccountTab,
   parseDashboardCell,
@@ -114,6 +116,46 @@ describe('rowsToCategories', () => {
       { name: 'Rent', color: '#D9534F' },
       { name: 'Food', color: '' },
       { name: 'Fun', color: '' },
+    ]);
+  });
+});
+
+describe('_Metadata', () => {
+  it('reads categories and inverted accounts, skipping rows it does not know', () => {
+    expect(
+      parseMetadata([
+        ['category', 'Rent', 'color', '#D9534F'],
+        ['category', 'Food', 'color', 'red'],
+        ['category', '', 'color', '#000000'],
+        ['account', 'Visa', 'inverted', true],
+        ['account', 'Loan', 'inverted', 'yes'],
+        ['account', 'Current', 'inverted', 'FALSE'],
+        ['account', 'Savings', 'inverted'],
+        ['account', 'Visa', 'something', 'else'],
+        ['future', 'x', 'y', 'z'],
+        [],
+      ])
+    ).toEqual({
+      categories: [
+        { name: 'Rent', color: '#D9534F' },
+        { name: 'Food', color: '' },
+      ],
+      invertedAccounts: ['Visa', 'Loan'],
+    });
+  });
+
+  it('writes only the settings that differ from the default, categories first', () => {
+    expect(
+      metadataEntries(
+        [{ name: 'Food', color: '#4f7cff' }],
+        [
+          { id: 1, name: 'Current' },
+          { id: 2, name: 'Visa', inverted: true },
+        ]
+      )
+    ).toEqual([
+      { type: 'category', name: 'Food', setting: 'color', value: '#4f7cff' },
+      { type: 'account', name: 'Visa', setting: 'inverted', value: true },
     ]);
   });
 });

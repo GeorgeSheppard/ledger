@@ -18,6 +18,11 @@ export interface LedgerRepository {
   /** Adds a new account tab with the standard header row. Names must be unique. */
   createAccount(name: string): Promise<Account>;
   renameAccount(accountId: number, name: string): Promise<void>;
+  /**
+   * Marks an account as a credit card or loan. Its tab keeps the amounts as they are; Ledger flips
+   * their sign wherever it counts the money (see `lib/accounts/inverted.ts`). Saved in `_Metadata`.
+   */
+  setAccountInverted(accountId: number, inverted: boolean): Promise<void>;
 
   /** Transactions in date order (oldest first). */
   listTransactions(accountId: number): Promise<Transaction[]>;

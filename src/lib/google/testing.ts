@@ -50,14 +50,15 @@ export const tab = (
   gridProperties: { rowCount },
 });
 
-export function fakeSheet() {
+/** A spreadsheet with a `_Metadata` tab (id 99), or the old `_Categories` tab when `legacy`. */
+export function fakeSheet({ legacy = false } = {}) {
   return new FakeClient(
     [
       tab(20, 'Savings', 1, 3),
       tab(10, 'Current', 0),
       tab(30, 'Budget', 2),
       tab(40, 'Notes', 3),
-      tab(99, '_Categories', 4),
+      tab(99, legacy ? '_Categories' : '_Metadata', 4),
       tab(98, '_Other', 5),
     ],
     {
@@ -68,10 +69,19 @@ export function fakeSheet() {
         ['Jan', 'Food', 200],
       ],
       40: [HEADER, ['Opening balance', '', 100, '', 100]],
-      99: [
-        ['Name', 'Color'],
-        ['Food', '#4f7cff'],
-      ],
+      99: legacy
+        ? [
+            ['Name', 'Color'],
+            ['Food', '#4f7cff'],
+          ]
+        : [
+            ['Type', 'Name', 'Setting', 'Value'],
+            ['category', 'Food', 'color', '#4f7cff'],
+            ['account', 'Savings', 'inverted', true],
+            ['account', 'Current', 'inverted', 'FALSE'],
+            ['account', 'Gone', 'inverted', true],
+            ['theme', 'x', 'y', 'z'],
+          ],
     }
   );
 }
