@@ -40,7 +40,7 @@ export const SHORTCUTS = {
   'help.toggle': { keys: '?', description: 'Show keyboard shortcuts', scope: 'global' },
   'sync.save': {
     keys: 'mod+s',
-    description: 'Save changes to Google Sheets',
+    description: 'Save changes, or download the file',
     scope: 'global',
     allowInInputs: true,
   },
@@ -50,6 +50,10 @@ export const SHORTCUTS = {
   'connect.pick': { keys: 'o', description: 'Open an existing spreadsheet', scope: 'connect' },
   'connect.create': { keys: 'c', description: 'Create a new spreadsheet', scope: 'connect' },
   'connect.back': { keys: 'escape', description: 'Back to your dashboard', scope: 'connect' },
+  'landing.openFile': { keys: 'o', description: 'Choose a spreadsheet file', scope: 'landing' },
+  'landing.blank': { keys: 'b', description: 'Start a blank ledger', scope: 'landing' },
+  'connect.openFile': { keys: 'f', description: 'Choose a spreadsheet file', scope: 'connect' },
+  'connect.blank': { keys: 'b', description: 'Start a blank ledger', scope: 'connect' },
   'connect.signOut': { keys: 'shift+q', description: 'Sign out', scope: 'connect' },
 
   // Dashboard (step 3)

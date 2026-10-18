@@ -11,7 +11,7 @@ import type { LedgerRepository } from '../lib/data/repository';
 import { indexedDbCache, noCache, type LedgerCache } from '../lib/store/cache';
 import type { LedgerSnapshot } from '../lib/store/ledgerData';
 import { LedgerStore, type SyncStatus } from '../lib/store/ledgerStore';
-import { MemoryRemote, type LedgerRemote } from '../lib/store/remote';
+import { MemoryRemote, type DownloadedFile, type LedgerRemote } from '../lib/store/remote';
 import { useSession } from './session';
 
 /**
@@ -50,8 +50,8 @@ let active: OpenedStore | null = null;
 
 let browserCache: LedgerCache | null = null;
 function cacheFor(remote: LedgerRemote): LedgerCache {
-  // The demo data starts fresh on every visit.
-  if (remote instanceof MemoryRemote) return noCache;
+  // The demo data starts fresh on every visit, and a file's contents never go into browser storage.
+  if (remote instanceof MemoryRemote || remote.download) return noCache;
   return (browserCache ??= indexedDbCache());
 }
 
@@ -86,8 +86,19 @@ function activate(entry: OpenedStore) {
   if (entry.state.status === 'ready') entry.close = keepSaving(entry.state.store);
 }
 
-/** Autosaves every minute and when the page is hidden. Returns a function that stops it. */
+/**
+ * Autosaves every minute and when the page is hidden. Returns a function that stops it.
+ * A ledger kept in a file never saves itself; the browser warns before the tab closes instead,
+ * because the changes exist nowhere else until they are downloaded.
+ */
 function keepSaving(store: LedgerStore): (save: boolean) => void {
+  if (store.isFile) {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (store.hasUnsavedChanges) event.preventDefault();
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }
   const stopAutosave = store.startAutosave();
   const onHide = () => {
     if (document.visibilityState === 'hidden' && store.hasUnsavedChanges)
@@ -174,12 +185,21 @@ export function useLedger(): LedgerSnapshot {
   return useSyncExternalStore(store.subscribe, store.getSnapshot);
 }
 
-/** Whether edits have reached the sheet, and `save()` to send them now. */
-export function useSyncStatus(): { status: SyncStatus; save(): Promise<void> } {
+/**
+ * Whether edits have reached the sheet, and `save()` to send them now. For a ledger kept in a file
+ * (`isFile`) there is no sheet: `download()` builds the updated file instead.
+ */
+export function useSyncStatus(): {
+  status: SyncStatus;
+  isFile: boolean;
+  save(): Promise<void>;
+  download(): Promise<DownloadedFile>;
+} {
   const store = useLedgerStore();
   const status = useSyncExternalStore(store.subscribe, store.getStatus);
   const save = useCallback(() => store.save(), [store]);
-  return { status, save };
+  const download = useCallback(() => store.download(), [store]);
+  return { status, isFile: store.isFile, save, download };
 }
 
 export function useRepository(): LedgerStore {

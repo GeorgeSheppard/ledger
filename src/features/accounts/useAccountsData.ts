@@ -21,19 +21,19 @@ export interface AccountOverview {
   transactions: Transaction[];
 }
 
-const loadOverview = async (repository: LedgerRepository): Promise<AccountOverview[]> => {
-  const accounts = await repository.listAccounts();
-  return Promise.all(
-    accounts.map(async (account) => ({
-      account,
-      transactions: await repository.listTransactions(account.id),
-    }))
-  );
-};
-
 /** Every account with its transactions, for the accounts summary page. */
 export function useAccountOverview(): QueryState<AccountOverview[]> {
-  return useLedgerQuery(loadOverview);
+  const { accounts, transactionsByAccount } = useLedger();
+  return useMemo(
+    () => ({
+      status: 'ready',
+      data: accounts.map((account) => ({
+        account,
+        transactions: transactionsByAccount[account.id] ?? NO_TRANSACTIONS,
+      })),
+    }),
+    [accounts, transactionsByAccount]
+  );
 }
 
 /**
