@@ -39,7 +39,7 @@ function NavItem({ to, label, shortcut }: (typeof NAV)[number]) {
   );
 }
 
-/** Names the connected spreadsheet and offers switching to another one. */
+/** The connected spreadsheet: its name, whether it is saved (with Save), and switching away. */
 function SpreadsheetPanel({ title, isFile }: { title: string; isFile: boolean }) {
   const navigate = useNavigate();
   const { closeFile } = useSession();
@@ -72,12 +72,9 @@ function SpreadsheetPanel({ title, isFile }: { title: string; isFile: boolean })
           {title}
         </div>
       </div>
-      <ActionButton
-        shortcut="nav.switchSpreadsheet"
-        className="w-full justify-between whitespace-nowrap"
-        onAction={leave}
-      >
-        {isFile ? 'Close' : 'Switch'}
+      <SaveStatus />
+      <ActionButton variant="ghost" className="w-full whitespace-nowrap" onAction={leave}>
+        {isFile ? 'Close file' : 'Switch spreadsheet'}
       </ActionButton>
     </section>
   );
@@ -102,7 +99,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="mt-auto flex flex-col gap-2">
-          <SaveStatus />
           <DonateLink className="text-xs" />
           <button
             type="button"

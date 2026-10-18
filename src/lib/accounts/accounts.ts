@@ -34,19 +34,6 @@ export function findAccountByParam(
   return accounts.find((a) => a.id === id);
 }
 
-/** The account `delta` steps from `currentId`, wrapping around at either end. */
-export function adjacentAccount(
-  accounts: readonly Account[],
-  currentId: number,
-  delta: number
-): Account | undefined {
-  if (accounts.length === 0) return undefined;
-  const index = accounts.findIndex((a) => a.id === currentId);
-  if (index === -1) return accounts[0];
-  const n = accounts.length;
-  return accounts[(((index + delta) % n) + n) % n];
-}
-
 /** Accounts whose name contains the query, best matches (prefix) first. */
 export function filterAccounts(accounts: readonly Account[], query: string): Account[] {
   const q = query.trim().toLowerCase();

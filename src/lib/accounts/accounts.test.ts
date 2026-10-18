@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Account } from '../domain/types';
-import {
-  adjacentAccount,
-  filterAccounts,
-  findAccountByParam,
-  validateAccountName,
-} from './accounts';
+import { filterAccounts, findAccountByParam, validateAccountName } from './accounts';
 
 const accounts: Account[] = [
   { id: 1, name: 'Current account' },
@@ -28,14 +23,6 @@ describe('accounts', () => {
     expect(findAccountByParam(accounts, '3')).toBeUndefined();
     expect(findAccountByParam(accounts, 'x1')).toBeUndefined();
     expect(findAccountByParam(accounts, undefined)).toBeUndefined();
-  });
-
-  it('cycles with wrap-around', () => {
-    expect(adjacentAccount(accounts, 1, -1)?.id).toBe(7);
-    expect(adjacentAccount(accounts, 7, 1)?.id).toBe(1);
-    expect(adjacentAccount(accounts, 2, 1)?.id).toBe(7);
-    expect(adjacentAccount(accounts, 99, 1)?.id).toBe(1);
-    expect(adjacentAccount([], 1, 1)).toBeUndefined();
   });
 
   it('filters by name', () => {
