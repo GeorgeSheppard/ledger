@@ -11,7 +11,13 @@ import type { LedgerRepository } from '../lib/data/repository';
 import { indexedDbCache, noCache, type LedgerCache } from '../lib/store/cache';
 import type { LedgerSnapshot } from '../lib/store/ledgerData';
 import { LedgerStore, type SyncStatus } from '../lib/store/ledgerStore';
-import { MemoryRemote, type DownloadedFile, type LedgerRemote } from '../lib/store/remote';
+import {
+  MemoryRemote,
+  type DownloadedFile,
+  type LedgerRemote,
+  type LoadProgress,
+} from '../lib/store/remote';
+import { LoadingLedger } from '../ui/LoadingLedger';
 import { useSession } from './session';
 
 /**
@@ -28,7 +34,7 @@ import { useSession } from './session';
 const LedgerStoreContext = createContext<LedgerStore | null>(null);
 
 type LoadState =
-  | { status: 'loading' }
+  | { status: 'loading'; progress?: LoadProgress }
   | { status: 'ready'; store: LedgerStore }
   | { status: 'error'; error: Error };
 
@@ -85,7 +91,12 @@ function entryFor(remote: LedgerRemote, spreadsheetId: string): OpenedStore {
     if (state.status === 'ready' && active === entry) entry.close = keepSaving(state.store);
     for (const listener of entry.listeners) listener();
   };
-  LedgerStore.open({ spreadsheetId, remote, cache: cacheFor(remote) }).then(
+  const onProgress = (progress: LoadProgress) => {
+    if (entry.state.status !== 'loading') return;
+    entry.state = { status: 'loading', progress };
+    for (const listener of entry.listeners) listener();
+  };
+  LedgerStore.open({ spreadsheetId, remote, cache: cacheFor(remote), onProgress }).then(
     (store) => settle({ status: 'ready', store }),
     (error: unknown) =>
       settle({ status: 'error', error: error instanceof Error ? error : new Error(String(error)) })
@@ -150,7 +161,8 @@ export function LedgerDataProvider({ children }: { children: ReactNode }) {
   const state = useSyncExternalStore(subscribe, () => entry.state);
   useEffect(() => activate(entry), [entry]);
 
-  if (state.status === 'loading') return <LoadingScreen title={spreadsheet.title} />;
+  if (state.status === 'loading')
+    return <LoadingScreen title={spreadsheet.title} progress={state.progress} />;
   if (state.status === 'error')
     return (
       <LoadingScreen
@@ -164,10 +176,12 @@ export function LedgerDataProvider({ children }: { children: ReactNode }) {
 
 function LoadingScreen({
   title,
+  progress,
   error,
   retry,
 }: {
   title: string;
+  progress?: LoadProgress;
   error?: Error;
   retry?: () => void;
 }) {
@@ -186,7 +200,7 @@ function LoadingScreen({
           </button>
         </>
       ) : (
-        <p className="text-muted">Opening {title}…</p>
+        <LoadingLedger title={title} progress={progress} />
       )}
     </div>
   );

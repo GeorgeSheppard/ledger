@@ -8,8 +8,8 @@ import type { remoteStateSchema, sheetLayoutSchema } from './schemas';
  * what changed.
  */
 export interface LedgerRemote {
-  /** Reads the whole spreadsheet. */
-  load(): Promise<RemoteState>;
+  /** Reads the whole spreadsheet. `onProgress` is told how far along it is, for the loading screen. */
+  load(onProgress?: (progress: LoadProgress) => void): Promise<RemoteState>;
   /** Writes the difference between `base.data` and `next`. Returns the new saved state. */
   save(base: RemoteState, next: LedgerData): Promise<RemoteState>;
   /**
@@ -18,6 +18,9 @@ export interface LedgerRemote {
    */
   download?(data: LedgerData): Promise<DownloadedFile>;
 }
+
+/** Where a load has got to: finding the tabs, then reading the ones named here. */
+export type LoadProgress = { step: 'tabs' } | { step: 'values'; tabs: string[] };
 
 export interface DownloadedFile {
   name: string;

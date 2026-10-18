@@ -61,3 +61,53 @@
     @apply text-accent;
   }
 }
+
+/*
+  Loading animation (src/ui/LoadingLedger.tsx): ledger rows are written in one after another, and
+  the sheet chips pulse in turn. With reduced motion everything is simply drawn, nothing moves.
+*/
+@keyframes ledger-write {
+  0%,
+  8% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  30%,
+  82% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+@keyframes ledger-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.ledger-write {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: ledger-write 2.4s ease-in-out infinite;
+  animation-delay: calc(var(--row) * 0.22s);
+}
+
+.ledger-pulse {
+  animation: ledger-pulse 1.4s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.15s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ledger-write,
+  .ledger-pulse {
+    animation: none;
+  }
+}

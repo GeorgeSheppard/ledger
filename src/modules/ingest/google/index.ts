@@ -12,13 +12,15 @@ export function googleConnection(client: SheetsClient, spreadsheet: SpreadsheetR
   return {
     title: spreadsheet.title,
     saver: cloudSaver(client, spreadsheet.id),
-    async load() {
+    async load(onProgress) {
+      onProgress?.({ step: 'tabs' });
       const metadata = await client.getMetadata(spreadsheet.id);
       const tabs = metadata.sheets.map((s) => s.properties).sort((a, b) => a.index - b.index);
       const reads = tabs.flatMap((tab) => {
         const range = readRange(tab);
         return range ? [{ tab, range }] : [];
       });
+      onProgress?.({ step: 'values', tabs: reads.map((r) => r.tab.title) });
       const values = await client.readRanges(
         spreadsheet.id,
         reads.map((r) => r.range)

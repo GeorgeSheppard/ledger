@@ -12,7 +12,13 @@ import {
   type LedgerData,
   type LedgerSnapshot,
 } from './ledgerData';
-import { newSheetId, type DownloadedFile, type LedgerRemote, type RemoteState } from './remote';
+import {
+  newSheetId,
+  type DownloadedFile,
+  type LedgerRemote,
+  type LoadProgress,
+  type RemoteState,
+} from './remote';
 
 export type SyncStatus =
   /** Everything is in the sheet. `savedAt` is `null` when nothing was saved this session. */
@@ -31,6 +37,8 @@ export interface OpenOptions {
   remote: LedgerRemote;
   cache?: LedgerCache;
   now?: () => number;
+  /** Told how far the read of the remote has got. */
+  onProgress?: (progress: LoadProgress) => void;
 }
 
 /**
@@ -57,8 +65,14 @@ export class LedgerStore implements LedgerRepository {
   private readonly listeners = new Set<() => void>();
 
   /** Loads the spreadsheet (one read) and replays any unsaved edits left in the cache. */
-  static async open({ spreadsheetId, remote, cache = noCache, now = Date.now }: OpenOptions) {
-    const fresh = await remote.load();
+  static async open({
+    spreadsheetId,
+    remote,
+    cache = noCache,
+    now = Date.now,
+    onProgress,
+  }: OpenOptions) {
+    const fresh = await remote.load(onProgress);
     const cached = await cache.get(spreadsheetId).catch(() => null);
     let current = fresh.data;
     if (cached && !sameData(cached.current, cached.saved.data))
