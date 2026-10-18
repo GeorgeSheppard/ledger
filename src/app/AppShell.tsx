@@ -5,6 +5,7 @@ import { useSyncStatus } from '../state/ledgerData';
 import { useSession } from '../state/session';
 import { useShortcut } from '../state/shortcuts';
 import { ActionButton } from '../ui/ActionButton';
+import { DonateLink } from '../ui/DonateLink';
 import { Kbd } from '../ui/Kbd';
 import { cn } from '../ui/cn';
 import { SaveStatus } from '../features/sync/SaveStatus';
@@ -102,6 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="mt-auto flex flex-col gap-2">
           <SaveStatus />
+          <DonateLink className="text-xs" />
           <button
             type="button"
             className="flex cursor-pointer items-center gap-2 text-sm text-muted hover:text-fg"
