@@ -2,7 +2,7 @@ import type { GridRange, NewSpreadsheet, SheetsRequest, SpreadsheetMetadata } fr
 
 /**
  * A thin, typed wrapper around the Sheets REST API. It knows URLs and auth headers, nothing about
- * Ledger's sheet format. `sheetsRemote` builds on it.
+ * Ledger's sheet format. the Google ingest and the cloud saver build on it.
  */
 export interface SheetsClient {
   getMetadata(spreadsheetId: string): Promise<SpreadsheetMetadata>;

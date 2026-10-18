@@ -14,7 +14,7 @@ import { useShortcut } from '../../state/shortcuts';
 import { ActionButton } from '../../ui/ActionButton';
 import { Select } from '../../ui/Select';
 import { TextInput } from '../../ui/TextInput';
-import { formatMoney } from '../dashboard/format';
+import { formatMoney } from '../../modules/graphs/shared/format';
 
 /** Amounts are typed as text, so half-typed numbers are not rewritten under the cursor. */
 interface Draft extends Omit<Paycheck, 'gross' | 'deductions'> {

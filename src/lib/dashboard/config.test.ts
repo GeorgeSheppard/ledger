@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   addWidget,
-  defaultDashboard,
   moveWidget,
   newWidget,
   newWidgetId,
@@ -9,8 +8,8 @@ import {
   replaceWidget,
   resizeWidget,
   widgetAccountIds,
-  widgetTitle,
 } from './config';
+import { defaultDashboard } from '../../modules/graphs';
 import { parseDashboard, serializeDashboard } from './serialize';
 
 const ids = (config: { widgets: { id: string }[] }) => config.widgets.map((w) => w.id);
@@ -53,22 +52,9 @@ describe('dashboard config', () => {
     expect(widgetAccountIds({ ...widget, accounts: [9] }, [1, 2])).toEqual([1, 2]);
     expect(widgetAccountIds({ ...widget, accounts: [] }, [1, 2])).toEqual([1, 2]);
   });
-
-  it('titles widgets from their kind unless given one', () => {
-    expect(widgetTitle(newWidget('stat', 'a', { metric: 'income' }))).toBe(
-      'Income in the latest month'
-    );
-    expect(widgetTitle(newWidget('balances', 'a', { title: ' Banks ' }))).toBe('Banks');
-  });
 });
 
 describe('sankey widget', () => {
-  it('is a full-width graph with a default title', () => {
-    const widget = newWidget('sankey', 'a');
-    expect(widget.width).toBe(4);
-    expect(widgetTitle(widget)).toBe('Where your money goes');
-  });
-
   it('round-trips through the stored layout', () => {
     const config = { widgets: [newWidget('sankey', 'a', { accounts: [2], range: 3 })] };
     const stored = JSON.parse(JSON.stringify(serializeDashboard(config)));
@@ -94,12 +80,17 @@ describe('stored dashboard', () => {
     expect(parseDashboard({ version: 1, widgets: [] })).toEqual({ widgets: [] });
   });
 
+  it('keeps a graph kind it does not know, so removing a graph module loses nothing', () => {
+    const parsed = parseDashboard({ widgets: [{ id: 'a', kind: 'pie' }] })!;
+    expect(parsed.widgets.map((w) => w.kind)).toEqual(['pie']);
+  });
+
   it('drops bad widgets and repairs bad fields', () => {
     const parsed = parseDashboard({
       widgets: [
-        { id: 'a', kind: 'pie' },
+        { id: 'a', kind: '' },
         { kind: 'stat' },
-        { id: 'b', kind: 'stat', width: 9, range: 'soon', metric: 'luck', accounts: [1, 'x'] },
+        { id: 'b', kind: 'stat', width: 9, range: 'soon', metric: 3, accounts: [1, 'x'] },
         { id: 'b', kind: 'cashFlow' },
       ],
     })!;

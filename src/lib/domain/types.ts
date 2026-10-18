@@ -56,3 +56,5 @@ export const CATEGORIES_TAB = '_Categories';
 
 /** Tab that holds the paychecks, as JSON in cell A2. */
 export const PAYCHECKS_TAB = '_Paychecks';
+/** Tab holding the dashboard layout as JSON in cell A2. */
+export const DASHBOARD_TAB = '_Dashboard';

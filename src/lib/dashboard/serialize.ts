@@ -2,10 +2,7 @@ import type { DashboardRange } from '../metrics/dashboard';
 import {
   clampWidth,
   newWidget,
-  STAT_METRICS,
-  WIDGET_KINDS,
   type DashboardConfig,
-  type StatMetric,
   type Widget,
   type WidgetKind,
 } from './config';
@@ -29,7 +26,7 @@ export interface StoredDashboard {
     categories: string[];
     range: DashboardRange | null;
     width: number;
-    metric: StatMetric;
+    metric: string;
   }[];
 }
 
@@ -37,12 +34,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/** Any named kind is kept, so a layout survives a graph being removed and added back later. */
 function isKind(value: unknown): value is WidgetKind {
-  return (WIDGET_KINDS as readonly unknown[]).includes(value);
-}
-
-function isMetric(value: unknown): value is StatMetric {
-  return (STAT_METRICS as readonly unknown[]).includes(value);
+  return typeof value === 'string' && value.trim() !== '';
 }
 
 function parseRange(value: unknown): DashboardRange | null {
@@ -70,7 +64,7 @@ export function parseWidget(value: unknown): Widget | null {
     ...(typeof value.width === 'number' && Number.isFinite(value.width)
       ? { width: clampWidth(value.width) }
       : {}),
-    ...(isMetric(value.metric) ? { metric: value.metric } : {}),
+    ...(typeof value.metric === 'string' ? { metric: value.metric } : {}),
   });
 }
 

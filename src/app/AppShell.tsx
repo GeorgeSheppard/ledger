@@ -8,7 +8,7 @@ import { ActionButton } from '../ui/ActionButton';
 import { DonateLink } from '../ui/DonateLink';
 import { Kbd } from '../ui/Kbd';
 import { cn } from '../ui/cn';
-import { SaveStatus } from '../features/sync/SaveStatus';
+import { SaveStatus } from '../modules/save/ui/SaveStatus';
 import { ShortcutHelp } from '../ui/ShortcutHelp';
 import { paths } from './paths';
 

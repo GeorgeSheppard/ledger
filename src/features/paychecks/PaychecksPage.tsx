@@ -17,7 +17,7 @@ import { Card } from '../../ui/Card';
 import { Page } from '../../ui/Page';
 import { cn } from '../../ui/cn';
 import { DeleteConfirm } from '../accounts/DeleteConfirm';
-import { formatMoney } from '../dashboard/format';
+import { formatMoney } from '../../modules/graphs/shared/format';
 import { PaycheckEditor } from './PaycheckEditor';
 import { usePaychecks } from './usePaychecks';
 

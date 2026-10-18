@@ -4,7 +4,7 @@ import { paths } from '../../app/paths';
 import { adjacentAccount, findAccountByParam } from '../../lib/accounts/accounts';
 import type { Account } from '../../lib/domain/types';
 import { ActionButton } from '../../ui/ActionButton';
-import { ImportDialog } from '../import/ImportDialog';
+import { ImportDialog } from '../../modules/import/ui/ImportDialog';
 import { useShortcut } from '../../state/shortcuts';
 import { AccountNameForm } from './AccountNameForm';
 import { AccountSummary } from './AccountSummary';

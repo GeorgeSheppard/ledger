@@ -5,7 +5,7 @@ import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
 import { DonateLink } from '../../ui/DonateLink';
 import { useAsyncAction } from '../connect/useAsyncAction';
-import { LocalFileCard } from '../connect/LocalFileCard';
+import { LocalFileCard } from '../../modules/ingest/local-file/LocalFileCard';
 import { LegalLinks } from '../legal/LegalPage';
 import { SheetPreview } from './SheetPreview';
 
