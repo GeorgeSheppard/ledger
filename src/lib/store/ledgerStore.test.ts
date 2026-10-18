@@ -31,6 +31,18 @@ describe('LedgerStore', () => {
     expect(remote.data.categories.map((c) => c.name)).toContain('Travel');
   });
 
+  it('forgets every working copy when the cache is cleared', async () => {
+    const cache = new MemoryCache();
+    const { store, remote } = await open(fixtureData(), cache);
+    await store.setAccountInverted(2, true);
+    await store.flushCache();
+    expect(cache.entries.size).toBe(1);
+
+    await cache.clear();
+    const reopened = await open(remote.data, cache);
+    expect(reopened.store.hasUnsavedChanges).toBe(false);
+  });
+
   it('marks an account as a credit card, keeps it across a reload, and clears it again', async () => {
     const cache = new MemoryCache();
     const { store, remote } = await open(fixtureData(), cache);

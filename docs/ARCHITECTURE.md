@@ -206,7 +206,12 @@ it per page or per edit:
    (`mod+s`), the `cloud` saver sends everything that changed in one `batchUpdate`. Changed
    account tabs are rewritten whole, in date order, with fresh Total formulas. `useSyncStatus()`
    reports `saved`, `unsaved`, `saving` or `error`.
-4. **Unsaved edits survive.** On the next load, edits still in IndexedDB are replayed on top of the
+4. **Exit clears it all.** The sidebar's Exit button (`app/ExitButton.tsx`) calls `useSession().exit()`:
+   it stops autosave, empties the IndexedDB working copy, forgets the remembered spreadsheet,
+   signs out of Google and returns to the landing page, for a Google Sheet and a file alike. With
+   unsaved edits it first offers Save and exit (Download and exit for a file) / Exit without saving
+   / Cancel, and discarding asks "Are you sure?" once more.
+5. **Unsaved edits survive.** On the next load, edits still in IndexedDB are replayed on top of the
    fresh sheet, tab by tab: a tab changed locally keeps the local version, other tabs take the
    sheet's.
 

@@ -24,7 +24,13 @@ function describe(status: SyncStatus, isFile: boolean): string {
  * minute, so the button is for "save now". For a ledger kept in a file there is no autosave: the
  * button downloads the updated file, and the status says whether the latest changes are in it.
  */
-export function SaveStatus({ className }: { className?: string }) {
+export function SaveStatus({
+  className,
+  buttonClassName,
+}: {
+  className?: string;
+  buttonClassName?: string;
+}) {
   const { status, isFile, save, download } = useSyncStatus();
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const error = status.state === 'error' ? status.message : downloadError;
@@ -35,6 +41,7 @@ export function SaveStatus({ className }: { className?: string }) {
       </span>
       <ActionButton
         shortcut="sync.save"
+        className={buttonClassName}
         variant={status.state === 'unsaved' || error ? 'primary' : 'secondary'}
         onAction={() => {
           if (!isFile)

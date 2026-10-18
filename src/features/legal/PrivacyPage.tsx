@@ -67,7 +67,7 @@ export function PrivacyPage() {
             browser&rsquo;s local database (IndexedDB) on this device. Changes are saved back to
             your Google Sheet automatically about once a minute, or straight away when you press
             Save. This copy never leaves your device except to be saved to your own sheet, and it is
-            deleted when you sign out.
+            deleted when you exit.
           </li>
           <li>
             <strong>A spreadsheet file on your device.</strong> If you drop or choose an{' '}
@@ -78,8 +78,8 @@ export function PrivacyPage() {
           </li>
           <li>
             <strong>A few small settings.</strong> Ledger also keeps the Google access token for the
-            current tab, which is cleared when you close the tab or sign out, and the id and name of
-            the spreadsheet you connected, so it can offer to reopen it next time. You can remove
+            current tab, which is cleared when you close the tab or exit, and the id and name of the
+            spreadsheet you connected, so it can offer to reopen it next time. You can remove
             everything Ledger keeps in your browser at any time by clearing this site&rsquo;s data.
           </li>
           <li>
@@ -131,9 +131,9 @@ export function PrivacyPage() {
       <LegalSection title="Your choices">
         <Bullets>
           <li>
-            You can sign out of Ledger at any time. This deletes the working copy and the Google
-            access token from your browser and tells Google to cancel the token. Save first if you
-            have unsaved changes.
+            You can exit Ledger at any time (the Exit button in the sidebar). This deletes the
+            working copy and the Google access token from your browser and tells Google to cancel
+            the token. Save first if you have unsaved changes.
           </li>
           <li>
             You can remove Ledger&rsquo;s access to your Google account from the{' '}
