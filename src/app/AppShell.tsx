@@ -1,8 +1,9 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import type { ShortcutId } from '../lib/shortcuts/bindings';
 import { useSession } from '../state/session';
 import { useShortcut } from '../state/shortcuts';
+import { ActionButton } from '../ui/ActionButton';
 import { Kbd } from '../ui/Kbd';
 import { cn } from '../ui/cn';
 import { ShortcutHelp } from '../ui/ShortcutHelp';
@@ -34,6 +35,37 @@ function NavItem({ to, label, shortcut }: (typeof NAV)[number]) {
   );
 }
 
+/** Names the connected spreadsheet and offers switching to another one. */
+function SpreadsheetPanel({ title }: { title: string }) {
+  const navigate = useNavigate();
+  useEffect(() => {
+    document.title = `${title} · Ledger`;
+    return () => {
+      document.title = 'Ledger';
+    };
+  }, [title]);
+  return (
+    <section
+      aria-label="Spreadsheet"
+      className="flex flex-col gap-2 rounded-lg border border-line bg-canvas p-3"
+    >
+      <div>
+        <div className="text-xs font-medium tracking-wide text-muted uppercase">Spreadsheet</div>
+        <div className="truncate font-semibold" title={title}>
+          {title}
+        </div>
+      </div>
+      <ActionButton
+        shortcut="nav.switchSpreadsheet"
+        className="w-full justify-between whitespace-nowrap"
+        onAction={() => navigate(paths.connect)}
+      >
+        Switch
+      </ActionButton>
+    </section>
+  );
+}
+
 /** Frame around every signed-in page: sidebar navigation, sheet name, shortcut help. */
 export function AppShell({ children }: { children: ReactNode }) {
   const { session, signOut } = useSession();
@@ -44,15 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="grid min-h-dvh grid-cols-1 md:grid-cols-[220px_1fr]">
       <aside className="flex flex-col gap-4 border-b border-line bg-surface p-4 md:border-r md:border-b-0">
         <div className="text-lg font-bold">Ledger</div>
-        {session.status === 'connected' && (
-          <NavLink
-            to={paths.connect}
-            className="truncate text-sm text-muted no-underline hover:text-fg hover:underline"
-            title={`${session.spreadsheet.title} (switch spreadsheet)`}
-          >
-            {session.spreadsheet.title}
-          </NavLink>
-        )}
+        {session.status === 'connected' && <SpreadsheetPanel title={session.spreadsheet.title} />}
         <nav className="flex flex-col gap-0.5">
           {NAV.map((item) => (
             <NavItem key={item.to} {...item} />
