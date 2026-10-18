@@ -12,7 +12,7 @@ const VARIANTS = {
 } as const;
 
 interface ActionButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> {
-  /** The shortcut that triggers this button, with its keys shown on the button. Leave it out for actions that are rare. */
+  /** The shortcut that triggers this button, shown on it. Leave out for rare actions. */
   shortcut?: ShortcutId;
   onAction(): void;
   variant?: keyof typeof VARIANTS;
@@ -20,8 +20,8 @@ interface ActionButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>
 }
 
 /**
- * The standard button. Frequent actions have a shortcut, which is shown with the button; use this
- * rather than a bare `<button>` for anything a user can do.
+ * The standard button. Frequent actions (editing transactions, saving) have a shortcut that is
+ * always shown on the button; rare ones have none. Use this rather than a bare `<button>`.
  */
 export function ActionButton({
   shortcut,
