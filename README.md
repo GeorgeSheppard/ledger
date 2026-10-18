@@ -19,6 +19,9 @@ pnpm format       # prettier
 pnpm build
 ```
 
+`pnpm storybook` shows every page and dialog on demo data, and `pnpm screenshots` saves PNGs of them
+(see [docs/STORYBOOK.md](docs/STORYBOOK.md)).
+
 To use a real Google Sheet instead of demo data, follow [docs/GOOGLE_SETUP.md](docs/GOOGLE_SETUP.md)
 to create the Google credentials, and [docs/SECRETS.md](docs/SECRETS.md) to store them in
 Infisical. Then run `pnpm dev:google`.
