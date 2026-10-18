@@ -8,12 +8,14 @@ describe('filterParams', () => {
       from: '2026-04-01',
       to: '2026-04-30',
       categories: ['Eating out', ''],
+      accounts: [2, 5],
     });
     expect(filtersFromParams(new URLSearchParams(query))).toEqual({
       ...noFilters,
       from: '2026-04-01',
       to: '2026-04-30',
       categories: ['Eating out', ''],
+      accounts: [2, 5],
     });
   });
 

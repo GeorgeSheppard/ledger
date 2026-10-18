@@ -21,7 +21,7 @@ export interface WidgetViewProps {
   onSelectMonth(month: MonthKey): void;
   /** Month stepping shortcuts are off while the layout is being edited. */
   interactive: boolean;
-  openTransactions(accountId: number, filters: LinkedFilters): void;
+  openTransactions(filters: LinkedFilters): void;
 }
 
 /**
