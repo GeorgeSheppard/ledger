@@ -33,7 +33,11 @@ export function ConnectPage() {
     <Page
       className="max-w-3xl"
       title={current ? 'Switch spreadsheet' : 'Where should Ledger keep your finances?'}
-      description="Ledger reads and writes one Google Sheet in your Drive."
+      description={
+        current
+          ? 'Pick another Google Sheet from your Drive, or create a new one. Your current spreadsheet is left as it is.'
+          : 'Ledger reads and writes one Google Sheet in your Drive.'
+      }
       actions={
         <ActionButton shortcut="connect.signOut" variant="ghost" onAction={signOut}>
           Sign out
@@ -42,8 +46,11 @@ export function ConnectPage() {
     >
       {current && (
         <Card className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 text-sm">
-          <span>
-            Connected to <strong>{current.title}</strong>
+          <span className="min-w-0">
+            <span className="block text-xs font-medium tracking-wide text-muted uppercase">
+              Current spreadsheet
+            </span>
+            <strong className="block truncate">{current.title}</strong>
           </span>
           <ActionButton shortcut="connect.back" onAction={() => navigate(paths.home)}>
             Back to dashboard

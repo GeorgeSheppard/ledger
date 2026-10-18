@@ -33,6 +33,11 @@ export const SHORTCUTS = {
   'nav.accounts': { keys: 'mod+a', description: 'Go to accounts', scope: 'global' },
   'nav.categories': { keys: 'mod+k', description: 'Go to categories', scope: 'global' },
   'nav.import': { keys: 'mod+i', description: 'Go to CSV import', scope: 'global' },
+  'nav.switchSpreadsheet': {
+    keys: 'mod+o',
+    description: 'Switch spreadsheet',
+    scope: 'global',
+  },
   'help.toggle': { keys: '?', description: 'Show keyboard shortcuts', scope: 'global' },
 
   // Landing and connect (step 1)
