@@ -32,6 +32,17 @@ export const AccountPage: Story = {
   ),
 };
 
+/** Opened from "All transactions" in the navigation: every account, unfiltered. */
+export const AllTransactions: Story = {
+  render: () => (
+    <Connected shell route="/transactions">
+      <Routes>
+        <Route path="/transactions" element={<TransactionsPage />} />
+      </Routes>
+    </Connected>
+  ),
+};
+
 /** Opened from a graph's "View transactions": every account in one list, already narrowed to a date range. */
 export const AllTransactionsFromAGraph: Story = {
   render: () => (

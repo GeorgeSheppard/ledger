@@ -1,14 +1,13 @@
 import { useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router';
-import { paths } from '../../app/paths';
+import { useSearchParams } from 'react-router';
 import { filtersFromParams } from '../../lib/transactions/filterParams';
 import { useLedger } from '../../state/ledgerData';
 import { Page } from '../../ui/Page';
 import { TransactionTable } from './TransactionTable';
 
 /**
- * `/transactions`: the transactions of every account in one list, with an Account column. A graph's
- * "View transactions" opens it with that graph's dates, categories and accounts already filtered;
+ * `/transactions`: the transactions of every account in one list, with an Account column; reached
+ * from the navigation, and from a graph's "View transactions", which opens it with that graph's dates, categories and accounts already filtered;
  * from there it filters, edits and deletes like an account's own list.
  */
 export function TransactionsPage() {
@@ -20,7 +19,7 @@ export function TransactionsPage() {
   );
 
   return (
-    <Page title="Transactions" actions={<Link to={paths.home}>Back to dashboard</Link>}>
+    <Page title="All transactions">
       <TransactionTable
         key={params.toString()}
         account={null}
