@@ -68,3 +68,15 @@ export const CashFlow: Story = {
     </Connected>
   ),
 };
+
+/** A 3 month range only picks the window shown first; the chart can still be dragged back to April. */
+export const NetWorthThreeMonths: Story = {
+  render: () => (
+    <Connected
+      shell
+      dashboard={{ widgets: [createWidget('netWorth', 'w1', { width: 4, range: 3 })] }}
+    >
+      <DashboardPage />
+    </Connected>
+  ),
+};

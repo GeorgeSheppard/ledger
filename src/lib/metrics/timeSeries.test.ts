@@ -43,3 +43,18 @@ describe('buildTimeSeries', () => {
     expect(none.netWorth('month').map((p) => p.total)).toEqual([0, 0]);
   });
 });
+
+describe('buildTimeSeries window', () => {
+  it('starts the window at the chosen month while still covering all the data', () => {
+    const series = buildTimeSeries(ledgers, [1], '2026-04', '2026-05', undefined, '2026-05');
+    expect(new Date(series.startMs).toISOString()).toBe('2026-04-01T00:00:00.000Z');
+    expect(new Date(series.windowStartMs).toISOString()).toBe('2026-05-01T00:00:00.000Z');
+  });
+
+  it('shows everything when no window is given or it starts before the data', () => {
+    const all = buildTimeSeries(ledgers, [1], '2026-04', '2026-05');
+    expect(all.windowStartMs).toBe(all.startMs);
+    const early = buildTimeSeries(ledgers, [1], '2026-04', '2026-05', undefined, '2020-01');
+    expect(early.windowStartMs).toBe(early.startMs);
+  });
+});

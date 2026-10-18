@@ -12,8 +12,8 @@ import { netWorthAtEnds, type AccountLedger, type PeriodNetWorth } from './netWo
 import { excludedFromCashFlow } from './transfers';
 
 /**
- * The dashboard's numbers at any level of detail, for the zoomable graphs. It covers the same months
- * as `buildDashboard` and answers the same questions (income, spending, balances), but cut into
+ * The dashboard's numbers at any level of detail, for the zoomable graphs. It covers every month with
+ * data (the dashboard's range only picks the window shown first, `windowStartMs`) and answers the same questions (income, spending, balances), but cut into
  * weeks or days on request. Each cut is worked out the first time it is asked for.
  */
 export interface TimeSeries {
@@ -21,6 +21,8 @@ export interface TimeSeries {
   startMs: number;
   /** Midnight after the last day of the last month, in ms. */
   endMs: number;
+  /** Where a chart's view starts when first shown: the dashboard's range, within `startMs`..`endMs`. */
+  windowStartMs: number;
   buckets(granularity: Granularity): Bucket[];
   cashFlow(granularity: Granularity): PeriodCashFlow[];
   netWorth(granularity: Granularity): PeriodNetWorth[];
@@ -31,7 +33,8 @@ export function buildTimeSeries(
   accountIds: readonly number[],
   firstMonth: MonthKey,
   lastMonth: MonthKey,
-  ignoredCategories?: ReadonlySet<string>
+  ignoredCategories?: ReadonlySet<string>,
+  windowFirstMonth: MonthKey = firstMonth
 ): TimeSeries {
   // Same as the dashboard: rows without a readable date cannot be placed, so they are left out.
   const dated = allLedgers.map((l) => ({
@@ -58,6 +61,7 @@ export function buildTimeSeries(
   return {
     startMs: dayStart(first),
     endMs: dayStart(last) + DAY_MS,
+    windowStartMs: Math.max(dayStart(first), dayStart(`${windowFirstMonth}-01`)),
     buckets,
     cashFlow: cache((g) =>
       cashFlowByPeriod(
