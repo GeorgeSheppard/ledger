@@ -19,8 +19,8 @@ This takes about ten minutes, once.
 1. Open **APIs & Services → Library** (<https://console.cloud.google.com/apis/library>).
 2. Search for **Google Sheets API**, open it, click **Enable**.
 3. Go back to the library, search for **Google Picker API**, open it, click **Enable**.
-
-(The Drive API is not needed: the `drive.file` scope works with the Sheets API and the Picker.)
+4. Do the same for **Google Drive API**. The Picker uses it behind the scenes; access is still limited
+   to the files each user picks, because Ledger only asks for the `drive.file` scope.
 
 ## 3. Configure the consent screen
 
@@ -64,7 +64,12 @@ Origins can take a few minutes to start working after you save them.
    - `http://localhost:5173/*`
    - `https://finance.georgesheppard.dev/*`
    - `https://*.georgesheppard98.workers.dev/*` (API keys do accept wildcards)
-4. Under **API restrictions**, choose **Restrict key** and select **Google Picker API** only.
+   - `https://docs.google.com/*` (the Picker runs in an iframe on docs.google.com; without this it
+     shows "The API developer key is invalid")
+4. Under **API restrictions**, choose **Restrict key** and select **Google Picker API** and
+   **Google Drive API**, as Google's
+   [Picker guide](https://developers.google.com/workspace/drive/picker/guides/web-picker-sample)
+   recommends.
 5. Click **Save**.
 
 ## 6. Configure Ledger
@@ -92,7 +97,7 @@ different keys for previews.
 - **"Access blocked: Ledger has not completed the Google verification process":** your account is
   not a test user (step 3.7), or publish the app.
 - **The picker shows "The API developer key is invalid":** the API key's website restrictions do not
-  include this origin, or the Picker API is not enabled.
+  include this origin or `https://docs.google.com/*`, or the Picker API is not enabled.
 - **The picker opens but picking a sheet gives a 404 from Sheets:** the client ID and API key come
   from different projects. Both must be in the same project, since Ledger derives the Picker app ID
   from the client ID.
