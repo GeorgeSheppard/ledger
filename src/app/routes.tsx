@@ -6,6 +6,8 @@ import { ConnectPage } from '../features/connect/ConnectPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { ImportPage } from '../features/import/ImportPage';
 import { LandingPage } from '../features/landing/LandingPage';
+import { PrivacyPage } from '../features/legal/PrivacyPage';
+import { TermsPage } from '../features/legal/TermsPage';
 import { LedgerDataProvider } from '../state/ledgerData';
 import { useSession } from '../state/session';
 import { AppShell } from './AppShell';
@@ -48,6 +50,8 @@ export function AppRoutes() {
     <Routes>
       <Route path={paths.home} element={<Home />} />
       <Route path={paths.connect} element={<ConnectPage />} />
+      <Route path={paths.privacy} element={<PrivacyPage />} />
+      <Route path={paths.terms} element={<TermsPage />} />
       <Route element={<RequireConnection />}>
         <Route path={paths.accounts} element={<AccountsPage />} />
         <Route path={`${paths.accounts}/:accountId`} element={<AccountsPage />} />
