@@ -34,7 +34,6 @@ export const SHORTCUTS = {
   'nav.accounts': { keys: 'mod+a', description: 'Go to accounts', scope: 'global' },
   'nav.categories': { keys: 'mod+k', description: 'Go to categories', scope: 'global' },
   'nav.paychecks': { keys: 'mod+y', description: 'Go to paychecks', scope: 'global' },
-  'help.toggle': { keys: '?', description: 'Show keyboard shortcuts', scope: 'global' },
   'sync.save': {
     keys: 'mod+s',
     description: 'Save changes, or download the file',

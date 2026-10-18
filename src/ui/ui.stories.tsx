@@ -6,7 +6,6 @@ import { Card } from './Card';
 import { Kbd } from './Kbd';
 import { Page } from './Page';
 import { Select } from './Select';
-import { ShortcutHelp } from './ShortcutHelp';
 import { TextInput } from './TextInput';
 
 const meta = {
@@ -28,19 +27,19 @@ export const Buttons: Story = {
   render: () => (
     <Page title="Buttons" description="Every action is an ActionButton with its shortcut shown.">
       <div className="flex flex-wrap gap-3">
-        <ActionButton shortcut="help.toggle" variant="primary" onAction={() => {}}>
+        <ActionButton shortcut="nav.dashboard" variant="primary" onAction={() => {}}>
           Primary
         </ActionButton>
-        <ActionButton shortcut="help.toggle" onAction={() => {}}>
+        <ActionButton shortcut="nav.dashboard" onAction={() => {}}>
           Secondary
         </ActionButton>
-        <ActionButton shortcut="help.toggle" variant="ghost" onAction={() => {}}>
+        <ActionButton shortcut="nav.dashboard" variant="ghost" onAction={() => {}}>
           Ghost
         </ActionButton>
-        <ActionButton shortcut="help.toggle" variant="danger" onAction={() => {}}>
+        <ActionButton shortcut="nav.dashboard" variant="danger" onAction={() => {}}>
           Danger
         </ActionButton>
-        <ActionButton shortcut="help.toggle" disabled onAction={() => {}}>
+        <ActionButton shortcut="nav.dashboard" disabled onAction={() => {}}>
           Disabled
         </ActionButton>
       </div>
@@ -56,7 +55,7 @@ export const BadgesAndKeys: Story = {
         <Badge>Neutral</Badge>
         <Badge tone="positive">Imported</Badge>
         <Badge tone="negative">Can’t read</Badge>
-        <Kbd shortcut="help.toggle" />
+        <Kbd shortcut="nav.dashboard" />
         <Kbd shortcut="nav.dashboard" />
       </div>
     </Page>
@@ -85,7 +84,7 @@ export const PageWithActions: Story = {
       title="Page title"
       description="A short line under the title."
       actions={
-        <ActionButton shortcut="help.toggle" variant="primary" onAction={() => {}}>
+        <ActionButton shortcut="nav.dashboard" variant="primary" onAction={() => {}}>
           Add
         </ActionButton>
       }
@@ -93,8 +92,4 @@ export const PageWithActions: Story = {
       <Card className="p-4 text-sm">Page content sits in cards.</Card>
     </Page>
   ),
-};
-
-export const ShortcutOverlay: Story = {
-  render: () => <ShortcutHelp onClose={() => {}} />,
 };
