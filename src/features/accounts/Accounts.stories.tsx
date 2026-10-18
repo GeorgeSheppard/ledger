@@ -76,6 +76,20 @@ export const AllTransactionsFromAGraph: Story = {
   ),
 };
 
+/**
+ * A filtered combined list with a credit card. The totals count money in and out only: transfers,
+ * the opening balances and the excluded Savings category are left out, and card purchases are money out.
+ */
+export const AllTransactionsSummary: Story = {
+  render: () => (
+    <Connected shell creditCard route="/transactions?from=2026-04-01&to=2026-09-30">
+      <Routes>
+        <Route path="/transactions" element={<TransactionsPage />} />
+      </Routes>
+    </Connected>
+  ),
+};
+
 function AccountRoute() {
   return (
     <Connected shell route="/accounts/1">

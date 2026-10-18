@@ -30,7 +30,6 @@ import {
   nextSort,
   noFilters,
   sortTransactions,
-  totalsOf,
   type Sort,
   type SortKey,
   type TransactionFilters,
@@ -45,6 +44,7 @@ import {
   type ClickModifiers,
   type Selection,
 } from '../../lib/transactions/selection';
+import { cashFlowTotals, moneyOfRow } from '../../lib/transactions/summary';
 import { useShortcut } from '../../state/shortcuts';
 import { ActionButton } from '../../ui/ActionButton';
 import { cn } from '../../ui/cn';
@@ -72,6 +72,8 @@ interface TransactionTableProps {
   accounts: Account[];
   transactions: Transaction[];
   categories: Category[];
+  /** Ids that are not income or spending (see `useCashFlowExclusions`); left out of the summary. */
+  excluded?: ReadonlySet<string>;
   /** Turns the table's shortcuts off, e.g. while a dialog is open over it. */
   paused?: boolean;
   /** Filters to open with, e.g. from a graph's "view transactions" link. The panel opens too. */
@@ -112,6 +114,7 @@ export function TransactionTable({
   accounts,
   transactions,
   categories,
+  excluded,
   paused = false,
   initialFilters,
 }: TransactionTableProps) {
@@ -138,11 +141,17 @@ export function TransactionTable({
     [transactions, filters, sort]
   );
   const grouped = sort === null;
-  const groups = useMemo(() => (grouped ? groupByMonth(shown) : []), [grouped, shown]);
+  const groups = useMemo(() => {
+    if (!grouped) return [];
+    return groupByMonth(shown, (t) => moneyOfRow(t, accounts, excluded));
+  }, [grouped, shown, accounts, excluded]);
   const shownIds = useMemo(() => shown.map((t) => t.id), [shown]);
   const categoryNames = useMemo(() => categoriesInUse(transactions), [transactions]);
   const filtered = hasFilters(filters);
-  const filteredTotals = useMemo(() => totalsOf(shown), [shown]);
+  const filteredTotals = useMemo(
+    () => cashFlowTotals(shown, accounts, excluded),
+    [shown, accounts, excluded]
+  );
 
   // Rows that were deleted or filtered out leave the selection.
   const selection = useMemo(() => pruneSelection(chosen, shownIds), [chosen, shownIds]);
@@ -677,6 +686,12 @@ export function TransactionTable({
           )}
           {filteredTotals.moneyOut < 0 && (
             <span className="tabular-nums">{formatAmount(filteredTotals.moneyOut)}</span>
+          )}
+          {filteredTotals.leftOut > 0 && (
+            <span>
+              {filteredTotals.leftOut.toLocaleString()} transfer or excluded{' '}
+              {filteredTotals.leftOut === 1 ? 'row' : 'rows'} not counted
+            </span>
           )}
           <button
             type="button"

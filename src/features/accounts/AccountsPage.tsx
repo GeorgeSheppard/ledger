@@ -14,7 +14,12 @@ import { AccountSummary } from './AccountSummary';
 import { AccountSettings } from './AccountSettings';
 import { AccountSwitcher } from './AccountSwitcher';
 import { TransactionTable } from './TransactionTable';
-import { useAccountActions, useAccountsAndCategories, useTransactions } from './useAccountsData';
+import {
+  useAccountActions,
+  useAccountsAndCategories,
+  useCashFlowExclusions,
+  useTransactions,
+} from './useAccountsData';
 import { cn } from '../../ui/cn';
 import { Card } from '../../ui/Card';
 import { Page } from '../../ui/Page';
@@ -30,6 +35,7 @@ export function AccountsPage() {
   const account = accounts && findAccountByParam(accounts, accountId);
   const transactions = useTransactions(account?.id);
   const actions = useAccountActions();
+  const excluded = useCashFlowExclusions();
   const [nameForm, setNameForm] = useState<NameForm>(null);
   const [importing, setImporting] = useState(false);
   const [params, setParams] = useSearchParams();
@@ -134,6 +140,7 @@ export function AccountsPage() {
               initialFilters={linked}
               transactions={transactions.data}
               categories={categories}
+              excluded={excluded}
               paused={importing}
             />
           )}
