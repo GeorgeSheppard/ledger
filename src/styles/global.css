@@ -63,6 +63,11 @@
 }
 
 @layer base {
+  /* Keep the scrollbar's space when a short list removes it, so filtering doesn't shift the layout. */
+  html {
+    scrollbar-gutter: stable;
+  }
+
   body {
     @apply bg-canvas font-sans text-fg antialiased;
   }
