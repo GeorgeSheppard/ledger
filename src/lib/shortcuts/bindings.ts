@@ -29,6 +29,7 @@ export const SHORTCUTS = {
   'accounts.previous': { keys: '[', description: 'Previous account', scope: 'accounts' },
   'accounts.next': { keys: ']', description: 'Next account', scope: 'accounts' },
   'accounts.new': { keys: 'shift+n', description: 'New account', scope: 'accounts' },
+  'accounts.rename': { keys: 'r', description: 'Rename account', scope: 'accounts' },
   'transactions.new': { keys: 'n', description: 'New transaction', scope: 'transactions' },
   'transactions.down': { keys: 'j', description: 'Next row', scope: 'transactions' },
   'transactions.up': { keys: 'k', description: 'Previous row', scope: 'transactions' },
@@ -53,6 +54,32 @@ export const SHORTCUTS = {
 
   // Categories (step 2)
   'categories.new': { keys: 'c', description: 'New category', scope: 'categories' },
+  'categories.down': { keys: 'j', description: 'Next category', scope: 'categories' },
+  'categories.up': { keys: 'k', description: 'Previous category', scope: 'categories' },
+  'categories.moveDown': {
+    keys: 'shift+j',
+    description: 'Move category down',
+    scope: 'categories',
+  },
+  'categories.moveUp': { keys: 'shift+k', description: 'Move category up', scope: 'categories' },
+  'categories.edit': { keys: 'enter', description: 'Edit category', scope: 'categories' },
+  'categories.save': {
+    keys: 'mod+enter',
+    description: 'Save category',
+    scope: 'categories',
+    allowInInputs: true,
+  },
+  'categories.cancel': {
+    keys: 'escape',
+    description: 'Cancel editing',
+    scope: 'categories',
+    allowInInputs: true,
+  },
+  'categories.delete': {
+    keys: 'mod+backspace',
+    description: 'Delete category',
+    scope: 'categories',
+  },
 
   // CSV import (step 4)
   'import.chooseFile': { keys: 'u', description: 'Choose CSV file', scope: 'import' },
