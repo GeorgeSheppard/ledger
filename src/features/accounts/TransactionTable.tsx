@@ -32,6 +32,8 @@ interface TransactionTableProps {
   account: Account;
   transactions: Transaction[];
   categories: Category[];
+  /** Turns the table's shortcuts off, e.g. while a dialog is open over it. */
+  paused?: boolean;
 }
 
 interface Editing {
@@ -47,7 +49,12 @@ interface Editing {
  * J/K) and opened for inline editing; N adds a new row at the top. Render with `key={account.id}`
  * so switching accounts starts fresh.
  */
-export function TransactionTable({ account, transactions, categories }: TransactionTableProps) {
+export function TransactionTable({
+  account,
+  transactions,
+  categories,
+  paused = false,
+}: TransactionTableProps) {
   const actions = useAccountActions();
   const [state, dispatch] = useReducer(rowEditorReducer, initialRowEditorState);
   const [editing, setEditing] = useState<Editing | null>(null);
@@ -60,7 +67,7 @@ export function TransactionTable({ account, transactions, categories }: Transact
   const ids = useMemo(() => ordered.map((t) => t.id), [ordered]);
   const selected = ordered.find((t) => t.id === state.selectedId);
   const mode = state.mode;
-  const busy = isEditing(state) || saving;
+  const busy = isEditing(state) || saving || paused;
 
   useEffect(() => {
     if (!state.selectedId) return;
@@ -156,7 +163,7 @@ export function TransactionTable({ account, transactions, categories }: Transact
     await actions.saveCategories(addCategory(categories, name));
   };
 
-  const browsing = mode.kind === 'browse';
+  const browsing = mode.kind === 'browse' && !paused;
   useShortcut('transactions.down', () => dispatch({ type: 'move', delta: 1, ids }), browsing);
   useShortcut('transactions.up', () => dispatch({ type: 'move', delta: -1, ids }), browsing);
   useShortcut('transactions.cancel', cancel, browsing && !!selected);

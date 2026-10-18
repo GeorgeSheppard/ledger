@@ -5,5 +5,4 @@ export const paths = {
   accounts: '/accounts',
   account: (accountId: number) => `/accounts/${accountId}`,
   categories: '/categories',
-  import: '/import',
 } as const;

@@ -59,10 +59,10 @@ src/
   features/                    one folder per feature: pages, components, feature hooks
     landing/                   public homepage
     connect/                   sign in, pick or create a sheet
-    accounts/                  account menu, transaction table, inline editing
+    accounts/                  accounts summary, account menu, transaction table, inline editing
     categories/                category management page
     dashboard/                 charts
-    import/                    CSV drag and drop, mapping, review
+    import/                    Import data dialog: CSV drag and drop, mapping, review
 ```
 
 ## Styling
@@ -176,7 +176,9 @@ Shared files each thread may edit additively:
    Implement `GoogleSheetsRepository implements LedgerRepository` in `lib/google/` and switch
    `SessionProvider` to it when `VITE_DATA_SOURCE=google`. Creating a sheet creates one account tab
    and `_Categories` with sensible defaults. Update the CSP in `public/_headers` for Google domains.
-2. **Accounts and transactions.** Route `/accounts/:accountId`. Account menu with `/` to switch and
+2. **Accounts and transactions.** `/accounts` is a read-only summary of every account (balance,
+   transaction count, last activity) where accounts can be renamed or added; `/accounts/:accountId`
+   shows one account's transactions, newest date first. Account menu with `/` to switch and
    `[`/`]` to cycle, inline editing (select a row to edit it; `enter` edit, `mod+enter` save,
    `escape` cancel), `n` adds a row at the top of the editor. Category picker with "add new"
    inline. Categories page for add / rename (`renameCategory`) / recolour / delete.
@@ -184,8 +186,9 @@ Shared files each thread may edit additively:
    category per month, month-over-month totals), charts in `features/dashboard/`.
 4. **CSV import.** `lib/csv/` parses, guesses the mapping from the header row (date, amount or
    debit/credit columns, description), normalises dates and amounts, and reconciles against existing
-   transactions (same date + amount + note counts as existing). UI: drop zone, account picker,
-   editable column mapping, preview showing new vs already-present rows, confirm.
+   transactions (same date + amount + note counts as existing). UI: an "Import data" button on each
+   account page opens a dialog with a drop zone and file picker, editable column mapping, preview
+   showing new vs already-present rows, confirm.
 
 ## Running
 

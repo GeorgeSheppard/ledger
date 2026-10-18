@@ -16,7 +16,30 @@ export function useAccountsAndCategories(): QueryState<{
   );
 }
 
-/** Transactions of one account, oldest first. Always ready: the sheet is loaded up front. */
+export interface AccountOverview {
+  account: Account;
+  transactions: Transaction[];
+}
+
+const loadOverview = async (repository: LedgerRepository): Promise<AccountOverview[]> => {
+  const accounts = await repository.listAccounts();
+  return Promise.all(
+    accounts.map(async (account) => ({
+      account,
+      transactions: await repository.listTransactions(account.id),
+    }))
+  );
+};
+
+/** Every account with its transactions, for the accounts summary page. */
+export function useAccountOverview(): QueryState<AccountOverview[]> {
+  return useLedgerQuery(loadOverview);
+}
+
+/**
+ * Transactions of one account. While a different account's rows are still on screen after
+ * switching, this reports `loading` so stale rows never show under the wrong account.
+ */
 export function useTransactions(accountId: number | undefined): QueryState<Transaction[]> {
   const { transactionsByAccount } = useLedger();
   const transactions =

@@ -10,12 +10,19 @@ const OPTION = 'flex items-center justify-between rounded-md px-2.5 py-2 text-sm
 interface AccountSwitcherProps {
   accounts: Account[];
   current: Account;
+  disabled?: boolean;
   onSelect(account: Account): void;
   onNew(): void;
 }
 
 /** Menu for jumping to another account. `/` opens it; type to filter, arrows and Enter to switch. */
-export function AccountSwitcher({ accounts, current, onSelect, onNew }: AccountSwitcherProps) {
+export function AccountSwitcher({
+  accounts,
+  current,
+  disabled,
+  onSelect,
+  onNew,
+}: AccountSwitcherProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -68,6 +75,7 @@ export function AccountSwitcher({ accounts, current, onSelect, onNew }: AccountS
       <ActionButton
         shortcut="accounts.switch"
         variant="ghost"
+        disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
         onAction={() => (open ? setOpen(false) : show())}

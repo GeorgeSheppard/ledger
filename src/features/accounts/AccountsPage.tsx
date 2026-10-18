@@ -1,9 +1,11 @@
 import { useState, type ReactNode } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { paths } from '../../app/paths';
 import { adjacentAccount, findAccountByParam } from '../../lib/accounts/accounts';
 import type { Account } from '../../lib/domain/types';
 import { ActionButton } from '../../ui/ActionButton';
+import { ImportDialog } from '../import/ImportDialog';
+import { useShortcut } from '../../state/shortcuts';
 import { AccountNameForm } from './AccountNameForm';
 import { AccountSummary } from './AccountSummary';
 import { AccountSwitcher } from './AccountSwitcher';
@@ -14,10 +16,7 @@ import { Page } from '../../ui/Page';
 
 type NameForm = { kind: 'new' } | { kind: 'rename'; account: Account } | null;
 
-/**
- * `/accounts/:accountId`: one account's transactions with the account menu above them.
- * `/accounts` redirects to the first account.
- */
+/** `/accounts/:accountId`: one account's transactions with the account menu above them. */
 export function AccountsPage() {
   const { accountId } = useParams();
   const navigate = useNavigate();
@@ -27,6 +26,9 @@ export function AccountsPage() {
   const transactions = useTransactions(account?.id);
   const actions = useAccountActions();
   const [nameForm, setNameForm] = useState<NameForm>(null);
+  const [importing, setImporting] = useState(false);
+  // The switcher menu lists "New account" with this shortcut.
+  useShortcut('accounts.new', () => setNameForm({ kind: 'new' }), !nameForm && !importing);
 
   if (meta.status === 'loading')
     return (
@@ -42,9 +44,6 @@ export function AccountsPage() {
     );
 
   const { categories } = meta.data;
-  const first = meta.data.accounts[0];
-  if (!account && first && accountId === undefined)
-    return <Navigate to={paths.account(first.id)} replace />;
 
   const createAccount = async (name: string) => {
     const created = await actions.createAccount(name);
@@ -59,42 +58,21 @@ export function AccountsPage() {
 
   const go = (target: Account | undefined) => target && navigate(paths.account(target.id));
 
-  const newForm = nameForm?.kind === 'new' && (
-    <AccountNameForm
-      accounts={meta.data.accounts}
-      onSubmit={createAccount}
-      onCancel={() => setNameForm(null)}
-    />
-  );
-
   if (!account) {
     return (
-      <Page
-        title={accountId === undefined ? 'No accounts yet' : 'Account not found'}
-        description="Each account is a tab in your spreadsheet with Date, Category, Amount, Note and Total columns."
-      >
-        {newForm || (
-          <div className="flex gap-2">
-            <ActionButton
-              shortcut="accounts.new"
-              variant="primary"
-              onAction={() => setNameForm({ kind: 'new' })}
-            >
-              New account
-            </ActionButton>
-            {first && (
-              <ActionButton shortcut="accounts.next" onAction={() => go(first)}>
-                Open {first.name}
-              </ActionButton>
-            )}
-          </div>
-        )}
+      <Page title="Account not found">
+        <PageMessage>
+          This account is not in your spreadsheet. <Link to={paths.accounts}>See all accounts</Link>
+        </PageMessage>
       </Page>
     );
   }
 
   const several = meta.data.accounts.length > 1;
   const editingName = !!nameForm;
+  // The import dialog has its own shortcuts, so the page's are off while it is open.
+  const blocked = editingName || importing;
+  const ready = transactions.status === 'ready';
 
   return (
     <Page
@@ -104,13 +82,14 @@ export function AccountsPage() {
           <AccountSwitcher
             accounts={meta.data.accounts}
             current={account}
+            disabled={importing}
             onSelect={go}
             onNew={() => setNameForm({ kind: 'new' })}
           />
           <ActionButton
             shortcut="accounts.previous"
             variant="ghost"
-            disabled={!several || editingName}
+            disabled={!several || blocked}
             aria-label="Previous account"
             onAction={() => go(adjacentAccount(meta.data.accounts, account.id, -1))}
           >
@@ -119,7 +98,7 @@ export function AccountsPage() {
           <ActionButton
             shortcut="accounts.next"
             variant="ghost"
-            disabled={!several || editingName}
+            disabled={!several || blocked}
             aria-label="Next account"
             onAction={() => go(adjacentAccount(meta.data.accounts, account.id, 1))}
           >
@@ -128,17 +107,17 @@ export function AccountsPage() {
           <ActionButton
             shortcut="accounts.rename"
             variant="ghost"
-            disabled={editingName}
+            disabled={blocked}
             onAction={() => setNameForm({ kind: 'rename', account })}
           >
             Rename
           </ActionButton>
           <ActionButton
-            shortcut="accounts.new"
-            disabled={editingName}
-            onAction={() => setNameForm({ kind: 'new' })}
+            shortcut="accounts.import"
+            disabled={blocked || !ready}
+            onAction={() => setImporting(true)}
           >
-            New account
+            Import data
           </ActionButton>
         </>
       }
@@ -146,7 +125,11 @@ export function AccountsPage() {
       {nameForm && (
         <Card className="px-4 py-3">
           {nameForm.kind === 'new' ? (
-            newForm
+            <AccountNameForm
+              accounts={meta.data.accounts}
+              onSubmit={createAccount}
+              onCancel={() => setNameForm(null)}
+            />
           ) : (
             <AccountNameForm
               accounts={meta.data.accounts}
@@ -170,7 +153,16 @@ export function AccountsPage() {
             account={account}
             transactions={transactions.data}
             categories={categories}
+            paused={importing}
           />
+          {importing && (
+            <ImportDialog
+              account={account}
+              transactions={transactions.data}
+              categories={categories}
+              onClose={() => setImporting(false)}
+            />
+          )}
         </>
       )}
     </Page>
