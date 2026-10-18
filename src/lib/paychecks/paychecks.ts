@@ -2,74 +2,60 @@ import type { IsoDate } from '../domain/types';
 import { isIsoDate } from '../transactions/dates';
 
 /**
- * Paychecks: money earned before tax, the lines taken out of it, and where the rest lands. Plain
- * data and pure functions only. Saved in the spreadsheet's `_Paychecks` tab (see `./serialize.ts`).
+ * Paychecks: one entry per payslip, typed in by hand. There is no schedule and nothing repeats. A payslip is a few named income lines
+ * (salary, an allowance, a bonus...) and a few named deduction lines (income tax, national
+ * insurance, pension, student loan...); take-home pay is what is left. Plain data and pure
+ * functions only. Saved in the spreadsheet's `_Paychecks` tab (see `./serialize.ts`).
  *
- * Paychecks vary a lot, so nothing here knows about any particular tax: a deduction is just a
- * name and an amount.
+ * Payslips vary a lot, so nothing here knows about any particular tax or allowance: a line is just
+ * a name and an amount.
  */
 
-export const REPEATS = [
-  'none',
-  'weekly',
-  'every2weeks',
-  'every4weeks',
-  'monthly',
-  'yearly',
-] as const;
-export type Repeat = (typeof REPEATS)[number];
-
-export const REPEAT_LABELS: Record<Repeat, string> = {
-  none: 'Once',
-  weekly: 'Every week',
-  every2weeks: 'Every 2 weeks',
-  every4weeks: 'Every 4 weeks',
-  monthly: 'Every month',
-  yearly: 'Every year',
-};
-
-/** One line taken out of gross pay: income tax, student loan, pension, a union fee... */
-export interface Deduction {
-  /** Unique within its paycheck. */
+/** One line of a payslip: "Salary 3,000", "Income tax 540". */
+export interface PayLine {
+  /** Unique within its list of lines. */
   id: string;
   name: string;
-  /** Per payment, never negative. */
+  /** Never negative. */
   amount: number;
 }
 
 export interface Paycheck {
   /** Unique within the list. */
   id: string;
-  /** Where the money comes from, e.g. "Acme salary". */
-  name: string;
-  /** The date of the first (or only) payment. */
+  /** The day the pay arrived. Only decides which months of the dashboard count it. */
   date: IsoDate;
-  /** Pay before anything is taken out, per payment. */
-  gross: number;
-  deductions: Deduction[];
-  /** The account the take-home pay lands in. `null` means the first account. */
-  accountId: number | null;
-  repeat: Repeat;
-  /** The last date a repeating paycheck can pay on. `null` means it carries on. */
-  until: IsoDate | null;
+  /** Money in before anything is taken out. */
+  income: PayLine[];
+  deductions: PayLine[];
 }
 
 export interface PaycheckList {
+  /** Oldest first. */
   paychecks: Paycheck[];
 }
+
+export type LineKind = 'income' | 'deductions';
 
 /** Money is kept to whole cents so sums do not drift. */
 export function round(amount: number): number {
   return Math.round(amount * 100) / 100;
 }
 
-export function totalDeductions(paycheck: Pick<Paycheck, 'deductions'>): number {
-  return round(paycheck.deductions.reduce((sum, d) => sum + d.amount, 0));
+const sum = (lines: readonly PayLine[]) => round(lines.reduce((total, l) => total + l.amount, 0));
+
+/** Gross pay: every income line added up. */
+export function totalIncome(paycheck: Pick<Paycheck, 'income'>): number {
+  return sum(paycheck.income);
 }
 
-/** Take-home pay per payment: gross less every deduction. */
-export function netPay(paycheck: Pick<Paycheck, 'gross' | 'deductions'>): number {
-  return round(paycheck.gross - totalDeductions(paycheck));
+export function totalDeductions(paycheck: Pick<Paycheck, 'deductions'>): number {
+  return sum(paycheck.deductions);
+}
+
+/** Take-home pay: income less every deduction. */
+export function netPay(paycheck: Pick<Paycheck, 'income' | 'deductions'>): number {
+  return round(totalIncome(paycheck) - totalDeductions(paycheck));
 }
 
 /** An id not used by any of `existing`. */
@@ -78,121 +64,70 @@ export function newId(existing: readonly { id: string }[], prefix: string): stri
   for (let n = existing.length + 1; ; n++) if (!used.has(`${prefix}${n}`)) return `${prefix}${n}`;
 }
 
-export function newDeduction(existing: readonly Deduction[], name = '', amount = 0): Deduction {
-  return { id: newId(existing, 'd'), name, amount };
+export function newLine(existing: readonly { id: string }[], name = '', amount = 0): PayLine {
+  return { id: newId(existing, 'l'), name, amount };
 }
 
-/** A blank paycheck starting on `date`. */
-export function newPaycheck(existing: readonly Paycheck[], date: IsoDate): Paycheck {
-  return {
-    id: newId(existing, 'p'),
-    name: '',
-    date,
-    gross: 0,
-    deductions: [],
-    accountId: null,
-    repeat: 'monthly',
-    until: null,
-  };
+export function newPaycheck(list: PaycheckList, date: IsoDate): Paycheck {
+  return { id: newId(list.paychecks, 'p'), date, income: [], deductions: [] };
+}
+
+/**
+ * Names used before, most used first (ties: most recent first), for suggesting the next line.
+ * One spelling per name, ignoring case.
+ */
+export function suggestedNames(list: PaycheckList, kind: LineKind): string[] {
+  const seen = new Map<string, { name: string; count: number; last: IsoDate }>();
+  for (const paycheck of list.paychecks)
+    for (const line of paycheck[kind]) {
+      const name = line.name.trim();
+      if (!name) continue;
+      const key = name.toLowerCase();
+      const found = seen.get(key);
+      if (found) {
+        found.count++;
+        found.last = paycheck.date;
+        found.name = name;
+      } else seen.set(key, { name, count: 1, last: paycheck.date });
+    }
+  return [...seen.values()]
+    .sort((a, b) => b.count - a.count || (a.last < b.last ? 1 : -1) || a.name.localeCompare(b.name))
+    .map((s) => s.name);
 }
 
 /** What is wrong with a paycheck, in words, or null when it can be saved. */
 export function paycheckProblem(paycheck: Paycheck): string | null {
-  if (!paycheck.name.trim()) return 'Give the paycheck a name.';
   if (!isIsoDate(paycheck.date)) return 'Pick a date.';
-  if (!(paycheck.gross > 0)) return 'Gross pay must be more than zero.';
-  if (paycheck.until !== null && !isIsoDate(paycheck.until)) return 'The end date is not a date.';
-  if (paycheck.until !== null && paycheck.until < paycheck.date)
-    return 'The end date is before the first payment.';
-  if (paycheck.deductions.some((d) => !(d.amount >= 0))) return 'Deductions cannot be negative.';
-  if (paycheck.deductions.some((d) => d.amount > 0 && !d.name.trim()))
-    return 'Name every deduction.';
-  if (netPay(paycheck) < 0) return 'Deductions are more than gross pay.';
+  const lines = [...paycheck.income, ...paycheck.deductions];
+  if (lines.some((l) => !(l.amount >= 0))) return 'Amounts cannot be negative.';
+  if (lines.some((l) => l.amount > 0 && !l.name.trim())) return 'Name every line.';
+  if (!(totalIncome(paycheck) > 0)) return 'Add some income.';
+  if (netPay(paycheck) < 0) return 'Deductions are more than income.';
   return null;
 }
 
-/** Drops blank deduction lines and trims names, ready to save. */
+/** Drops blank lines and trims names, ready to save. */
 export function tidyPaycheck(paycheck: Paycheck): Paycheck {
-  return {
-    ...paycheck,
-    name: paycheck.name.trim(),
-    deductions: paycheck.deductions
-      .filter((d) => d.name.trim() !== '' || d.amount !== 0)
-      .map((d) => ({ ...d, name: d.name.trim() })),
-  };
+  const tidy = (lines: PayLine[]) =>
+    lines
+      .filter((l) => l.name.trim() !== '' || l.amount !== 0)
+      .map((l) => ({ ...l, name: l.name.trim() }));
+  return { ...paycheck, income: tidy(paycheck.income), deductions: tidy(paycheck.deductions) };
 }
 
+/** Oldest first; paychecks on the same day keep their order. */
+const byDate = (a: Paycheck, b: Paycheck) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+
 export function addPaycheck(list: PaycheckList, paycheck: Paycheck): PaycheckList {
-  return { paychecks: [...list.paychecks, paycheck] };
+  return { paychecks: [...list.paychecks, paycheck].sort(byDate) };
 }
 
 export function replacePaycheck(list: PaycheckList, paycheck: Paycheck): PaycheckList {
-  return { paychecks: list.paychecks.map((p) => (p.id === paycheck.id ? paycheck : p)) };
+  return {
+    paychecks: list.paychecks.map((p) => (p.id === paycheck.id ? paycheck : p)).sort(byDate),
+  };
 }
 
 export function removePaycheck(list: PaycheckList, id: string): PaycheckList {
   return { paychecks: list.paychecks.filter((p) => p.id !== id) };
-}
-
-// --- Schedule ---
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function toDay(date: IsoDate): number {
-  return Math.round(Date.parse(`${date}T00:00:00Z`) / DAY_MS);
-}
-
-function fromDay(day: number): IsoDate {
-  return new Date(day * DAY_MS).toISOString().slice(0, 10);
-}
-
-const STEP_DAYS: Partial<Record<Repeat, number>> = {
-  weekly: 7,
-  every2weeks: 14,
-  every4weeks: 28,
-};
-
-/** Day `day` of a month, or its last day when the month is shorter (the 31st becomes the 30th). */
-function clampedDate(year: number, monthIndex: number, day: number): IsoDate {
-  const last = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${String(year).padStart(4, '0')}-${pad(monthIndex + 1)}-${pad(Math.min(day, last))}`;
-}
-
-/**
- * Every date the paycheck pays on between `from` and `to` (inclusive), oldest first. A monthly
- * paycheck keeps its day of the month, using the last day of shorter months.
- */
-export function paymentDates(paycheck: Paycheck, from: IsoDate, to: IsoDate): IsoDate[] {
-  if (!isIsoDate(paycheck.date)) return [];
-  const end = paycheck.until !== null && paycheck.until < to ? paycheck.until : to;
-  const dates: IsoDate[] = [];
-  const keep = (date: IsoDate) => {
-    if (date >= from && date <= end) dates.push(date);
-  };
-
-  if (paycheck.repeat === 'none') {
-    keep(paycheck.date);
-    return dates;
-  }
-  const step = STEP_DAYS[paycheck.repeat];
-  if (step !== undefined) {
-    const first = toDay(paycheck.date);
-    // Skip straight to the first payment on or after `from` rather than walking from the start.
-    const skipped = Math.max(0, Math.floor((toDay(from) - first) / step));
-    for (let day = first + skipped * step; day <= toDay(end); day += step) keep(fromDay(day));
-    return dates;
-  }
-
-  const year = Number(paycheck.date.slice(0, 4));
-  const month = Number(paycheck.date.slice(5, 7)) - 1;
-  const day = Number(paycheck.date.slice(8, 10));
-  const stride = paycheck.repeat === 'yearly' ? 12 : 1;
-  for (let n = 0; ; n++) {
-    const index = year * 12 + month + n * stride;
-    const date = clampedDate(Math.floor(index / 12), index % 12, day);
-    if (date > end) break;
-    keep(date);
-  }
-  return dates;
 }

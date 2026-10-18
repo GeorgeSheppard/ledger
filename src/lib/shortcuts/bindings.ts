@@ -143,7 +143,7 @@ export const SHORTCUTS = {
   'transactions.search': { keys: 'f', description: 'Search transactions', scope: 'transactions' },
 
   // Paychecks
-  'paychecks.new': { keys: 'n', description: 'New paycheck', scope: 'paychecks' },
+  'paychecks.new': { keys: 'n', description: 'Add a paycheck', scope: 'paychecks' },
   'paychecks.down': { keys: 'j', description: 'Next paycheck', scope: 'paychecks' },
   'paychecks.up': { keys: 'k', description: 'Previous paycheck', scope: 'paychecks' },
   'paychecks.edit': { keys: 'enter', description: 'Edit paycheck', scope: 'paychecks' },
@@ -164,15 +164,21 @@ export const SHORTCUTS = {
     scope: 'paychecks',
     allowInInputs: true,
   },
+  'paychecks.addIncome': {
+    keys: 'alt+i',
+    description: 'Add an income line',
+    scope: 'paychecks',
+    allowInInputs: true,
+  },
   'paychecks.addDeduction': {
-    keys: 'alt+a',
+    keys: 'alt+d',
     description: 'Add a deduction',
     scope: 'paychecks',
     allowInInputs: true,
   },
-  'paychecks.removeDeduction': {
+  'paychecks.removeLine': {
     keys: 'alt+backspace',
-    description: 'Remove the deduction being edited',
+    description: 'Remove the line being edited',
     scope: 'paychecks',
     allowInInputs: true,
   },

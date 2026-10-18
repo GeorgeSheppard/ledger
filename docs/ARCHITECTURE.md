@@ -200,10 +200,16 @@ focus-visible:outline-offset-2 focus-visible:outline-accent`, `disabled:opacity-
   sheet has them.
 - `_Dashboard` tab: header `Config`, the dashboard layout as JSON in cell A2.
 - `_Paychecks` tab: header `Paychecks`, the paychecks as JSON in cell A2 (`src/lib/paychecks`). A
-  paycheck is a name, first payment date, gross pay, free-form named deductions, the account its
-  take-home pay lands in, and an optional repeat (weekly to yearly) with an end date. The
-  dashboard's Sankey graph expands them into payments for the months shown and follows the money:
-  paychecks → deductions and take-home → accounts → spending categories and savings.
+  paycheck is one payslip typed in by hand: a date, named income lines (salary, an allowance, a
+  bonus...) and named deduction lines (income tax, pension...). Take-home pay is derived. Nothing
+  repeats and there is no schedule, account or one-per-month rule; the date only decides which
+  months of the dashboard count it. The paychecks page adds, edits and deletes them and suggests
+  names used before. The dashboard's Sankey graph follows the money for the months shown: income
+  lines → gross pay → deductions and take-home pay → spending categories, ending in "Saved" (extra)
+  or "Other income" (deficit), with take-home as one pool. Older data is converted to dated
+  paychecks when read (`legacy.ts`): a version 1 schedule becomes one paycheck per payment made, a
+  version 2 monthly payslip one paycheck on that month's last day. It is saved as version 3 with
+  the next edit.
 
 ## Data flow
 
