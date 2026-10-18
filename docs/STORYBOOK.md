@@ -9,6 +9,15 @@ pnpm storybook         # dev server on http://localhost:6006
 pnpm build-storybook   # static build in storybook-static/
 ```
 
+## Preview link on a PR
+
+Every PR preview deploy also serves Storybook at `/storybook/`: take the preview URL from the
+Cloudflare Workers Builds check on the PR (`https://<hash>-ledger.<account>.workers.dev`) and add
+`/storybook/`, e.g. `.../storybook/?path=/story/pages-dashboard--sankey`. `scripts/build-with-infisical.sh`
+adds it when `WORKERS_CI_BRANCH` (set by Cloudflare) is not `main`, so the production site never
+contains it. It needs no extra secrets or settings. Set `PRODUCTION_BRANCH` as a build variable if
+production ever deploys from another branch.
+
 Light and dark follow the browser's colour scheme, like the app (the tokens in `styles/global.css`
 use `prefers-color-scheme`). To see dark in Storybook, switch your OS or use the browser's rendering
 emulation.
