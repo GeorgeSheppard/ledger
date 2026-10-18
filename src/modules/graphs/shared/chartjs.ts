@@ -3,6 +3,8 @@ import {
   BarElement,
   Chart,
   Filler,
+  Interaction,
+  type InteractionModeFunction,
   LinearScale,
   LineController,
   LineElement,
@@ -22,6 +24,35 @@ Chart.register(
   Tooltip,
   Filler
 );
+declare module 'chart.js' {
+  interface InteractionModeMap {
+    onLine: InteractionModeFunction;
+  }
+}
+
+/** How close, in pixels, the pointer must be to a line for its tooltip to show. */
+const LINE_REACH = 12;
+
+/**
+ * Like `nearest` along x, but only when the pointer is on the line itself (within `LINE_REACH`
+ * px of it, between points too), so a tooltip does not follow the pointer around empty space.
+ */
+Interaction.modes.onLine = (chart, event, options, useFinalPosition) => {
+  const [nearest] = Interaction.modes.nearest(
+    chart,
+    event,
+    { ...options, axis: 'x', intersect: false },
+    useFinalPosition
+  );
+  if (!nearest || event.x === null || event.y === null) return [];
+  const points = chart.getDatasetMeta(nearest.datasetIndex).data;
+  const here = points[nearest.index]!;
+  const next = points[nearest.index + (event.x < here.x ? -1 : 1)];
+  const along = next && next.x !== here.x ? (event.x - here.x) / (next.x - here.x) : 0;
+  const lineY = next ? here.y + (next.y - here.y) * along : here.y;
+  return Math.abs(event.y - lineY) <= LINE_REACH ? [nearest] : [];
+};
+
 Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 Chart.defaults.font.size = 12;
 Chart.defaults.animation = false;
