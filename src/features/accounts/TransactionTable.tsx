@@ -436,8 +436,8 @@ export function TransactionTable({
   ];
 
   const offeredCategories = useMemo(
-    () => categoriesForAccount(categories, account.name),
-    [categories, account.name]
+    () => (account ? categoriesForAccount(categories, account.name) : categories),
+    [categories, account]
   );
 
   const createCategory = async (name: string) => {
