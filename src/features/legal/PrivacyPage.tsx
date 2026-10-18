@@ -16,8 +16,8 @@ export function PrivacyPage() {
         <Bullets>
           <li>Ledger has no server or database of its own. It runs entirely in your browser.</li>
           <li>
-            Your financial data is stored only in the Google Sheet you choose or create, and travels
-            directly between your browser and Google.
+            Your financial data is stored in the Google Sheet you choose or create, with a working
+            copy in your browser. It travels directly between your browser and Google.
           </li>
           <li>We do not sell, rent or share your data with anyone, and there are no adverts.</li>
           <li>Ledger can only open spreadsheets you pick or create with it, nothing else.</li>
@@ -51,17 +51,24 @@ export function PrivacyPage() {
       <LegalSection title="Where your data is kept">
         <Bullets>
           <li>
-            <strong>Your Google Sheet.</strong> This is the only place your financial data is
-            stored. It belongs to you, it stays in your Drive, and Google&rsquo;s own privacy policy
-            applies to it.
+            <strong>Your Google Sheet.</strong> This is where your financial data is kept. It
+            belongs to you, it stays in your Drive, and Google&rsquo;s own privacy policy applies to
+            it.
           </li>
           <li>
-            <strong>Your browser.</strong> While you use Ledger, the data from your sheet is held in
-            memory in the browser tab. Ledger also keeps a few small items in your browser&rsquo;s
-            storage: the Google access token for the current tab, which is cleared when you close
-            the tab or sign out, and the id and name of the spreadsheet you connected, so Ledger can
-            offer to reopen it next time. No transactions or balances are kept there. You can remove
-            all of it at any time by clearing this site&rsquo;s data in your browser.
+            <strong>Your browser.</strong> So Ledger is quick and your changes are not lost if the
+            connection drops, it keeps a working copy of your connected spreadsheet (your accounts,
+            transactions, categories and dashboard layout, plus any changes not yet saved) in your
+            browser&rsquo;s local database (IndexedDB) on this device. Changes are saved back to
+            your Google Sheet automatically about once a minute, or straight away when you press
+            Save. This copy never leaves your device except to be saved to your own sheet, and it is
+            deleted when you sign out.
+          </li>
+          <li>
+            <strong>A few small settings.</strong> Ledger also keeps the Google access token for the
+            current tab, which is cleared when you close the tab or sign out, and the id and name of
+            the spreadsheet you connected, so it can offer to reopen it next time. You can remove
+            everything Ledger keeps in your browser at any time by clearing this site&rsquo;s data.
           </li>
           <li>
             <strong>Not on our side.</strong> Ledger does not copy your financial data to any server
@@ -112,8 +119,9 @@ export function PrivacyPage() {
       <LegalSection title="Your choices">
         <Bullets>
           <li>
-            You can sign out of Ledger at any time. This removes the Google access token from your
-            browser and tells Google to cancel it.
+            You can sign out of Ledger at any time. This deletes the working copy and the Google
+            access token from your browser and tells Google to cancel the token. Save first if you
+            have unsaved changes.
           </li>
           <li>
             You can remove Ledger&rsquo;s access to your Google account from the{' '}
