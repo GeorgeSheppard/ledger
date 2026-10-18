@@ -90,9 +90,11 @@ export function DashboardPage() {
   const selected = selectedIndex >= 0 ? widgets[selectedIndex] : undefined;
   const editorOpen = editor !== null;
 
-  const openTransactions = (accountId: number, filters: LinkedFilters) => {
-    const query = filterParams(filters);
-    navigate(`${paths.account(accountId)}${query ? `?${query}` : ''}`);
+  const openTransactions = (filters: LinkedFilters) => {
+    // Covering every account is the same as not filtering by account.
+    const everyAccount = filters.accounts?.length === accounts.length;
+    const query = filterParams(everyAccount ? { ...filters, accounts: [] } : filters);
+    navigate(`${paths.transactions}${query ? `?${query}` : ''}`);
   };
   const startEditing = () => {
     setDraft(layout);

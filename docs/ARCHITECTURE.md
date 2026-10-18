@@ -126,8 +126,9 @@ src/modules/
   (`lib/metrics/buckets.ts`, `timeSeries.ts`; the choice is `granularityFor`). `shared/zoom.tsx`
   owns the visible range and feeds it to Chart.js, whose zoom plugin is loaded on first use. Sankey
   and the breakdown stay on d3 and plain markup. A graph's "View transactions" button
-  (`shared/ViewTransactions.tsx`) opens an account with the graph's dates and categories as URL
-  filters (`lib/transactions/filterParams.ts`).
+  (`shared/ViewTransactions.tsx`) opens `/transactions` (`features/accounts/TransactionsPage.tsx`),
+  every account's transactions in one list with an Account column, with the graph's dates,
+  categories and accounts as URL filters (`lib/transactions/filterParams.ts`).
 
 ## Styling
 

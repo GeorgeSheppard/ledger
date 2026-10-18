@@ -21,6 +21,8 @@ interface TransactionRowProps {
    */
   onActivate(transaction: Transaction, field: DraftField, modifiers: ClickModifiers): void;
   menuItems: readonly MenuItem[];
+  /** The account's name, shown in place of the running total where the list mixes accounts. */
+  accountName?: string;
 }
 
 export function TransactionRow({
@@ -29,6 +31,7 @@ export function TransactionRow({
   selected,
   onActivate,
   menuItems,
+  accountName,
 }: TransactionRowProps) {
   const fieldOf = (event: MouseEvent<HTMLDivElement>) =>
     ((event.target as HTMLElement).closest<HTMLElement>('[data-field]')?.dataset.field ??
@@ -95,9 +98,13 @@ export function TransactionRow({
       </div>
       <div
         role="cell"
-        className="text-right whitespace-nowrap text-muted tabular-nums max-md:hidden"
+        className={cn(
+          'text-muted max-md:hidden',
+          accountName === undefined ? 'text-right whitespace-nowrap tabular-nums' : 'truncate pl-2'
+        )}
+        title={accountName}
       >
-        {formatAmount(transaction.total)}
+        {accountName ?? formatAmount(transaction.total)}
       </div>
       <div role="cell" className="flex justify-end">
         <Menu label={`Actions for ${transaction.note || 'transaction'}`} items={menuItems} />

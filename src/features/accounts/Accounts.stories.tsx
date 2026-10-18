@@ -6,6 +6,7 @@ import { BIG_ACCOUNT_NAME, CREDIT_CARD_NAME, Connected } from '../../storybook/p
 import { useLedger } from '../../state/ledgerData';
 import { AccountsOverviewPage } from './AccountsOverviewPage';
 import { AccountsPage } from './AccountsPage';
+import { TransactionsPage } from './TransactionsPage';
 
 const meta = { title: 'Pages/Accounts' } satisfies Meta;
 export default meta;
@@ -31,12 +32,12 @@ export const AccountPage: Story = {
   ),
 };
 
-/** Opened from a graph's "View transactions": a date range and category are already filtered. */
-export const OpenedFromAGraph: Story = {
+/** Opened from a graph's "View transactions": every account in one list, already narrowed to a date range. */
+export const AllTransactionsFromAGraph: Story = {
   render: () => (
-    <Connected shell route="/accounts/1?from=2026-09-01&to=2026-09-30&cat=Groceries">
+    <Connected shell route="/transactions?from=2026-09-01&to=2026-09-30">
       <Routes>
-        <Route path="/accounts/:accountId" element={<AccountsPage />} />
+        <Route path="/transactions" element={<TransactionsPage />} />
       </Routes>
     </Connected>
   ),
