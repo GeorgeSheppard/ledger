@@ -156,7 +156,8 @@ export const METADATA_COLUMNS = ['Type', 'Name', 'Setting', 'Value'] as const;
 
 /**
  * One row of `_Metadata`: `category | Food | color | #4f7cff`, `category | Transfers | excluded | TRUE`
- * or `account | Visa | inverted | TRUE`.
+ * `category | Rent | account | Current` (once per account the category is limited to; none means
+ * global) or `account | Visa | inverted | TRUE`.
  */
 export interface MetadataEntry {
   type: 'category' | 'account';
@@ -180,6 +181,7 @@ export function parseMetadata(values: readonly (readonly unknown[])[]): {
 } {
   const categories: Category[] = [];
   const excluded: string[] = [];
+  const scoped: { name: string; account: string }[] = [];
   const invertedAccounts: string[] = [];
   for (const cells of values) {
     const [type, name, setting] = [0, 1, 2].map((i) => textCell(cells[i]));
@@ -188,6 +190,8 @@ export function parseMetadata(values: readonly (readonly unknown[])[]): {
       categories.push(categorySchema.parse({ name, color: textCell(cells[3]) }));
     else if (type === 'category' && setting === 'excluded' && flagSchema.parse(cells[3] ?? false))
       excluded.push(name);
+    else if (type === 'category' && setting === 'account' && textCell(cells[3]))
+      scoped.push({ name, account: textCell(cells[3]) });
     else if (type === 'account' && setting === 'inverted' && flagSchema.parse(cells[3] ?? false))
       invertedAccounts.push(name);
   }
@@ -197,6 +201,11 @@ export function parseMetadata(values: readonly (readonly unknown[])[]): {
     const known = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
     if (known) known.excluded = true;
     else categories.push({ name, color: '', excluded: true });
+  }
+  for (const { name, account } of scoped) {
+    let known = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (!known) categories.push((known = { name, color: '' }));
+    if (!known.accounts?.includes(account)) known.accounts = [...(known.accounts ?? []), account];
   }
   return { categories, invertedAccounts };
 }
@@ -221,6 +230,14 @@ export function metadataEntries(
         setting: 'excluded',
         value: true,
       })),
+    ...categories.flatMap((c) =>
+      (c.accounts ?? []).map((account): MetadataEntry => ({
+        type: 'category',
+        name: c.name,
+        setting: 'account',
+        value: account,
+      }))
+    ),
     ...accounts
       .filter((a) => a.inverted)
       .map((a): MetadataEntry => ({

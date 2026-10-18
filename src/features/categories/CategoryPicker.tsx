@@ -16,7 +16,13 @@ type Option =
 
 interface CategoryPickerProps {
   value: string;
+  /** The categories offered in the list. */
   categories: Category[];
+  /**
+   * Every category, used for the chip colour and to refuse a new name that already exists, even if
+   * it is limited to another account. Defaults to `categories`.
+   */
+  allCategories?: Category[];
   onChange(name: string): void;
   /** Adds a new category to the list. The picker selects it once this resolves. */
   onCreate(name: string): Promise<void>;
@@ -33,6 +39,7 @@ interface CategoryPickerProps {
 export function CategoryPicker({
   value,
   categories,
+  allCategories = categories,
   onChange,
   onCreate,
   inputRef,
@@ -49,10 +56,10 @@ export function CategoryPicker({
     const matches = searchCategories(categories, open ? query : '');
     const list: Option[] = matches.map((category) => ({ kind: 'category', category }));
     if (!query.trim() || !open) list.unshift({ kind: 'none' });
-    if (open && query.trim() && validateCategoryName(categories, query) === null)
+    if (open && query.trim() && validateCategoryName(allCategories, query) === null)
       list.push({ kind: 'create', name: query.trim() });
     return list;
-  }, [categories, query, open]);
+  }, [categories, allCategories, query, open]);
 
   const openList = () => {
     setOpen(true);
@@ -100,14 +107,14 @@ export function CategoryPicker({
       close();
     } else if (event.key === 'Tab' && open) {
       // Accept an exact match on tab so typing "rent⇥" works; otherwise keep the old value.
-      const exact = findCategory(categories, query);
+      const exact = findCategory(allCategories, query);
       if (exact) commit(exact.name);
       else if (!query.trim()) commit('');
       else close();
     }
   };
 
-  const shownColor = value.trim() && !open ? categoryColor(categories, value) : undefined;
+  const shownColor = value.trim() && !open ? categoryColor(allCategories, value) : undefined;
 
   return (
     <div className="relative min-w-0">
@@ -143,7 +150,7 @@ export function CategoryPicker({
           setOpen(true);
           setActive(0);
           // Keep the value in step with an exact match so saving without picking still works.
-          const exact = findCategory(categories, text);
+          const exact = findCategory(allCategories, text);
           if (exact) onChange(exact.name);
           else if (!text.trim()) onChange('');
         }}

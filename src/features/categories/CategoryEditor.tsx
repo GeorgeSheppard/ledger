@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { validateCategoryName } from '../../lib/categories/categories';
-import type { Category } from '../../lib/domain/types';
+import { validateCategoryName, withAccounts } from '../../lib/categories/categories';
+import type { Account, Category } from '../../lib/domain/types';
 import { ActionButton } from '../../ui/ActionButton';
 import { ColorPicker } from './ColorPicker';
 import { cn } from '../../ui/cn';
@@ -9,6 +9,7 @@ import { EDITOR_FOOTER, EDITOR_PANEL } from '../accounts/rowStyles';
 
 interface CategoryEditorProps {
   categories: Category[];
+  accounts: Account[];
   /** The category being edited; omit for a new one. */
   original?: Category;
   initialColor: string;
@@ -21,6 +22,7 @@ interface CategoryEditorProps {
 /** Inline editor for a category's name and colour. Enter or ⌘↵ saves, Escape cancels. */
 export function CategoryEditor({
   categories,
+  accounts,
   original,
   initialColor,
   usage,
@@ -31,12 +33,18 @@ export function CategoryEditor({
   const [name, setName] = useState(original?.name ?? '');
   const [color, setColor] = useState(original?.color ?? initialColor);
   const [excluded, setExcluded] = useState(original?.excluded ?? false);
+  const [scoped, setScoped] = useState<string[]>(original?.accounts ?? []);
+  const [limited, setLimited] = useState(!!original?.accounts?.length);
   const [error, setError] = useState<string | null>(null);
 
   const save = () => {
     const problem = validateCategoryName(categories, name, original?.name);
     if (problem) return setError(problem);
-    onSave(excluded ? { name: name.trim(), color, excluded } : { name: name.trim(), color });
+    if (limited && scoped.length === 0) return setError('Pick at least one account');
+    const base: Category = excluded
+      ? { name: name.trim(), color, excluded }
+      : { name: name.trim(), color };
+    onSave(withAccounts(base, limited ? scoped : undefined));
   };
 
   const renaming = original && name.trim() && name.trim() !== original.name && usage > 0;
@@ -67,6 +75,60 @@ export function CategoryEditor({
         />
         <ColorPicker value={color} onChange={setColor} />
       </div>
+      <fieldset className="px-3 pb-3 text-sm">
+        <legend className="font-medium">Available on</legend>
+        <div className="mt-1 flex flex-col gap-1">
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="radio"
+              name="scope"
+              className="size-4 accent-accent"
+              checked={!limited}
+              onChange={() => setLimited(false)}
+            />
+            All accounts
+          </label>
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="radio"
+              name="scope"
+              className="size-4 accent-accent"
+              checked={limited}
+              disabled={accounts.length === 0}
+              onChange={() => {
+                setLimited(true);
+                setError(null);
+              }}
+            />
+            Specific accounts
+          </label>
+          {limited && (
+            <div className="ml-6 flex flex-wrap gap-x-4 gap-y-1">
+              {accounts.map((account) => (
+                <label key={account.id} className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-accent"
+                    checked={scoped.includes(account.name)}
+                    onChange={(e) => {
+                      setError(null);
+                      setScoped(
+                        e.target.checked
+                          ? [...scoped, account.name]
+                          : scoped.filter((n) => n !== account.name)
+                      );
+                    }}
+                  />
+                  {account.name}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+        <span className="mt-1 block text-xs text-muted">
+          Only the picker changes: every chart still groups transactions by category name.
+        </span>
+      </fieldset>
       <label className="flex cursor-pointer items-start gap-2 px-3 pb-3 text-sm">
         <input
           type="checkbox"

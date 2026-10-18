@@ -1,6 +1,6 @@
 import { defaultRangeExtractor, useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { addCategory } from '../../lib/categories/categories';
+import { addCategory, categoriesForAccount } from '../../lib/categories/categories';
 import type { Account, Category, Transaction } from '../../lib/domain/types';
 import { formatAmount } from '../../lib/transactions/amount';
 import { formatMonth, todayIso } from '../../lib/transactions/dates';
@@ -411,6 +411,11 @@ export function TransactionTable({
     },
   ];
 
+  const offeredCategories = useMemo(
+    () => categoriesForAccount(categories, account.name),
+    [categories, account.name]
+  );
+
   const createCategory = async (name: string) => {
     await actions.saveCategories(addCategory(categories, name));
   };
@@ -437,7 +442,8 @@ export function TransactionTable({
     <TransactionEditor
       draft={editing.draft}
       errors={editing.errors}
-      categories={categories}
+      categories={offeredCategories}
+      allCategories={categories}
       isNew={mode.kind === 'new'}
       saving={saving}
       total={editingRow ? transactions.find((t) => t.id === editingRow)?.total : undefined}

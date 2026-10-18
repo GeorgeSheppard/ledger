@@ -11,7 +11,10 @@ import { EDITOR_FOOTER, EDITOR_PANEL, TRANSACTION_GRID } from './rowStyles';
 interface TransactionEditorProps {
   draft: TransactionDraft;
   errors: DraftErrors;
+  /** The categories this account offers (global ones plus its own). */
   categories: Category[];
+  /** Every category, for colours and name checks. Defaults to `categories`. */
+  allCategories?: Category[];
   isNew: boolean;
   saving: boolean;
   /** Running total of the row being edited, shown for context. */
@@ -30,6 +33,7 @@ export function TransactionEditor({
   draft,
   errors,
   categories,
+  allCategories,
   isNew,
   saving,
   total,
@@ -71,6 +75,7 @@ export function TransactionEditor({
           <CategoryPicker
             value={draft.category}
             categories={categories}
+            allCategories={allCategories}
             onChange={set('category')}
             onCreate={onCreateCategory}
           />

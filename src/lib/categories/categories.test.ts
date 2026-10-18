@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { Category, Transaction } from '../domain/types';
 import {
   addCategory,
+  categoriesForAccount,
   categoryColor,
+  isGlobal,
+  setCategoryAccounts,
   completeCategories,
   ignoredCategoryNames,
   setCategoryExcluded,
@@ -114,6 +117,32 @@ describe('completeCategories', () => {
       completeCategories([], [tx('pets')]).map((c) => ({ ...c, name: 'Pets' }))
     );
     expect(stableCategoryColor('Pets')).toBe(stableCategoryColor(' pets '));
+  });
+});
+
+describe('account scope', () => {
+  const scoped = setCategoryAccounts(list, 'Rent', ['Current']);
+
+  it('offers global categories everywhere and limited ones only on their accounts', () => {
+    expect(categoriesForAccount(scoped, 'Current').map((c) => c.name)).toEqual(
+      list.map((c) => c.name)
+    );
+    expect(categoriesForAccount(scoped, 'Savings').map((c) => c.name)).not.toContain('Rent');
+  });
+
+  it('treats an empty account list as global and drops the field', () => {
+    expect(scoped[1]).toEqual({ name: 'Rent', color: '#d9534f', accounts: ['Current'] });
+    const back = setCategoryAccounts(scoped, 'rent', []);
+    expect(back).toEqual(list);
+    expect(isGlobal(back[1]!)).toBe(true);
+  });
+
+  it('adds a category already limited to accounts', () => {
+    expect(addCategory(list, 'Fees', '#abcdef', false, ['Current']).at(-1)).toEqual({
+      name: 'Fees',
+      color: '#abcdef',
+      accounts: ['Current'],
+    });
   });
 });
 
