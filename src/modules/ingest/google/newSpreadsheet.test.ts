@@ -13,7 +13,9 @@ describe('newSpreadsheetBody', () => {
       (c) => c.userEnteredValue?.stringValue
     );
     expect(header).toEqual(['Date', 'Category', 'Amount', 'Note', 'Total']);
-    expect(body.sheets[1]?.data?.[0]?.rowData).toHaveLength(DEFAULT_CATEGORIES.length + 1);
+    expect(body.sheets[1]?.data?.[0]?.rowData).toHaveLength(
+      1 + DEFAULT_CATEGORIES.length + DEFAULT_CATEGORIES.filter((c) => c.excluded).length
+    );
   });
 
   it('falls back to a default title', async () => {

@@ -12,6 +12,8 @@ export interface WidgetViewProps {
   paychecks: Paycheck[];
   /** Range for widgets that follow the page. */
   pageRange: DashboardRange;
+  /** Lower-cased names of categories left out of income and spending. */
+  ignoredCategories: ReadonlySet<string>;
   colorOf(category: string): string;
   /** The month picked on a spending chart, shared by every breakdown. */
   selectedMonth: MonthKey | null;
@@ -29,6 +31,7 @@ export function WidgetView({
   ledgers,
   paychecks,
   pageRange,
+  ignoredCategories,
   colorOf,
   selectedMonth,
   onSelectMonth,
@@ -44,8 +47,8 @@ export function WidgetView({
     [widget, ledgers]
   );
   const dashboard = useMemo(
-    () => buildDashboard(ledgers, range, accountIds),
-    [ledgers, range, accountIds]
+    () => buildDashboard(ledgers, range, accountIds, ignoredCategories),
+    [ledgers, range, accountIds, ignoredCategories]
   );
 
   const graph = graphOf(widget.kind);
@@ -60,6 +63,7 @@ export function WidgetView({
       paychecks={paychecks}
       range={range}
       accountIds={accountIds}
+      ignoredCategories={ignoredCategories}
       colorOf={colorOf}
       month={month}
       onSelectMonth={onSelectMonth}

@@ -131,6 +131,17 @@ describe('writing a workbook', () => {
     expect(reread.data.categories[0]).toEqual({ name: 'Rent', color: '#d9534f' });
   });
 
+  it('round-trips an excluded category through _Metadata', async () => {
+    const state = ledgerFromTabs(await readWorkbookTabs(await userWorkbook()));
+    const remote = fileRemote('mine', state, await userWorkbook());
+    const store = await LedgerStore.open({ spreadsheetId: 'file', remote });
+    const [first] = await store.listCategories();
+    await store.saveCategories([{ ...first!, excluded: true }]);
+    const file = await store.download();
+    const reread = ledgerFromTabs(await readWorkbookTabs(file.bytes));
+    expect(reread.data.categories.find((c) => c.name === first!.name)?.excluded).toBe(true);
+  });
+
   it('writes dates as date cells and Total as a running SUM formula', async () => {
     const book = new ExcelJS.Workbook();
     await book.xlsx.load(asBuffer(await writeWorkbook(null, [], fixtureData())));

@@ -65,9 +65,18 @@ export function isOpeningBalance(transaction: Transaction): boolean {
   );
 }
 
-/** Ids of every transaction to leave out of income and spending. */
-export function excludedFromCashFlow(transactions: readonly Transaction[]): Set<string> {
+/**
+ * Ids of every transaction to leave out of income and spending: matched transfers, opening
+ * balances, and anything in a category the user excluded (`ignoredCategories`, lower-cased names;
+ * see `ignoredCategoryNames`). Net worth and balances do not use this, so they stay complete.
+ */
+export function excludedFromCashFlow(
+  transactions: readonly Transaction[],
+  ignoredCategories: ReadonlySet<string> = new Set()
+): Set<string> {
   const excluded = findTransfers(transactions);
-  for (const t of transactions) if (isOpeningBalance(t)) excluded.add(t.id);
+  for (const t of transactions)
+    if (isOpeningBalance(t) || ignoredCategories.has(t.category.trim().toLowerCase()))
+      excluded.add(t.id);
   return excluded;
 }

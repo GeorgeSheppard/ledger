@@ -144,6 +144,26 @@ describe('_Metadata', () => {
     });
   });
 
+  it('reads and writes excluded categories, whichever order the rows come in', () => {
+    const values = [
+      ['category', 'transfers', 'excluded', true],
+      ['category', 'Transfers', 'color', '#bb9dff'],
+      ['category', 'Food', 'color', '#4f7cff'],
+      ['category', 'Food', 'excluded', 'FALSE'],
+      ['category', 'Gifts', 'excluded', 'yes'],
+    ];
+    const { categories } = parseMetadata(values);
+    expect(categories).toEqual([
+      { name: 'Transfers', color: '#bb9dff', excluded: true },
+      { name: 'Food', color: '#4f7cff' },
+      { name: 'Gifts', color: '', excluded: true },
+    ]);
+    expect(metadataEntries(categories, []).filter((e) => e.setting === 'excluded')).toEqual([
+      { type: 'category', name: 'Transfers', setting: 'excluded', value: true },
+      { type: 'category', name: 'Gifts', setting: 'excluded', value: true },
+    ]);
+  });
+
   it('writes only the settings that differ from the default, categories first', () => {
     expect(
       metadataEntries(

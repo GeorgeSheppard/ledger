@@ -87,7 +87,8 @@ function CategoryList({
   };
 
   const save = (next: Category) => {
-    if (mode.kind === 'new') void run(() => actions.add(next.name, next.color), next.name);
+    if (mode.kind === 'new')
+      void run(() => actions.add(next.name, next.color, next.excluded), next.name);
     else if (mode.kind === 'edit' && selected)
       void run(() => actions.edit(selected, next), next.name);
   };
@@ -154,6 +155,13 @@ function CategoryList({
           onAction={() => dispatch({ type: 'confirm-delete' })}
         >
           Delete
+        </ActionButton>
+        <ActionButton
+          variant="ghost"
+          disabled={!browsing || saving || categories.length < 2}
+          onAction={() => void run(() => actions.spreadColors())}
+        >
+          Spread colours
         </ActionButton>
         <span className="ml-auto inline-flex items-center gap-1.5 text-[0.8125rem] text-muted max-md:hidden">
           <Kbd shortcut="categories.down" />

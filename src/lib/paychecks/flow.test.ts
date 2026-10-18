@@ -46,6 +46,19 @@ describe('buildMoneyFlow', () => {
     ]),
   ];
 
+  it('leaves excluded categories out of the spending side', () => {
+    const flow = buildMoneyFlow({
+      paychecks: [salary],
+      ledgers,
+      from: '2026-01',
+      to: '2026-02',
+      ignoredCategories: new Set(['rent']),
+    })!;
+    expect(flow.totals.spending).toBe(400);
+    expect(flow.nodes.some((n) => n.category === 'Rent')).toBe(false);
+    balanced(flow);
+  });
+
   it('follows gross through deductions and take-home into accounts and categories', () => {
     const flow = buildMoneyFlow({ paychecks: [salary], ledgers, from: '2026-01', to: '2026-02' })!;
     expect(flow.totals).toEqual({ gross: 6000, deductions: 1200, takeHome: 4800, spending: 2000 });

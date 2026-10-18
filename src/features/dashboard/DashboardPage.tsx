@@ -25,6 +25,7 @@ import { formatMonthLong } from '../../modules/graphs/shared/format';
 import { useDashboardData } from './useDashboardData';
 import { WidgetEditor } from './WidgetEditor';
 import { createWidget, defaultDashboard, widgetTitle } from '../../modules/graphs';
+import { ignoredCategoryNames } from '../../lib/categories/categories';
 import { WidgetView } from './WidgetView';
 
 const RANGES: { range: DashboardRange; label: string; shortcut: ShortcutId }[] = [
@@ -55,9 +56,10 @@ export function DashboardPage() {
   const [saving, setSaving] = useState(false);
 
   const ledgers = query.data?.ledgers;
+  const ignored = useMemo(() => ignoredCategoryNames(query.data?.categories ?? []), [query.data]);
   const overall = useMemo(
-    () => (ledgers ? buildDashboard(ledgers, range) : null),
-    [ledgers, range]
+    () => (ledgers ? buildDashboard(ledgers, range, undefined, ignored) : null),
+    [ledgers, range, ignored]
   );
   const colorOf = useMemo(() => {
     const colors = new Map(query.data?.categories.map((c) => [c.name, c.color]));
@@ -325,6 +327,7 @@ export function DashboardPage() {
                     ledgers={query.data.ledgers}
                     paychecks={paychecks}
                     pageRange={range}
+                    ignoredCategories={ignored}
                     colorOf={colorOf}
                     selectedMonth={pickedMonth}
                     onSelectMonth={setPickedMonth}

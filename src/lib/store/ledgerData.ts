@@ -294,7 +294,11 @@ function setFlag(account: Account, inverted: boolean | undefined): Account {
 
 export function sameCategories(a: readonly Category[], b: readonly Category[]): boolean {
   return (
-    a.length === b.length && a.every((c, i) => c.name === b[i]!.name && c.color === b[i]!.color)
+    a.length === b.length &&
+    a.every(
+      (c, i) =>
+        c.name === b[i]!.name && c.color === b[i]!.color && !!c.excluded === !!b[i]!.excluded
+    )
   );
 }
 

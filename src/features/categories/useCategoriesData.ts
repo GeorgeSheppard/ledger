@@ -3,9 +3,11 @@ import {
   addCategory,
   moveCategory,
   recolorCategory,
+  setCategoryExcluded,
   removeCategory,
   sameName,
 } from '../../lib/categories/categories';
+import { respreadColors } from '../../lib/categories/palette';
 import type { Category } from '../../lib/domain/types';
 import { countUsage } from '../../lib/categories/categories';
 import { useLedger, useLedgerMutation, type QueryState } from '../../state/ledgerData';
@@ -32,7 +34,10 @@ export function useCategoryActions() {
     const update = (change: (list: Category[]) => Category[]) =>
       mutate(async (r) => r.saveCategories(change(await r.listCategories())));
     return {
-      add: (name: string, color: string) => update((list) => addCategory(list, name, color)),
+      add: (name: string, color: string, excluded = false) =>
+        update((list) => addCategory(list, name, color, excluded)),
+      /** Gives every category a clearly different palette colour. */
+      spreadColors: () => update(respreadColors),
       remove: (name: string) => update((list) => removeCategory(list, name)),
       move: (name: string, delta: number) => update((list) => moveCategory(list, name, delta)),
       /** Renames (rewriting every transaction that used the old name) and/or recolours. */
@@ -43,6 +48,11 @@ export function useCategoryActions() {
             const list = await r.listCategories();
             const name = list.find((c) => sameName(c.name, next.name))?.name ?? next.name;
             await r.saveCategories(recolorCategory(list, name, next.color));
+          }
+          if (!!next.excluded !== !!original.excluded) {
+            const list = await r.listCategories();
+            const name = list.find((c) => sameName(c.name, next.name))?.name ?? next.name;
+            await r.saveCategories(setCategoryExcluded(list, name, !!next.excluded));
           }
         }),
     };

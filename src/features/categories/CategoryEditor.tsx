@@ -30,12 +30,13 @@ export function CategoryEditor({
 }: CategoryEditorProps) {
   const [name, setName] = useState(original?.name ?? '');
   const [color, setColor] = useState(original?.color ?? initialColor);
+  const [excluded, setExcluded] = useState(original?.excluded ?? false);
   const [error, setError] = useState<string | null>(null);
 
   const save = () => {
     const problem = validateCategoryName(categories, name, original?.name);
     if (problem) return setError(problem);
-    onSave({ name: name.trim(), color });
+    onSave(excluded ? { name: name.trim(), color, excluded } : { name: name.trim(), color });
   };
 
   const renaming = original && name.trim() && name.trim() !== original.name && usage > 0;
@@ -66,6 +67,21 @@ export function CategoryEditor({
         />
         <ColorPicker value={color} onChange={setColor} />
       </div>
+      <label className="flex cursor-pointer items-start gap-2 px-3 pb-3 text-sm">
+        <input
+          type="checkbox"
+          className="mt-0.5 size-4 accent-accent"
+          checked={excluded}
+          onChange={(e) => setExcluded(e.target.checked)}
+        />
+        <span>
+          <span className="font-medium">Exclude from calculations</span>
+          <span className="block text-xs text-muted">
+            Left out of spending, income, cash flow and the money-flow chart. Balances and net worth
+            still include it. Useful for moving money between your own accounts.
+          </span>
+        </span>
+      </label>
       <div className={EDITOR_FOOTER}>
         <p
           className={cn('text-[0.8125rem] text-muted', error && 'text-negative')}

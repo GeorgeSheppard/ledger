@@ -13,11 +13,18 @@ export const sankeyGraph: Graph = {
   label: 'Money flow from paychecks (Sankey)',
   defaultWidth: 4,
   title: () => 'Where your money goes',
-  View({ widget, ledgers, paychecks, range, colorOf }) {
+  View({ widget, ledgers, paychecks, range, ignoredCategories, colorOf }) {
     const flow = useMemo(() => {
       const { from, to } = flowWindow(ledgers, paychecks, range, todayIso());
-      return buildMoneyFlow({ paychecks, ledgers, from, to, accountIds: widget.accounts });
-    }, [widget.accounts, ledgers, paychecks, range]);
+      return buildMoneyFlow({
+        paychecks,
+        ledgers,
+        from,
+        to,
+        accountIds: widget.accounts,
+        ignoredCategories,
+      });
+    }, [widget.accounts, ledgers, paychecks, range, ignoredCategories]);
 
     if (paychecks.length === 0)
       return (
