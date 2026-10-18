@@ -217,11 +217,21 @@ export function AccountsOverviewPage() {
           <div
             className={cn(
               GRID,
-              'mt-2 border-t border-line px-3 pt-3 text-sm font-semibold max-md:grid-cols-[1fr_auto]'
+              'mt-2 min-h-11 cursor-pointer items-center rounded-lg border-t border-line px-3 text-sm font-semibold transition-colors hover:bg-surface-hover max-md:grid-cols-[1fr_auto]',
+              'focus-visible:outline-2 focus-visible:outline-accent'
             )}
             role="row"
+            tabIndex={0}
+            aria-label="Total, open all transactions"
+            onClick={() => navigate(paths.transactions)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') navigate(paths.transactions);
+            }}
           >
-            <span role="cell">Total</span>
+            <span role="cell">
+              Total
+              <span className="ml-2 font-normal text-muted">View all transactions ›</span>
+            </span>
             <span className="max-md:hidden" />
             <span className="max-md:hidden" />
             <span

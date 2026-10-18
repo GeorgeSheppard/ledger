@@ -94,6 +94,7 @@ export function AccountsPage() {
             current={account}
             disabled={importing}
             onSelect={go}
+            onSelectAll={() => navigate(paths.transactions)}
             onNew={() => setNameForm({ kind: 'new' })}
           />
           <ActionButton disabled={blocked || !ready} onAction={() => setImporting(true)}>

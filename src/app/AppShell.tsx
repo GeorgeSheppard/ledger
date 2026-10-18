@@ -15,7 +15,6 @@ import { paths } from './paths';
 const NAV: { to: string; label: string; shortcut: ShortcutId }[] = [
   { to: paths.home, label: 'Dashboard', shortcut: 'nav.dashboard' },
   { to: paths.accounts, label: 'Accounts', shortcut: 'nav.accounts' },
-  { to: paths.transactions, label: 'All transactions', shortcut: 'nav.transactions' },
   { to: paths.categories, label: 'Categories', shortcut: 'nav.categories' },
   { to: paths.paychecks, label: 'Paychecks', shortcut: 'nav.paychecks' },
 ];

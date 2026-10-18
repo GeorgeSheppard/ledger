@@ -32,7 +32,7 @@ export const AccountPage: Story = {
   ),
 };
 
-/** Opened from "All transactions" in the navigation: every account, unfiltered. */
+/** Opened from the Total row of the accounts overview: every account, unfiltered. */
 export const AllTransactions: Story = {
   render: () => (
     <Connected shell route="/transactions">
@@ -41,6 +41,28 @@ export const AllTransactions: Story = {
       </Routes>
     </Connected>
   ),
+};
+
+/** The account switcher lists "All accounts" first; picking it opens the combined list. */
+export const SwitcherWithAllAccounts: Story = {
+  render: () => (
+    <Connected shell route="/accounts/1">
+      <Routes>
+        <Route path="/accounts/:accountId" element={<AccountsPage />} />
+        <Route path="/transactions" element={<TransactionsPage />} />
+      </Routes>
+    </Connected>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole('button', { name: /switch account/i }));
+    await userEvent.click(await canvas.findByRole('option', { name: 'All accounts' }));
+    await expect(await canvas.findByRole('heading', { name: 'All transactions' })).toBeVisible();
+    await userEvent.click(await canvas.findByRole('button', { name: /switch account/i }));
+    await expect(await canvas.findByRole('option', { name: /All accounts/ })).toHaveAttribute(
+      'aria-selected'
+    );
+  },
 };
 
 /** Opened from a graph's "View transactions": every account in one list, already narrowed to a date range. */

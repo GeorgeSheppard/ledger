@@ -32,7 +32,6 @@ export const SHORTCUTS = {
   // mod+N/T/W (the browser keeps them) and mod+C/V/X/Z/F/R/L/P (copy, find, reload and friends).
   'nav.dashboard': { keys: 'mod+d', description: 'Go to dashboard', scope: 'global' },
   'nav.accounts': { keys: 'mod+a', description: 'Go to accounts', scope: 'global' },
-  'nav.transactions': { keys: 'mod+e', description: 'Go to all transactions', scope: 'global' },
   'nav.categories': { keys: 'mod+k', description: 'Go to categories', scope: 'global' },
   'nav.paychecks': { keys: 'mod+y', description: 'Go to paychecks', scope: 'global' },
   'sync.save': {
