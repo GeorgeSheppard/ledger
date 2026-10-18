@@ -1,7 +1,10 @@
+import { Link } from 'react-router';
+import { paths } from '../../app/paths';
 import { useSession } from '../../state/session';
 import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
 import { useAsyncAction } from '../connect/useAsyncAction';
+import { LegalLinks } from '../legal/LegalPage';
 import { SheetPreview } from './SheetPreview';
 
 const FEATURES = [
@@ -82,7 +85,9 @@ export function LandingPage() {
           {cta}
           <p className="max-w-md text-sm text-muted">
             By signing in you agree to let Ledger read and change the spreadsheets you choose or
-            create with it. Nothing else in your Google account is shared.
+            create with it, and to the <Link to={paths.terms}>terms of service</Link> and{' '}
+            <Link to={paths.privacy}>privacy policy</Link>. Nothing else in your Google account is
+            shared.
           </p>
         </div>
         <SheetPreview />
@@ -135,6 +140,10 @@ export function LandingPage() {
         </ul>
         {cta}
       </section>
+
+      <footer className="border-t border-line pt-6">
+        <LegalLinks />
+      </footer>
     </div>
   );
 }
