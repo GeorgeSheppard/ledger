@@ -125,7 +125,7 @@ export function TransactionTable({
   const [saving, setSaving] = useState(false);
   const [writeError, setWriteError] = useState<string | null>(null);
   const [filters, setFilters] = useState<TransactionFilters>(initialFilters ?? noFilters);
-  const [sort, setSort] = useState<Sort>(defaultSort);
+  const [sort, setSort] = useState<Sort | null>(null);
   const [panelOpen, setPanelOpen] = useState(
     () => initialFilters !== undefined && hasFilters(initialFilters)
   );
@@ -134,10 +134,10 @@ export function TransactionTable({
   const wide = useMediaQuery('(min-width: 768px)');
 
   const shown = useMemo(
-    () => sortTransactions(filterTransactions(transactions, filters), sort),
+    () => sortTransactions(filterTransactions(transactions, filters), sort ?? defaultSort),
     [transactions, filters, sort]
   );
-  const grouped = isDefaultSort(sort);
+  const grouped = sort === null;
   const groups = useMemo(() => (grouped ? groupByMonth(shown) : []), [grouped, shown]);
   const shownIds = useMemo(() => shown.map((t) => t.id), [shown]);
   const categoryNames = useMemo(() => categoriesInUse(transactions), [transactions]);
@@ -436,8 +436,8 @@ export function TransactionTable({
   ];
 
   const offeredCategories = useMemo(
-    () => categoriesForAccount(categories, account.name),
-    [categories, account.name]
+    () => (account ? categoriesForAccount(categories, account.name) : categories),
+    [categories, account]
   );
 
   const createCategory = async (name: string) => {
@@ -659,8 +659,8 @@ export function TransactionTable({
           categoryNames={categoryNames}
           categories={categories}
           accounts={mixed ? accounts : undefined}
-          sort={sort}
-          onSortChange={setSort}
+          sort={sort ?? defaultSort}
+          onSortChange={(next) => setSort(isDefaultSort(next) ? null : next)}
           autoFocusSearch={focusSearch}
         />
       )}
@@ -717,7 +717,7 @@ export function TransactionTable({
         role="row"
       >
         {COLUMNS.map((column) => {
-          const active = sort.key === column.key;
+          const active = sort?.key === column.key;
           const isAccount = mixed && column.key === 'total';
           return (
             <span
@@ -743,9 +743,9 @@ export function TransactionTable({
                   {column.label}
                   <span
                     aria-hidden="true"
-                    className={cn('text-[0.625rem]', !active && 'opacity-0')}
+                    className={cn('text-[0.625rem]', !active && 'opacity-40')}
                   >
-                    {sort.direction === 'asc' && active ? '▲' : '▼'}
+                    {!active ? '⇅' : sort.direction === 'asc' ? '▲' : '▼'}
                   </span>
                 </button>
               )}

@@ -11,6 +11,7 @@ import {
   noFilters,
   sortTransactions,
   totalsOf,
+  type SortKey,
   type TransactionFilters,
 } from './filters';
 import { transactionKey } from './duplicates';
@@ -120,14 +121,31 @@ describe('sortTransactions', () => {
     expect(rows).toEqual(copy);
   });
 
-  it('nextSort starts a column sensibly, then flips it', () => {
-    expect(nextSort(defaultSort, 'note')).toEqual({ key: 'note', direction: 'asc' });
-    expect(nextSort(defaultSort, 'amount')).toEqual({ key: 'amount', direction: 'desc' });
-    expect(nextSort({ key: 'note', direction: 'asc' }, 'note')).toEqual({
-      key: 'note',
+  it('nextSort cycles unsorted, first direction, opposite direction, unsorted', () => {
+    const cycle = (key: SortKey) => {
+      const steps = [];
+      let sort = nextSort(null, key);
+      for (let i = 0; i < 3; i++, sort = nextSort(sort, key)) steps.push(sort);
+      return steps;
+    };
+    expect(cycle('note')).toEqual([
+      { key: 'note', direction: 'asc' },
+      { key: 'note', direction: 'desc' },
+      null,
+    ]);
+    expect(cycle('amount')).toEqual([
+      { key: 'amount', direction: 'desc' },
+      { key: 'amount', direction: 'asc' },
+      null,
+    ]);
+    expect(cycle('date')[0]).toEqual({ key: 'date', direction: 'asc' });
+  });
+
+  it('nextSort starts a different column from scratch', () => {
+    expect(nextSort({ key: 'note', direction: 'desc' }, 'amount')).toEqual({
+      key: 'amount',
       direction: 'desc',
     });
-    expect(nextSort(defaultSort, 'date')).toEqual({ key: 'date', direction: 'asc' });
   });
 });
 
