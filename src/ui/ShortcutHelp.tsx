@@ -9,7 +9,7 @@ const SCOPE_LABELS: Partial<Record<ShortcutScope, string>> = {
   accounts: 'Accounts',
   transactions: 'Transactions',
   categories: 'Categories',
-  import: 'CSV import',
+  import: 'Import data',
 };
 
 /** Modal listing every shortcut, grouped by where it applies. */

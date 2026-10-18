@@ -29,7 +29,6 @@ export const SHORTCUTS = {
   'nav.dashboard': { keys: 'g d', description: 'Go to dashboard', scope: 'global' },
   'nav.accounts': { keys: 'g a', description: 'Go to accounts', scope: 'global' },
   'nav.categories': { keys: 'g c', description: 'Go to categories', scope: 'global' },
-  'nav.import': { keys: 'g i', description: 'Go to CSV import', scope: 'global' },
   'help.toggle': { keys: '?', description: 'Show keyboard shortcuts', scope: 'global' },
 
   // Landing and connect (step 1)
@@ -57,6 +56,10 @@ export const SHORTCUTS = {
   'accounts.next': { keys: ']', description: 'Next account', scope: 'accounts' },
   'accounts.new': { keys: 'shift+n', description: 'New account', scope: 'accounts' },
   'accounts.rename': { keys: 'r', description: 'Rename account', scope: 'accounts' },
+  'accounts.down': { keys: 'j', description: 'Next account in list', scope: 'accounts' },
+  'accounts.up': { keys: 'k', description: 'Previous account in list', scope: 'accounts' },
+  'accounts.open': { keys: 'enter', description: 'Open selected account', scope: 'accounts' },
+  'accounts.import': { keys: 'i', description: 'Import data into this account', scope: 'accounts' },
   'transactions.new': { keys: 'n', description: 'New transaction', scope: 'transactions' },
   'transactions.down': { keys: 'j', description: 'Next row', scope: 'transactions' },
   'transactions.up': { keys: 'k', description: 'Previous row', scope: 'transactions' },
@@ -108,7 +111,7 @@ export const SHORTCUTS = {
     scope: 'categories',
   },
 
-  // CSV import (step 4)
+  // Import data dialog on an account page (step 4)
   'import.chooseFile': { keys: 'u', description: 'Choose CSV file', scope: 'import' },
   'import.confirm': {
     keys: 'mod+enter',
@@ -116,11 +119,16 @@ export const SHORTCUTS = {
     scope: 'import',
     allowInInputs: true,
   },
-  'import.account': { keys: 'a', description: 'Choose account to import into', scope: 'import' },
   'import.mapping': { keys: 'm', description: 'Edit column mapping', scope: 'import' },
   'import.invert': { keys: 'i', description: 'Flip amount signs', scope: 'import' },
   'import.filter': { keys: 'f', description: 'Cycle preview filter', scope: 'import' },
   'import.reset': { keys: 'x', description: 'Start over with another file', scope: 'import' },
+  'import.close': {
+    keys: 'escape',
+    description: 'Close import',
+    scope: 'import',
+    allowInInputs: true,
+  },
 } as const satisfies Record<string, ShortcutBinding>;
 
 export type ShortcutId = keyof typeof SHORTCUTS;

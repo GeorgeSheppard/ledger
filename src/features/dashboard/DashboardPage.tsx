@@ -84,10 +84,12 @@ export function DashboardPage() {
     return (
       <Page title="Dashboard">
         <Card className="p-6 text-sm text-muted">
-          <p>No transactions yet. Add some to an account or import a CSV to see your charts.</p>
+          <p>
+            No transactions yet. Add some to an account, or import data from its page, to see your
+            charts.
+          </p>
           <p className="mt-2">
-            <Link to={paths.accounts}>Go to accounts</Link> ·{' '}
-            <Link to={paths.import}>Import CSV</Link>
+            <Link to={paths.accounts}>Go to accounts</Link>
           </p>
         </Card>
       </Page>
