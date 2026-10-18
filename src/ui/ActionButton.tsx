@@ -14,6 +14,8 @@ const VARIANTS = {
 interface ActionButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> {
   /** The shortcut that triggers this button, shown on it. Leave out for rare actions. */
   shortcut?: ShortcutId;
+  /** Keep the shortcut working but don't show it on the button. */
+  hideHint?: boolean;
   onAction(): void;
   variant?: keyof typeof VARIANTS;
   children: ReactNode;
@@ -25,6 +27,7 @@ interface ActionButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>
  */
 export function ActionButton({
   shortcut,
+  hideHint,
   onAction,
   variant = 'secondary',
   disabled,
@@ -49,7 +52,7 @@ export function ActionButton({
       title={rest.title ?? (shortcut ? getBinding(shortcut).description : undefined)}
     >
       <span>{children}</span>
-      {shortcut && <Kbd shortcut={shortcut} />}
+      {shortcut && !hideHint && <Kbd shortcut={shortcut} />}
     </button>
   );
 }
