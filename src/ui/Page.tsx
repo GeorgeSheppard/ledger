@@ -16,7 +16,7 @@ interface PageProps {
 /** Standard page frame: header with title and actions, then content. Use for every page. */
 export function Page({ title, heading, description, actions, className, children }: PageProps) {
   return (
-    <div className={cn('mx-auto flex w-full max-w-6xl flex-col gap-6 p-6 md:p-8', className)}>
+    <div className={cn('mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 md:p-8', className)}>
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           {heading ?? <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>}

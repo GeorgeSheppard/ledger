@@ -12,7 +12,10 @@ export function Kbd({ shortcut, className }: { shortcut: ShortcutId; className?:
   const held = useHeldModifiers();
   const keys = formatKeys(getBinding(shortcut).keys, isMac);
   return (
-    <span className={cn('inline-flex items-center gap-0.5', className)} aria-hidden="true">
+    <span
+      className={cn('inline-flex items-center gap-0.5 no-keys:hidden', className)}
+      aria-hidden="true"
+    >
       {keys.map(({ label, modifier }) => (
         <kbd
           key={label}

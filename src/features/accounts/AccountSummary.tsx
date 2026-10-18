@@ -17,12 +17,12 @@ export function AccountSummary({ transactions }: { transactions: Transaction[] }
     { label: 'Transactions', value: String(summary.count) },
   ];
   return (
-    <dl className="flex flex-wrap items-end gap-x-8 gap-y-2">
-      <div>
+    <dl className="flex flex-wrap items-end gap-x-8 gap-y-2 max-md:gap-x-5">
+      <div className="max-md:w-full">
         <dt className="mb-0.5 text-xs text-muted">Balance</dt>
         <dd
           className={cn(
-            'text-3xl font-semibold tracking-tight tabular-nums',
+            'text-3xl font-semibold tracking-tight tabular-nums max-md:text-2xl',
             summary.balance < 0 && 'text-negative'
           )}
         >

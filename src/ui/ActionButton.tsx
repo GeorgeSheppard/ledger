@@ -39,7 +39,7 @@ export function ActionButton({
       {...rest}
       disabled={disabled}
       className={cn(
-        'inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors',
+        'inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors max-md:gap-1 max-md:px-2 max-md:py-1',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         'disabled:cursor-not-allowed disabled:opacity-50',
         VARIANTS[variant],

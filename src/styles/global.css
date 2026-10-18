@@ -36,6 +36,16 @@
   }
 }
 
+/* Keyboard hints are for devices with a keyboard: hidden on touch screens and narrow windows. */
+@custom-variant no-keys {
+  @media (hover: none) {
+    @slot;
+  }
+  @media (max-width: 767px) {
+    @slot;
+  }
+}
+
 @theme inline {
   --color-canvas: var(--ledger-canvas);
   --color-surface: var(--ledger-surface);

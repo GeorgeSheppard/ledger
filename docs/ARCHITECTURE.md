@@ -33,7 +33,7 @@ src/
     App.tsx                    providers + router
     routes.tsx                 route table and connection guard
     paths.ts                   URL helpers, use instead of string literals
-    AppShell.tsx               sidebar nav, sheet name, shortcut help
+    AppShell.tsx               sidebar nav, sheet name; a top bar on phones
   state/                       React glue between lib/ and the UI
     session.tsx                useSession(): signed-out | signed-in | connected
     ledgerData.tsx             useLedger(), useRepository(), useSyncStatus()
@@ -43,7 +43,6 @@ src/
     Page.tsx                   page frame: title, description, header actions
     Card.tsx                   bordered surface for tables, charts, forms
     Kbd.tsx                    renders a shortcut's keys
-    ShortcutHelp.tsx           `?` overlay listing every shortcut
     cn.ts                      class name joiner (clsx + tailwind-merge)
   storybook/                   providers for stories (real session and store, demo data)
   styles/
