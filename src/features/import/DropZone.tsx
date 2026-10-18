@@ -4,13 +4,15 @@ import { cn } from '../../ui/cn';
 
 interface DropZoneProps {
   onFile(file: File): void;
+  /** Shows a button to paste text from the bank's website instead of choosing a file. */
+  onPasteText?(): void;
   /** Shrinks to a single line once a file is loaded. */
   compact?: boolean;
   fileName?: string;
 }
 
-/** Drag a CSV onto the page, or choose one with the button or `u`. */
-export function DropZone({ onFile, compact, fileName }: DropZoneProps) {
+/** Drag a CSV onto the page, choose one with the button or `u`, or paste text with `p`. */
+export function DropZone({ onFile, onPasteText, compact, fileName }: DropZoneProps) {
   const input = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -60,6 +62,11 @@ export function DropZone({ onFile, compact, fileName }: DropZoneProps) {
       >
         {compact ? 'Choose another file' : 'Choose file'}
       </ActionButton>
+      {onPasteText && !compact && (
+        <ActionButton shortcut="import.paste" variant="secondary" onAction={onPasteText}>
+          Paste text instead
+        </ActionButton>
+      )}
       <input
         ref={input}
         type="file"

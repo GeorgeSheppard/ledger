@@ -20,6 +20,10 @@ export interface PastedParse {
   mapping: ColumnMapping;
   /** Things the user should double check, in plain words. */
   warnings: string[];
+  /** Numeric dates such as 03/04/2026 that nothing in the text settles one way or the other. */
+  ambiguousDates: boolean;
+  /** Whether numeric dates were read day first. */
+  dayFirst: boolean;
 }
 
 export interface PasteOptions {
@@ -315,13 +319,21 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
   const tabbed = tabbedRows(rawLines);
   if (tabbed) {
     const table = toTable(tabbed);
-    return { kind: 'table', table, mapping: guessMapping(table), warnings: [] };
+    return {
+      kind: 'table',
+      table,
+      mapping: guessMapping(table),
+      warnings: [],
+      ambiguousDates: false,
+      dayFirst: options.dayFirst ?? true,
+    };
   }
 
   const detected = detectDayFirst(text);
   const dayFirst = options.dayFirst ?? detected.dayFirst;
   const warnings: string[] = [];
-  if (options.dayFirst === undefined && detected.any && !detected.evidence) {
+  const ambiguousDates = detected.any && !detected.evidence;
+  if (options.dayFirst === undefined && ambiguousDates) {
     warnings.push(
       `Dates like 03/04/2026 can be read two ways; they are read as ${dayFirst ? 'day' : 'month'} first.`
     );
@@ -439,5 +451,7 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
     },
     mapping: { ...TEXT_MAPPING },
     warnings,
+    ambiguousDates,
+    dayFirst,
   };
 }

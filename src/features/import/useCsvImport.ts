@@ -3,6 +3,7 @@ import type { Category, Transaction } from '../../lib/domain/types';
 import { buildImportPlan, withNewCategories, type ImportPlan } from '../../lib/csv/importPlan';
 import { guessMapping, toTable, type ColumnMapping, type CsvTable } from '../../lib/csv/mapping';
 import { parseCsv } from '../../lib/csv/parse';
+import { parsePastedText } from '../../lib/csv/pasted';
 import { useLedgerMutation } from '../../state/ledgerData';
 
 /**
@@ -14,6 +15,14 @@ export interface LoadedFile {
   name: string;
   parsed: string[][];
   table: CsvTable;
+}
+
+/** What the user pasted, kept so the day/month order can be changed without pasting again. */
+export interface PastedSource {
+  text: string;
+  warnings: string[];
+  ambiguousDates: boolean;
+  dayFirst: boolean;
 }
 
 export interface ImportResult {
@@ -28,6 +37,7 @@ export function useCsvImport(accountId: number, existing: Transaction[], categor
 
   const [file, setFile] = useState<LoadedFile | null>(null);
   const [mapping, setMapping] = useState<ColumnMapping | null>(null);
+  const [pasted, setPasted] = useState<PastedSource | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -40,6 +50,7 @@ export function useCsvImport(accountId: number, existing: Transaction[], categor
   const loadFile = useCallback(async (blob: File) => {
     setError(null);
     setResult(null);
+    setPasted(null);
     try {
       const parsed = parseCsv(await blob.text());
       const table = toTable(parsed);
@@ -51,6 +62,29 @@ export function useCsvImport(accountId: number, existing: Transaction[], categor
       setMapping(null);
       setError(e instanceof Error ? e.message : String(e));
     }
+  }, []);
+
+  /** Reads text pasted from a bank's website. `dayFirst` overrides the detected date order. */
+  const loadText = useCallback((text: string, dayFirst?: boolean) => {
+    setError(null);
+    setResult(null);
+    const parsed = parsePastedText(text, { dayFirst });
+    if (parsed.table.rows.length === 0) {
+      setFile(null);
+      setMapping(null);
+      setPasted(null);
+      setError(parsed.warnings.join(' ') || 'Nothing in the pasted text could be read.');
+      return;
+    }
+    const { headers, rows } = parsed.table;
+    setFile({ name: 'Pasted text', parsed: [headers, ...rows], table: parsed.table });
+    setMapping(parsed.mapping);
+    setPasted({
+      text,
+      warnings: parsed.warnings,
+      ambiguousDates: parsed.ambiguousDates,
+      dayFirst: parsed.dayFirst,
+    });
   }, []);
 
   /** Re-reads the file with or without a header row and re-guesses the mapping. */
@@ -67,6 +101,7 @@ export function useCsvImport(accountId: number, existing: Transaction[], categor
   const reset = useCallback(() => {
     setFile(null);
     setMapping(null);
+    setPasted(null);
     setResult(null);
     setError(null);
   }, []);
@@ -89,6 +124,7 @@ export function useCsvImport(accountId: number, existing: Transaction[], categor
       });
       setFile(null);
       setMapping(null);
+      setPasted(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -105,7 +141,9 @@ export function useCsvImport(accountId: number, existing: Transaction[], categor
     error,
     importing,
     result,
+    pasted,
     loadFile,
+    loadText,
     reset,
     confirm,
   };
