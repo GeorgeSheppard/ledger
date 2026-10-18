@@ -148,7 +148,7 @@ export function ZoomControls({ view, children }: { view: ZoomView; children?: Re
   const wide = view.full[1] - view.full[0] <= MIN_RANGE;
   return (
     <div className="mb-2 flex flex-wrap items-center justify-end gap-1">
-      <span className="no-keys:hidden mr-auto text-xs text-muted">
+      <span className="mr-auto text-xs text-muted no-keys:hidden">
         Drag to pan, Ctrl and scroll to zoom
       </span>
       {children}

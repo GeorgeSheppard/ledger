@@ -100,7 +100,7 @@ src/modules/
     ui/            Import data dialog (drop zone, paste box, mapping, preview)
   graphs/        Graph { kind, label, defaultWidth, title(), Options?, View }
     stat/ net-worth/ balances/ spending/ breakdown/ cash-flow/ sankey/
-    shared/        chart primitives (axes, legend, tooltip, theme, formatting)
+    shared/        chart primitives (zoom, Chart.js setup, legend, theme, formatting)
 ```
 
 - **Ingest and save.** Whatever the source, `remoteOf(connection)` gives the store one `LedgerRemote`.
@@ -120,6 +120,14 @@ src/modules/
   kind up in `GRAPHS` and renders its `View` with the widget's accounts, range and data worked out.
   A layout that mentions a removed graph shows "This graph is no longer available" and keeps the
   widget so nothing is lost.
+- **Zoomable time graphs.** Net worth, spending and income/spending are drawn with Chart.js. They
+  start on the widget's whole range, cut into months. Drag to pan, pinch or Ctrl+scroll to zoom
+  (or use the buttons); zooming in re-cuts the data into weeks and then days
+  (`lib/metrics/buckets.ts`, `timeSeries.ts`; the choice is `granularityFor`). `shared/zoom.tsx`
+  owns the visible range and feeds it to Chart.js, whose zoom plugin is loaded on first use. Sankey
+  and the breakdown stay on d3 and plain markup. A graph's "View transactions" button
+  (`shared/ViewTransactions.tsx`) opens an account with the graph's dates and categories as URL
+  filters (`lib/transactions/filterParams.ts`).
 
 ## Styling
 
