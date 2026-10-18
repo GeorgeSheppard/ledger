@@ -1,5 +1,6 @@
 import type { Account, Category, Transaction, TransactionInput } from '../domain/types';
 import { RESERVED_TAB_PREFIX } from '../domain/types';
+import { completeCategories } from '../categories/categories';
 import { runningTotals } from '../transactions/runningTotal';
 
 /**
@@ -247,6 +248,12 @@ export function renameCategory(data: LedgerData, from: string, to: string): Ledg
     rows,
     categories: data.categories.map((c) => (c.name === from ? { ...c, name: to } : c)),
   };
+}
+
+/** Adds the categories the transactions use but the list lacks, and colours any that have none. */
+export function withUsedCategories(data: LedgerData): LedgerData {
+  const categories = completeCategories(data.categories, Object.values(data.rows).flat());
+  return sameCategories(categories, data.categories) ? data : { ...data, categories };
 }
 
 export function setDashboard(data: LedgerData, config: JsonValue | null): LedgerData {

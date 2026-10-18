@@ -29,3 +29,18 @@ export function nextCategoryColor(categories: readonly Category[]): string {
     CATEGORY_PALETTE[categories.length % CATEGORY_PALETTE.length]!
   );
 }
+
+/**
+ * A colour for `name` that is the same every time: the palette entry its name hashes to, or the
+ * next free one after it when `taken` already uses that colour.
+ */
+export function stableCategoryColor(name: string, taken: ReadonlySet<string> = new Set()): string {
+  let hash = 0;
+  for (const char of name.trim().toLowerCase()) hash = (hash * 31 + char.codePointAt(0)!) >>> 0;
+  const start = hash % CATEGORY_PALETTE.length;
+  for (let i = 0; i < CATEGORY_PALETTE.length; i++) {
+    const color = CATEGORY_PALETTE[(start + i) % CATEGORY_PALETTE.length]!;
+    if (!taken.has(color)) return color;
+  }
+  return CATEGORY_PALETTE[start]!;
+}

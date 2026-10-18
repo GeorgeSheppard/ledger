@@ -1,5 +1,10 @@
 import type { Category, Transaction } from '../domain/types';
-import { isHexColor, nextCategoryColor, UNKNOWN_CATEGORY_COLOR } from './palette';
+import {
+  isHexColor,
+  nextCategoryColor,
+  stableCategoryColor,
+  UNKNOWN_CATEGORY_COLOR,
+} from './palette';
 
 /**
  * Operations on the category list. Every function returns a new list and leaves its input alone;
@@ -103,4 +108,35 @@ export function searchCategories(categories: readonly Category[], query: string)
     (c) => !c.name.toLowerCase().startsWith(q) && c.name.toLowerCase().includes(q)
   );
   return [...starts, ...contains];
+}
+
+/**
+ * The category list plus any category the transactions use that it lacks (a sheet with no
+ * `_Categories` tab, or names typed straight into the sheet), and a colour for any entry without one.
+ * New colours come from the palette by name, so they are the same on every load.
+ */
+export function completeCategories(
+  categories: readonly Category[],
+  transactions: Iterable<{ category: string }>
+): Category[] {
+  const known = new Set(categories.map((c) => c.name.trim().toLowerCase()));
+  const used: string[] = [];
+  for (const { category } of transactions) {
+    const name = category.trim();
+    if (name && !known.has(name.toLowerCase())) {
+      known.add(name.toLowerCase());
+      used.push(name);
+    }
+  }
+  const all = [
+    ...categories.map((c) => ({ ...c })),
+    ...used.sort((a, b) => a.localeCompare(b)).map((name) => ({ name, color: '' })),
+  ];
+  const taken = new Set(all.filter((c) => isHexColor(c.color)).map((c) => c.color.toLowerCase()));
+  for (const c of all) {
+    if (isHexColor(c.color)) continue;
+    c.color = stableCategoryColor(c.name, taken);
+    taken.add(c.color);
+  }
+  return all;
 }
