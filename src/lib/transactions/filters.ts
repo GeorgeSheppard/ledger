@@ -104,14 +104,16 @@ export function isDefaultSort(sort: Sort): boolean {
   return sort.key === defaultSort.key && sort.direction === defaultSort.direction;
 }
 
-/** What clicking a column heading does: sort by it, or flip the direction if it already is. */
-export function nextSort(sort: Sort, key: SortKey): Sort {
-  if (sort.key !== key)
-    return {
-      key,
-      direction: key === 'date' || key === 'amount' || key === 'total' ? 'desc' : 'asc',
-    };
-  return { key, direction: sort.direction === 'asc' ? 'desc' : 'asc' };
+/**
+ * What clicking a column heading does. A column cycles unsorted, ascending, descending, then back
+ * to unsorted (`null`, the default order). Dates go ascending first since descending is the default.
+ */
+export function nextSort(sort: Sort | null, key: SortKey): Sort | null {
+  if (!sort || sort.key !== key) {
+    return { key, direction: key === 'amount' || key === 'total' ? 'desc' : 'asc' };
+  }
+  const first: SortDirection = key === 'amount' || key === 'total' ? 'desc' : 'asc';
+  return sort.direction === first ? { key, direction: first === 'asc' ? 'desc' : 'asc' } : null;
 }
 
 /**

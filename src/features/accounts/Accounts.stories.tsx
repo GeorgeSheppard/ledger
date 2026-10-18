@@ -154,6 +154,17 @@ export const SortedByAmount: Story = {
   },
 };
 
+/** A third click on Amount clears the sort, back to the default order grouped by month. */
+export const SortCleared: Story = {
+  render: AccountRoute,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole('button', { name: 'Amount' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Amount' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Amount' }));
+  },
+};
+
 /** "Find all duplicate transactions", after copying a row so there is one to find. */
 export const Duplicates: Story = {
   render: AccountRoute,
