@@ -8,11 +8,18 @@ const OPTION = 'flex items-center justify-between rounded-md px-2.5 py-2 text-sm
 
 interface AccountSwitcherProps {
   accounts: Account[];
-  current: Account;
+  /** `null` when the combined "All accounts" list is open. */
+  current: Account | null;
   disabled?: boolean;
   onSelect(account: Account): void;
-  onNew(): void;
+  /** Opens the combined list of every account; the menu offers it as "All accounts". */
+  onSelectAll(): void;
+  /** Absent where there is no account form to open; the menu then has no "New account" entry. */
+  onNew?(): void;
 }
+
+/** The combined list's place in the menu, ahead of the real accounts. */
+const ALL_ACCOUNTS = 'All accounts';
 
 /** Menu for jumping to another account. `/` opens it; type to filter, arrows and Enter to switch. */
 export function AccountSwitcher({
@@ -20,6 +27,7 @@ export function AccountSwitcher({
   current,
   disabled,
   onSelect,
+  onSelectAll,
   onNew,
 }: AccountSwitcherProps) {
   const [open, setOpen] = useState(false);
@@ -27,8 +35,15 @@ export function AccountSwitcher({
   const [active, setActive] = useState(0);
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const optionId = (account: Account | null) => `${listId}-${account ? account.id : 'all'}`;
 
-  const matches = useMemo(() => filterAccounts(accounts, query), [accounts, query]);
+  /** `null` is "All accounts", listed first while the search still matches its name. */
+  const matches = useMemo<(Account | null)[]>(() => {
+    const found = filterAccounts(accounts, query);
+    return ALL_ACCOUNTS.toLowerCase().includes(query.trim().toLowerCase())
+      ? [null, ...found]
+      : found;
+  }, [accounts, query]);
 
   useEffect(() => {
     if (!open) return;
@@ -41,18 +56,14 @@ export function AccountSwitcher({
 
   const show = () => {
     setQuery('');
-    setActive(
-      Math.max(
-        0,
-        accounts.findIndex((a) => a.id === current.id)
-      )
-    );
+    setActive(current ? Math.max(0, accounts.findIndex((a) => a.id === current.id) + 1) : 0);
     setOpen(true);
   };
 
-  const choose = (account: Account | undefined) => {
+  const choose = (account: Account | null | undefined) => {
     setOpen(false);
-    if (account) onSelect(account);
+    if (account === null) onSelectAll();
+    else if (account) onSelect(account);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -90,7 +101,9 @@ export function AccountSwitcher({
             className="h-9 w-full border-b border-line bg-transparent px-2.5 text-sm text-fg outline-none placeholder:text-muted/70"
             aria-label="Find account"
             aria-controls={listId}
-            aria-activedescendant={matches[active] ? `${listId}-${matches[active].id}` : undefined}
+            aria-activedescendant={
+              matches[active] !== undefined ? optionId(matches[active]) : undefined
+            }
             placeholder="Find account…"
             autoFocus
             value={query}
@@ -101,43 +114,48 @@ export function AccountSwitcher({
             onKeyDown={onKeyDown}
           />
           <ul id={listId} role="listbox" className="my-1.5 max-h-72 overflow-y-auto">
-            {matches.map((account, i) => (
-              <li
-                key={account.id}
-                id={`${listId}-${account.id}`}
-                role="option"
-                aria-selected={i === active}
-                className={cn(
-                  OPTION,
-                  'cursor-pointer',
-                  i === active && 'bg-surface-hover',
-                  account.id === current.id && 'font-semibold'
-                )}
-                onMouseEnter={() => setActive(i)}
-                onClick={() => choose(account)}
-              >
-                {account.name}
-                {account.id === current.id && (
-                  <span className="text-accent" aria-label="current">
-                    ✓
-                  </span>
-                )}
-              </li>
-            ))}
+            {matches.map((account, i) => {
+              const isCurrent = account ? account.id === current?.id : current === null;
+              return (
+                <li
+                  key={account ? account.id : 'all'}
+                  id={optionId(account)}
+                  role="option"
+                  aria-selected={i === active}
+                  className={cn(
+                    OPTION,
+                    'cursor-pointer',
+                    i === active && 'bg-surface-hover',
+                    isCurrent && 'font-semibold'
+                  )}
+                  onMouseEnter={() => setActive(i)}
+                  onClick={() => choose(account)}
+                >
+                  {account ? account.name : ALL_ACCOUNTS}
+                  {isCurrent && (
+                    <span className="text-accent" aria-label="current">
+                      ✓
+                    </span>
+                  )}
+                </li>
+              );
+            })}
             {matches.length === 0 && (
               <li className={cn(OPTION, 'text-muted')}>No accounts match</li>
             )}
           </ul>
-          <button
-            type="button"
-            className="flex w-full cursor-pointer items-center border-t border-line px-2.5 pt-2 pb-1 text-sm text-accent hover:text-accent-hover"
-            onClick={() => {
-              setOpen(false);
-              onNew();
-            }}
-          >
-            <span>+ New account</span>
-          </button>
+          {onNew && (
+            <button
+              type="button"
+              className="flex w-full cursor-pointer items-center border-t border-line px-2.5 pt-2 pb-1 text-sm text-accent hover:text-accent-hover"
+              onClick={() => {
+                setOpen(false);
+                onNew();
+              }}
+            >
+              <span>+ New account</span>
+            </button>
+          )}
         </div>
       )}
     </div>
