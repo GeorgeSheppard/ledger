@@ -3,7 +3,9 @@
  * overlay can list them all. Features reference shortcuts by id (`useShortcut('transactions.new')`)
  * and `<ActionButton shortcut="transactions.new">` shows the keys next to the button.
  *
- * Add new shortcuts to the section for your feature. `bindings.test.ts` fails on duplicates.
+ * Every shortcut is a single chord (one key, optionally with modifiers): no `g d` style sequences,
+ * because there is no way to tell you are half way through one. Add new shortcuts to the section
+ * for your feature. `shortcuts.test.ts` fails on duplicates.
  */
 
 export type ShortcutScope =
@@ -25,13 +27,14 @@ export interface ShortcutBinding {
 }
 
 export const SHORTCUTS = {
-  // Global navigation (scaffold)
-  'nav.dashboard': { keys: 'g d', description: 'Go to dashboard', scope: 'global' },
-  'nav.accounts': { keys: 'g a', description: 'Go to accounts', scope: 'global' },
-  'nav.categories': { keys: 'g c', description: 'Go to categories', scope: 'global' },
-  'nav.import': { keys: 'g i', description: 'Go to CSV import', scope: 'global' },
+  // Global navigation (scaffold). Ctrl/⌘ chords so they never fire while typing a letter. Avoid
+  // mod+N/T/W (the browser keeps them) and mod+C/V/X/Z/F/R/L/P (copy, find, reload and friends).
+  'nav.dashboard': { keys: 'mod+d', description: 'Go to dashboard', scope: 'global' },
+  'nav.accounts': { keys: 'mod+a', description: 'Go to accounts', scope: 'global' },
+  'nav.categories': { keys: 'mod+k', description: 'Go to categories', scope: 'global' },
+  'nav.import': { keys: 'mod+i', description: 'Go to CSV import', scope: 'global' },
   'nav.switchSpreadsheet': {
-    keys: 'g s',
+    keys: 'mod+o',
     description: 'Switch spreadsheet',
     scope: 'global',
   },
