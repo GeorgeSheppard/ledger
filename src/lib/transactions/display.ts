@@ -3,12 +3,13 @@ import { roundCents } from './amount';
 import { monthKey } from './dates';
 
 /**
- * How an account's transactions are presented. The sheet is append-only and its Total column is a
- * running balance in sheet order, so the newest row (the last one) is shown first and totals read
- * correctly from bottom to top.
+ * How an account's transactions are presented: newest date first, whichever way round the sheet
+ * keeps them. Rows on the same day keep their sheet order reversed, so the later row comes first.
  */
 export function displayOrder(transactions: readonly Transaction[]): Transaction[] {
-  return [...transactions].sort((a, b) => b.row - a.row);
+  return [...transactions].sort((a, b) =>
+    a.date === b.date ? b.row - a.row : a.date < b.date ? 1 : -1
+  );
 }
 
 export interface MonthGroup {
@@ -43,6 +44,8 @@ export interface AccountSummary {
   monthIn: number;
   monthOut: number;
   count: number;
+  /** Date of the newest transaction, or null when there are none. */
+  lastDate: IsoDate | null;
 }
 
 export function summarizeAccount(
@@ -53,8 +56,10 @@ export function summarizeAccount(
   let monthIn = 0;
   let monthOut = 0;
   let last: Transaction | undefined;
+  let lastDate: IsoDate | null = null;
   for (const t of transactions) {
     if (!last || t.row > last.row) last = t;
+    if (!lastDate || t.date > lastDate) lastDate = t.date;
     if (monthKey(t.date) !== month) continue;
     if (t.amount > 0) monthIn += t.amount;
     else monthOut += t.amount;
@@ -64,20 +69,22 @@ export function summarizeAccount(
     monthIn: roundCents(monthIn),
     monthOut: roundCents(monthOut),
     count: transactions.length,
+    lastDate,
   };
 }
 
 /**
- * Which row to select after deleting `deleted`. Rows below it in the sheet move up one, so the
- * transaction shown next (the older one, at `row - 1`) keeps its id; when there is none, the newer
- * neighbour slides into the deleted row number.
+ * The id to select after deleting `deleted`: the transaction shown below it (or above it, at the
+ * end of the list). Rows below the deleted one in the sheet move up one, so their ids shift.
  */
 export function selectionAfterDelete(
   transactions: readonly Transaction[],
   deleted: Transaction
 ): string | null {
-  const rows = new Set(transactions.map((t) => t.row));
-  if (rows.has(deleted.row - 1)) return `${deleted.accountId}:${deleted.row - 1}`;
-  if (rows.has(deleted.row + 1)) return deleted.id;
-  return null;
+  const ordered = displayOrder(transactions);
+  const index = ordered.findIndex((t) => t.id === deleted.id);
+  const next = ordered[index + 1] ?? ordered[index - 1];
+  if (index === -1 || !next) return null;
+  const row = next.row > deleted.row ? next.row - 1 : next.row;
+  return `${next.accountId}:${row}`;
 }

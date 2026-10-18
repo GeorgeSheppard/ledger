@@ -67,7 +67,7 @@ export function CashFlowChart({ flows }: { flows: MonthCashFlow[] }) {
               className={CHART_CLASSES.hit}
               x={x(i) - slot / 2}
               y={MARGIN.top}
-              width={slot}
+              width={Math.max(0, slot)}
               height={HEIGHT - MARGIN.top - MARGIN.bottom}
               onMouseEnter={() => setHover(i)}
             />

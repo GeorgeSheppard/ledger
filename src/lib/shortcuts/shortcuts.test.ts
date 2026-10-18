@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SHORTCUTS, type ShortcutBinding } from './bindings';
-import { chordFromEvent, formatKeys, normalizeChord, parseSequence } from './keys';
-import { SEQUENCE_TIMEOUT_MS, SequenceMatcher } from './matcher';
+import { chordFromEvent, formatKeys, heldModifiers, normalizeChord } from './keys';
 
 const event = (
   key: string,
@@ -17,7 +16,6 @@ const event = (
 describe('keys', () => {
   it('normalises modifier order', () => {
     expect(normalizeChord('Shift+Mod+N')).toBe('mod+shift+n');
-    expect(parseSequence('g  d')).toEqual(['g', 'd']);
   });
 
   it('reads chords from events per platform', () => {
@@ -26,53 +24,54 @@ describe('keys', () => {
     expect(chordFromEvent(event('N', { shift: true }), false)).toBe('shift+n');
     expect(chordFromEvent(event('?', { shift: true }), false)).toBe('?');
     expect(chordFromEvent(event('Shift', { shift: true }), false)).toBeNull();
+    expect(chordFromEvent(event('Control', { ctrl: true }), false)).toBeNull();
+  });
+
+  it('reports held modifiers per platform', () => {
+    expect(heldModifiers(event('Control', { ctrl: true }), false)).toEqual(['mod']);
+    expect(heldModifiers(event('Control', { ctrl: true }), true)).toEqual([]);
+    expect(heldModifiers(event('Meta', { meta: true, shift: true }), true)).toEqual([
+      'mod',
+      'shift',
+    ]);
   });
 
   it('formats labels', () => {
-    expect(formatKeys('mod+enter', true)).toEqual([['⌘', '↵']]);
-    expect(formatKeys('g d', false)).toEqual([['G'], ['D']]);
-  });
-});
-
-describe('SequenceMatcher', () => {
-  const candidates = [
-    { id: 'dash', keys: 'g d' },
-    { id: 'new', keys: 'n' },
-  ];
-
-  it('matches single chords and sequences', () => {
-    const m = new SequenceMatcher<string>();
-    expect(m.feed('n', 0, candidates)).toBe('new');
-    expect(m.feed('g', 10, candidates)).toBe('pending');
-    expect(m.feed('d', 20, candidates)).toBe('dash');
-  });
-
-  it('drops a stale sequence prefix', () => {
-    const m = new SequenceMatcher<string>();
-    m.feed('g', 0, candidates);
-    expect(m.feed('d', SEQUENCE_TIMEOUT_MS + 1, candidates)).toBeNull();
-  });
-
-  it('restarts from the current chord when a sequence breaks', () => {
-    const m = new SequenceMatcher<string>();
-    m.feed('g', 0, candidates);
-    expect(m.feed('n', 10, candidates)).toBe('new');
+    expect(formatKeys('mod+enter', true)).toEqual([
+      { label: '⌘', modifier: 'mod' },
+      { label: '↵' },
+    ]);
+    expect(formatKeys('mod+d', false)).toEqual([
+      { label: 'Ctrl', modifier: 'mod' },
+      { label: 'D' },
+    ]);
   });
 });
 
 describe('SHORTCUTS', () => {
+  const entries = Object.entries(SHORTCUTS) as [string, ShortcutBinding][];
+
   it('has no clashing keys', () => {
-    const entries = Object.entries(SHORTCUTS) as [string, ShortcutBinding][];
     for (const [idA, a] of entries) {
       for (const [idB, b] of entries) {
         if (idA >= idB) continue;
         const shareScope = a.scope === b.scope || a.scope === 'global' || b.scope === 'global';
-        const [sa, sb] = [parseSequence(a.keys), parseSequence(b.keys)];
-        const shorter = sa.length <= sb.length ? sa : sb;
-        const longer = shorter === sa ? sb : sa;
-        const clash = shorter.every((c, i) => longer[i] === c);
+        const clash = normalizeChord(a.keys) === normalizeChord(b.keys);
         expect(shareScope && clash, `${idA} clashes with ${idB}`).toBe(false);
       }
+    }
+  });
+
+  it('uses single chords only', () => {
+    for (const [id, { keys }] of entries) expect(keys, id).not.toMatch(/\s/);
+  });
+
+  it('avoids chords the browser keeps or that break copy, find and reload', () => {
+    const reserved = ['n', 't', 'w', 'c', 'v', 'x', 'z', 'f', 'r', 'l', 'p', 'q', 'tab'];
+    for (const [id, { keys }] of entries) {
+      const chord = normalizeChord(keys);
+      if (!chord.startsWith('mod+')) continue;
+      expect(reserved, `${id} uses ${keys}`).not.toContain(chord.split('+').at(-1));
     }
   });
 });

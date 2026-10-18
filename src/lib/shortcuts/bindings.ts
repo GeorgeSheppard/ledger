@@ -3,7 +3,9 @@
  * overlay can list them all. Features reference shortcuts by id (`useShortcut('transactions.new')`)
  * and `<ActionButton shortcut="transactions.new">` shows the keys next to the button.
  *
- * Add new shortcuts to the section for your feature. `bindings.test.ts` fails on duplicates.
+ * Every shortcut is a single chord (one key, optionally with modifiers): no `g d` style sequences,
+ * because there is no way to tell you are half way through one. Add new shortcuts to the section
+ * for your feature. `shortcuts.test.ts` fails on duplicates.
  */
 
 export type ShortcutScope =
@@ -25,13 +27,13 @@ export interface ShortcutBinding {
 }
 
 export const SHORTCUTS = {
-  // Global navigation (scaffold)
-  'nav.dashboard': { keys: 'g d', description: 'Go to dashboard', scope: 'global' },
-  'nav.accounts': { keys: 'g a', description: 'Go to accounts', scope: 'global' },
-  'nav.categories': { keys: 'g c', description: 'Go to categories', scope: 'global' },
-  'nav.import': { keys: 'g i', description: 'Go to CSV import', scope: 'global' },
+  // Global navigation (scaffold). Ctrl/⌘ chords so they never fire while typing a letter. Avoid
+  // mod+N/T/W (the browser keeps them) and mod+C/V/X/Z/F/R/L/P (copy, find, reload and friends).
+  'nav.dashboard': { keys: 'mod+d', description: 'Go to dashboard', scope: 'global' },
+  'nav.accounts': { keys: 'mod+a', description: 'Go to accounts', scope: 'global' },
+  'nav.categories': { keys: 'mod+k', description: 'Go to categories', scope: 'global' },
   'nav.switchSpreadsheet': {
-    keys: 'g s',
+    keys: 'mod+o',
     description: 'Switch spreadsheet',
     scope: 'global',
   },
@@ -55,6 +57,54 @@ export const SHORTCUTS = {
     scope: 'dashboard',
   },
   'dashboard.nextMonth': { keys: ']', description: 'Next month in breakdown', scope: 'dashboard' },
+  'dashboard.edit': { keys: 'e', description: 'Edit dashboard layout', scope: 'dashboard' },
+  'dashboard.addWidget': { keys: 'a', description: 'Add a graph', scope: 'dashboard' },
+  // Shared by the layout and the graph editor; only one of them is listening at a time.
+  'dashboard.save': {
+    keys: 'mod+enter',
+    description: 'Save layout or graph',
+    scope: 'dashboard',
+    allowInInputs: true,
+  },
+  'dashboard.cancel': {
+    keys: 'escape',
+    description: 'Cancel editing',
+    scope: 'dashboard',
+    allowInInputs: true,
+  },
+  'dashboard.resetLayout': {
+    keys: 'shift+r',
+    description: 'Reset to the default layout',
+    scope: 'dashboard',
+  },
+  'dashboard.nextWidget': { keys: 'j', description: 'Select next graph', scope: 'dashboard' },
+  'dashboard.previousWidget': {
+    keys: 'k',
+    description: 'Select previous graph',
+    scope: 'dashboard',
+  },
+  'dashboard.editWidget': { keys: 'enter', description: 'Edit selected graph', scope: 'dashboard' },
+  'dashboard.moveEarlier': {
+    keys: 'shift+arrowleft',
+    description: 'Move selected graph earlier',
+    scope: 'dashboard',
+  },
+  'dashboard.moveLater': {
+    keys: 'shift+arrowright',
+    description: 'Move selected graph later',
+    scope: 'dashboard',
+  },
+  'dashboard.narrower': {
+    keys: '-',
+    description: 'Make selected graph narrower',
+    scope: 'dashboard',
+  },
+  'dashboard.wider': { keys: '=', description: 'Make selected graph wider', scope: 'dashboard' },
+  'dashboard.removeWidget': {
+    keys: 'backspace',
+    description: 'Remove selected graph',
+    scope: 'dashboard',
+  },
 
   // Accounts and transactions (step 2)
   'accounts.switch': { keys: '/', description: 'Switch account', scope: 'accounts' },
@@ -62,6 +112,10 @@ export const SHORTCUTS = {
   'accounts.next': { keys: ']', description: 'Next account', scope: 'accounts' },
   'accounts.new': { keys: 'shift+n', description: 'New account', scope: 'accounts' },
   'accounts.rename': { keys: 'r', description: 'Rename account', scope: 'accounts' },
+  'accounts.down': { keys: 'j', description: 'Next account in list', scope: 'accounts' },
+  'accounts.up': { keys: 'k', description: 'Previous account in list', scope: 'accounts' },
+  'accounts.open': { keys: 'enter', description: 'Open selected account', scope: 'accounts' },
+  'accounts.import': { keys: 'i', description: 'Import data into this account', scope: 'accounts' },
   'transactions.new': { keys: 'n', description: 'New transaction', scope: 'transactions' },
   'transactions.down': { keys: 'j', description: 'Next row', scope: 'transactions' },
   'transactions.up': { keys: 'k', description: 'Previous row', scope: 'transactions' },
@@ -113,7 +167,7 @@ export const SHORTCUTS = {
     scope: 'categories',
   },
 
-  // CSV import (step 4)
+  // Import data dialog on an account page (step 4)
   'import.chooseFile': { keys: 'u', description: 'Choose CSV file', scope: 'import' },
   'import.confirm': {
     keys: 'mod+enter',
@@ -121,11 +175,16 @@ export const SHORTCUTS = {
     scope: 'import',
     allowInInputs: true,
   },
-  'import.account': { keys: 'a', description: 'Choose account to import into', scope: 'import' },
   'import.mapping': { keys: 'm', description: 'Edit column mapping', scope: 'import' },
   'import.invert': { keys: 'i', description: 'Flip amount signs', scope: 'import' },
   'import.filter': { keys: 'f', description: 'Cycle preview filter', scope: 'import' },
   'import.reset': { keys: 'x', description: 'Start over with another file', scope: 'import' },
+  'import.close': {
+    keys: 'escape',
+    description: 'Close import',
+    scope: 'import',
+    allowInInputs: true,
+  },
 } as const satisfies Record<string, ShortcutBinding>;
 
 export type ShortcutId = keyof typeof SHORTCUTS;
