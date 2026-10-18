@@ -16,6 +16,8 @@ export interface GraphViewProps {
   range: DashboardRange;
   /** Accounts the widget covers, with deleted ones dropped. */
   accountIds: number[];
+  /** Lower-cased names of categories the user excluded; income and spending must skip them. */
+  ignoredCategories: ReadonlySet<string>;
   colorOf(category: string): string;
   /** The month picked on a spending chart, shared by every graph that shows one month. Falls back to the latest. */
   month: MonthKey | null;

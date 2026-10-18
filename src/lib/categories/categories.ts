@@ -20,6 +20,24 @@ export function findCategory(categories: readonly Category[], name: string): Cat
   return categories.find((c) => sameName(c.name, name));
 }
 
+/** Lower-cased names of the categories excluded from calculations, for `excludedFromCashFlow`. */
+export function ignoredCategoryNames(categories: readonly Category[]): Set<string> {
+  return new Set(categories.filter((c) => c.excluded).map((c) => c.name.trim().toLowerCase()));
+}
+
+/** Turns "exclude from calculations" on or off for one category. */
+export function setCategoryExcluded(
+  categories: readonly Category[],
+  name: string,
+  excluded: boolean
+): Category[] {
+  return categories.map((c) => {
+    if (!sameName(c.name, name)) return c;
+    const next: Category = { name: c.name, color: c.color };
+    return excluded ? { ...next, excluded: true } : next;
+  });
+}
+
 export function categoryColor(categories: readonly Category[], name: string): string {
   return findCategory(categories, name)?.color ?? UNKNOWN_CATEGORY_COLOR;
 }
@@ -45,12 +63,14 @@ export function validateCategoryName(
 export function addCategory(
   categories: readonly Category[],
   name: string,
-  color: string = nextCategoryColor(categories)
+  color: string = nextCategoryColor(categories),
+  excluded = false
 ): Category[] {
   const error = validateCategoryName(categories, name);
   if (error) throw new Error(error);
   if (!isHexColor(color)) throw new Error(`Invalid colour ${color}`);
-  return [...categories, { name: name.trim(), color: color.toLowerCase() }];
+  const added: Category = { name: name.trim(), color: color.toLowerCase() };
+  return [...categories, excluded ? { ...added, excluded: true } : added];
 }
 
 export function recolorCategory(

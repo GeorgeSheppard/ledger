@@ -4,13 +4,13 @@ import type { LedgerData } from '../store/ledgerData';
 /** Demo data for dev and tests: two accounts with six months of plausible activity. */
 
 export const FIXTURE_CATEGORIES: Category[] = [
-  { name: 'Salary', color: '#2f9e6b' },
-  { name: 'Rent', color: '#d9534f' },
-  { name: 'Groceries', color: '#4f7cff' },
-  { name: 'Eating out', color: '#e8913a' },
-  { name: 'Transport', color: '#8e6bd6' },
-  { name: 'Bills', color: '#c2577f' },
-  { name: 'Savings', color: '#3aa6b9' },
+  { name: 'Salary', color: '#239382' },
+  { name: 'Rent', color: '#fe7ccb' },
+  { name: 'Groceries', color: '#dba833' },
+  { name: 'Eating out', color: '#7e68e3' },
+  { name: 'Transport', color: '#d64b30' },
+  { name: 'Bills', color: '#46bdfe' },
+  { name: 'Savings', color: '#19d27f', excluded: true },
 ];
 
 function month(year: number, monthIndex: number, day: number): string {

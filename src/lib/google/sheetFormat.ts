@@ -154,7 +154,10 @@ export function categoryRow(category: Category): RowData {
 
 export const METADATA_COLUMNS = ['Type', 'Name', 'Setting', 'Value'] as const;
 
-/** One row of `_Metadata`: `category | Food | color | #4f7cff` or `account | Visa | inverted | TRUE`. */
+/**
+ * One row of `_Metadata`: `category | Food | color | #4f7cff`, `category | Transfers | excluded | TRUE`
+ * or `account | Visa | inverted | TRUE`.
+ */
 export interface MetadataEntry {
   type: 'category' | 'account';
   name: string;
@@ -176,14 +179,24 @@ export function parseMetadata(values: readonly (readonly unknown[])[]): {
   invertedAccounts: string[];
 } {
   const categories: Category[] = [];
+  const excluded: string[] = [];
   const invertedAccounts: string[] = [];
   for (const cells of values) {
     const [type, name, setting] = [0, 1, 2].map((i) => textCell(cells[i]));
     if (!name) continue;
     if (type === 'category' && setting === 'color')
       categories.push(categorySchema.parse({ name, color: textCell(cells[3]) }));
+    else if (type === 'category' && setting === 'excluded' && flagSchema.parse(cells[3] ?? false))
+      excluded.push(name);
     else if (type === 'account' && setting === 'inverted' && flagSchema.parse(cells[3] ?? false))
       invertedAccounts.push(name);
+  }
+  // Settings may come before or after the category's colour row, so they are applied at the end.
+  // A category with only a setting row (no colour yet) still exists; the store gives it a colour.
+  for (const name of excluded) {
+    const known = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (known) known.excluded = true;
+    else categories.push({ name, color: '', excluded: true });
   }
   return { categories, invertedAccounts };
 }
@@ -200,6 +213,14 @@ export function metadataEntries(
       setting: 'color',
       value: c.color,
     })),
+    ...categories
+      .filter((c) => c.excluded)
+      .map((c): MetadataEntry => ({
+        type: 'category',
+        name: c.name,
+        setting: 'excluded',
+        value: true,
+      })),
     ...accounts
       .filter((a) => a.inverted)
       .map((a): MetadataEntry => ({

@@ -48,6 +48,8 @@ export const categorySchema = z.object({
   name: z.string(),
   /** Hex colour used in charts and chips, e.g. `#4f7cff`. `''` means none yet; the store assigns one. */
   color: z.union([z.string().regex(HEX_COLOR), z.literal('')]).catch(''),
+  /** Left out of spending, income, cash flow and the money-flow diagram (still counts towards balances). */
+  excluded: z.boolean().optional().catch(undefined),
 });
 
 /** The spreadsheet the user has connected. */

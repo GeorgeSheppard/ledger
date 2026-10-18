@@ -76,6 +76,16 @@ describe('buildDashboard', () => {
     ]);
   });
 
+  it('leaves excluded categories out of spending but keeps balances and net worth', () => {
+    const all = buildDashboard(ledgers, 3)!;
+    const ignored = buildDashboard(ledgers, 3, undefined, new Set(['rent']))!;
+    expect(all.latest.spending).toBe(400);
+    expect(ignored.latest.spending).toBe(0);
+    expect(ignored.categories).not.toContain('Rent');
+    expect(ignored.latest.netWorth).toBe(all.latest.netWorth);
+    expect(ignored.accounts.map((a) => a.balance)).toEqual(all.accounts.map((a) => a.balance));
+  });
+
   it('compares the first month in range with the month before it', () => {
     const dashboard = buildDashboard(ledgers, 2)!;
     expect(dashboard.previousCashFlow?.month).toBe('2026-01');

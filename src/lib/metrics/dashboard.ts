@@ -67,12 +67,14 @@ function round(amount: number): number {
  * Returns null when there are no dated transactions in the chosen accounts. `accountIds` limits
  * the dashboard to some accounts (all when omitted). Transfers are still matched across every
  * account, so money moved out of a chosen account into one that is not chosen is not counted as
- * spending.
+ * spending. `ignoredCategories` (lower-cased names) are left out of income and spending but still
+ * count towards balances and net worth.
  */
 export function buildDashboard(
   allLedgers: readonly AccountLedger[],
   range: DashboardRange,
-  accountIds?: readonly number[]
+  accountIds?: readonly number[],
+  ignoredCategories?: ReadonlySet<string>
 ): Dashboard | null {
   // A row without a readable date cannot be placed in a month. Leave it out rather than letting it
   // sink the whole dashboard.
@@ -94,7 +96,10 @@ export function buildDashboard(
   const months = withPrevious.slice(1);
   const hasPrevious = start > span.first;
 
-  const excluded = excludedFromCashFlow(dated.flatMap((l) => l.transactions));
+  const excluded = excludedFromCashFlow(
+    dated.flatMap((l) => l.transactions),
+    ignoredCategories
+  );
   const all = ledgers.flatMap((l) => l.transactions);
   const flowsWithPrevious = monthlyCashFlow(all, withPrevious, excluded);
   const worthWithPrevious = netWorthByMonth(ledgers, withPrevious);

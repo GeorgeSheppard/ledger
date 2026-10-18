@@ -107,6 +107,8 @@ export interface FlowInput {
   to: MonthKey;
   /** Limit the diagram to these accounts. All when omitted or empty. */
   accountIds?: readonly number[];
+  /** Lower-cased names of categories to leave out of the spending side. */
+  ignoredCategories?: ReadonlySet<string>;
 }
 
 /** Returns null when no paycheck pays in the window (or none lands in the chosen accounts). */
@@ -116,6 +118,7 @@ export function buildMoneyFlow({
   from,
   to,
   accountIds,
+  ignoredCategories,
 }: FlowInput): MoneyFlow | null {
   if (ledgers.length === 0) return null;
   const chosen = accountIds?.length
@@ -155,7 +158,8 @@ export function buildMoneyFlow({
 
   // Spending per account and category, netted per month like the dashboard.
   const excluded = excludedFromCashFlow(
-    ledgers.flatMap((l) => l.transactions.filter((t) => isIsoDate(t.date)))
+    ledgers.flatMap((l) => l.transactions.filter((t) => isIsoDate(t.date))),
+    ignoredCategories
   );
   const months = monthsBetween(from, to);
   const spendByAccount = new Map<number, Map<string, number>>();

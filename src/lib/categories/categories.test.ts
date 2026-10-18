@@ -4,6 +4,8 @@ import {
   addCategory,
   categoryColor,
   completeCategories,
+  ignoredCategoryNames,
+  setCategoryExcluded,
   countUsage,
   moveCategory,
   recolorCategory,
@@ -112,5 +114,21 @@ describe('completeCategories', () => {
       completeCategories([], [tx('pets')]).map((c) => ({ ...c, name: 'Pets' }))
     );
     expect(stableCategoryColor('Pets')).toBe(stableCategoryColor(' pets '));
+  });
+});
+
+describe('excluded categories', () => {
+  it('toggles the flag on one category by name', () => {
+    const on = setCategoryExcluded(list, 'rent', true);
+    expect(on[1]).toEqual({ name: 'Rent', color: '#d9534f', excluded: true });
+    expect(on[0]).toEqual(list[0]);
+    expect(setCategoryExcluded(on, 'Rent', false)).toEqual(list);
+  });
+
+  it('lists the excluded names lower-cased', () => {
+    expect(ignoredCategoryNames(setCategoryExcluded(list, 'Eating out', true))).toEqual(
+      new Set(['eating out'])
+    );
+    expect(addCategory(list, 'Transfer', '#abcdef', true).at(-1)?.excluded).toBe(true);
   });
 });
