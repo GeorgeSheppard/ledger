@@ -171,9 +171,16 @@ export function createAccount(data: LedgerData, account: Account): LedgerData {
 
 export function renameAccount(data: LedgerData, accountId: number, name: string): LedgerData {
   accountRows(data, accountId);
+  const old = data.accounts.find((a) => a.id === accountId)!.name;
   return {
     ...data,
     accounts: data.accounts.map((a) => (a.id === accountId ? { ...a, name } : a)),
+    // Categories limited to this account follow it to its new name.
+    categories: data.categories.map((c) =>
+      c.accounts?.includes(old)
+        ? { ...c, accounts: c.accounts.map((n) => (n === old ? name : n)) }
+        : c
+    ),
   };
 }
 
@@ -297,7 +304,10 @@ export function sameCategories(a: readonly Category[], b: readonly Category[]): 
     a.length === b.length &&
     a.every(
       (c, i) =>
-        c.name === b[i]!.name && c.color === b[i]!.color && !!c.excluded === !!b[i]!.excluded
+        c.name === b[i]!.name &&
+        c.color === b[i]!.color &&
+        !!c.excluded === !!b[i]!.excluded &&
+        (c.accounts ?? []).join('\n') === (b[i]!.accounts ?? []).join('\n')
     )
   );
 }

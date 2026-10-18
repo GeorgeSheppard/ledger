@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { Category } from '../../lib/domain/types';
+import { useState, type Ref } from 'react';
+import type { Account, Category } from '../../lib/domain/types';
 import { amountToInput, parseAmount } from '../../lib/transactions/amount';
 import {
   hasFilters,
@@ -22,8 +22,14 @@ interface TransactionFilterPanelProps {
   /** Category names used by this account's transactions (`''` is "no category"). */
   categoryNames: readonly string[];
   categories: Category[];
+  /** Set when the list mixes accounts, so they can be filtered too. */
+  accounts?: Account[];
   sort: Sort;
   onSortChange(sort: Sort): void;
+  /** Lets the table focus the notes search from its shortcut. */
+  searchRef?: Ref<HTMLInputElement>;
+  /** Focus the notes search as the panel opens (from the search shortcut). */
+  autoFocusSearch?: boolean;
 }
 
 const SIGNS: { value: AmountSign; label: string }[] = [
@@ -40,125 +46,232 @@ const SORT_KEYS: { value: SortKey; label: string }[] = [
   { value: 'total', label: 'Total' },
 ];
 
-/** Date range, categories, amount and duplicate filters, plus a sort picker (for small screens). */
-export function TransactionFilterPanel({
+type Change = (patch: Partial<TransactionFilters>) => void;
+
+interface FilterFieldProps {
+  filters: TransactionFilters;
+  set: Change;
+}
+
+/** The note search and the duplicates switch. */
+export function NoteFilter({
   filters,
-  onChange,
+  set,
+  searchRef,
+  autoFocus,
+}: FilterFieldProps & { searchRef?: Ref<HTMLInputElement>; autoFocus?: boolean }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <TextInput
+        ref={searchRef}
+        type="search"
+        className="w-full min-w-56"
+        aria-label="Search transactions"
+        placeholder="Search notes…"
+        autoFocus={autoFocus}
+        value={filters.search}
+        onChange={(e) => set({ search: e.target.value })}
+        onKeyDown={(e) => {
+          if (e.key !== 'Escape' || !filters.search) return;
+          e.nativeEvent.stopPropagation();
+          e.stopPropagation();
+          set({ search: '' });
+        }}
+      />
+      <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="size-4 accent-accent"
+          checked={filters.duplicatesOnly}
+          onChange={(e) => set({ duplicatesOnly: e.target.checked, twinsOf: null })}
+        />
+        Only possible duplicates
+      </label>
+    </div>
+  );
+}
+
+export function DateFilter({ filters, set }: FilterFieldProps) {
+  return (
+    <div className="flex items-center gap-2">
+      <TextInput
+        type="date"
+        aria-label="From date"
+        value={filters.from ?? ''}
+        max={filters.to ?? undefined}
+        onChange={(e) => set({ from: e.target.value || null })}
+      />
+      <span className="text-sm text-muted">to</span>
+      <TextInput
+        type="date"
+        aria-label="To date"
+        value={filters.to ?? ''}
+        min={filters.from ?? undefined}
+        onChange={(e) => set({ to: e.target.value || null })}
+      />
+    </div>
+  );
+}
+
+export function AmountFilter({ filters, set }: FilterFieldProps) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div
+        className="inline-flex self-start overflow-hidden rounded-lg border border-line"
+        role="group"
+        aria-label="Money in or out"
+      >
+        {SIGNS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={filters.sign === option.value}
+            className={cn(
+              'cursor-pointer px-3 py-1 text-sm transition-colors hover:bg-surface-hover',
+              filters.sign === option.value && 'bg-accent/12 font-medium text-accent'
+            )}
+            onClick={() => set({ sign: option.value })}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <AmountField
+          label="Smallest amount"
+          placeholder="From"
+          value={filters.min}
+          disabled={filters.exact !== null}
+          onChange={(min) => set({ min })}
+        />
+        <span className="text-sm text-muted">to</span>
+        <AmountField
+          label="Largest amount"
+          placeholder="To"
+          value={filters.max}
+          disabled={filters.exact !== null}
+          onChange={(max) => set({ max })}
+        />
+        <span className="text-sm text-muted">or exactly</span>
+        <AmountField
+          label="Exact amount"
+          placeholder="12.50"
+          value={filters.exact}
+          onChange={(exact) => set({ exact })}
+        />
+      </div>
+      <p className="text-xs text-muted">Sizes ignore the sign, so 20 matches +20 and -20.</p>
+    </div>
+  );
+}
+
+export function CategoryFilter({
+  filters,
+  set,
   categoryNames,
   categories,
-  sort,
-  onSortChange,
-}: TransactionFilterPanelProps) {
-  const set = (patch: Partial<TransactionFilters>) => onChange({ ...filters, ...patch });
-  const toggleCategory = (name: string) =>
+}: FilterFieldProps & { categoryNames: readonly string[]; categories: Category[] }) {
+  const toggle = (name: string) =>
     set({
       categories: filters.categories.includes(name)
         ? filters.categories.filter((c) => c !== name)
         : [...filters.categories, name],
     });
+  return (
+    <div className="flex max-w-96 flex-wrap gap-1.5">
+      {categoryNames.map((name) => (
+        <button
+          key={name || 'none'}
+          type="button"
+          aria-pressed={filters.categories.includes(name)}
+          className={cn(
+            'cursor-pointer rounded-full border border-transparent transition-colors hover:border-line',
+            filters.categories.includes(name) && 'border-accent ring-2 ring-accent/20'
+          )}
+          onClick={() => toggle(name)}
+        >
+          <CategoryChip name={name} categories={categories} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function AccountFilter({
+  filters,
+  set,
+  accounts,
+}: FilterFieldProps & { accounts: readonly Account[] }) {
+  const toggle = (id: number) =>
+    set({
+      accounts: filters.accounts.includes(id)
+        ? filters.accounts.filter((a) => a !== id)
+        : [...filters.accounts, id],
+    });
+  return (
+    <div className="flex max-w-96 flex-wrap gap-1.5">
+      {accounts.map((account) => (
+        <button
+          key={account.id}
+          type="button"
+          aria-pressed={filters.accounts.includes(account.id)}
+          className={cn(
+            'cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-sm transition-colors hover:bg-surface-hover',
+            filters.accounts.includes(account.id) &&
+              'border-accent bg-accent/10 ring-2 ring-accent/20'
+          )}
+          onClick={() => toggle(account.id)}
+        >
+          {account.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Every filter in one card, for small screens where there are no column headers to hang them on.
+ * Wide screens use the same pieces in popovers on the headers.
+ */
+export function TransactionFilterPanel({
+  filters,
+  onChange,
+  categoryNames,
+  categories,
+  accounts,
+  sort,
+  onSortChange,
+  searchRef,
+  autoFocusSearch,
+}: TransactionFilterPanelProps) {
+  const set: Change = (patch) => onChange({ ...filters, ...patch });
 
   return (
-    <Card className="mb-4 grid gap-5 p-4 md:grid-cols-2" aria-label="Filters" role="group">
+    <Card className="mb-4 grid gap-5 p-4" aria-label="Filters" role="group">
+      <Section title="Notes">
+        <NoteFilter filters={filters} set={set} searchRef={searchRef} autoFocus={autoFocusSearch} />
+      </Section>
       <Section title="Date">
-        <div className="flex items-center gap-2">
-          <TextInput
-            type="date"
-            aria-label="From date"
-            value={filters.from ?? ''}
-            max={filters.to ?? undefined}
-            onChange={(e) => set({ from: e.target.value || null })}
-          />
-          <span className="text-sm text-muted">to</span>
-          <TextInput
-            type="date"
-            aria-label="To date"
-            value={filters.to ?? ''}
-            min={filters.from ?? undefined}
-            onChange={(e) => set({ to: e.target.value || null })}
-          />
-        </div>
+        <DateFilter filters={filters} set={set} />
       </Section>
-
       <Section title="Amount">
-        <div className="flex flex-col gap-2">
-          <div
-            className="inline-flex self-start overflow-hidden rounded-lg border border-line"
-            role="group"
-            aria-label="Money in or out"
-          >
-            {SIGNS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={filters.sign === option.value}
-                className={cn(
-                  'cursor-pointer px-3 py-1 text-sm transition-colors hover:bg-surface-hover',
-                  filters.sign === option.value && 'bg-accent/12 font-medium text-accent'
-                )}
-                onClick={() => set({ sign: option.value })}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            <AmountField
-              label="Smallest amount"
-              placeholder="From"
-              value={filters.min}
-              disabled={filters.exact !== null}
-              onChange={(min) => set({ min })}
-            />
-            <span className="text-sm text-muted">to</span>
-            <AmountField
-              label="Largest amount"
-              placeholder="To"
-              value={filters.max}
-              disabled={filters.exact !== null}
-              onChange={(max) => set({ max })}
-            />
-            <span className="text-sm text-muted">or exactly</span>
-            <AmountField
-              label="Exact amount"
-              placeholder="12.50"
-              value={filters.exact}
-              onChange={(exact) => set({ exact })}
-            />
-          </div>
-          <p className="text-xs text-muted">Sizes ignore the sign, so 20 matches +20 and -20.</p>
-        </div>
+        <AmountFilter filters={filters} set={set} />
       </Section>
-
-      <Section title="Category" className="md:col-span-2">
-        <div className="flex flex-wrap gap-1.5">
-          {categoryNames.map((name) => (
-            <button
-              key={name || 'none'}
-              type="button"
-              aria-pressed={filters.categories.includes(name)}
-              className={cn(
-                'cursor-pointer rounded-full border border-transparent transition-colors hover:border-line',
-                filters.categories.includes(name) && 'border-accent ring-2 ring-accent/20'
-              )}
-              onClick={() => toggleCategory(name)}
-            >
-              <CategoryChip name={name} categories={categories} />
-            </button>
-          ))}
-        </div>
+      <Section title="Category">
+        <CategoryFilter
+          filters={filters}
+          set={set}
+          categoryNames={categoryNames}
+          categories={categories}
+        />
       </Section>
-
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 md:col-span-2">
-        <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            className="size-4 accent-accent"
-            checked={filters.duplicatesOnly}
-            onChange={(e) => set({ duplicatesOnly: e.target.checked, twinsOf: null })}
-          />
-          Only possible duplicates
-        </label>
-        <label className="inline-flex items-center gap-2 text-sm md:hidden">
+      {accounts && (
+        <Section title="Account">
+          <AccountFilter filters={filters} set={set} accounts={accounts} />
+        </Section>
+      )}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <label className="inline-flex items-center gap-2 text-sm">
           Sort by
           <Select
             value={sort.key}
@@ -187,7 +300,7 @@ export function TransactionFilterPanel({
           disabled={!hasFilters(filters)}
           onAction={() => onChange(noFilters)}
         >
-          Clear filters
+          Reset filters
         </ActionButton>
       </div>
     </Card>

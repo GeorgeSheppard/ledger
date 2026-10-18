@@ -125,9 +125,10 @@ src/modules/
   (or use the buttons); zooming in re-cuts the data into weeks and then days
   (`lib/metrics/buckets.ts`, `timeSeries.ts`; the choice is `granularityFor`). `shared/zoom.tsx`
   owns the visible range and feeds it to Chart.js, whose zoom plugin is loaded on first use. Sankey
-  and the breakdown stay on d3 and plain markup. A graph's "View transactions" button
-  (`shared/ViewTransactions.tsx`) opens an account with the graph's dates and categories as URL
-  filters (`lib/transactions/filterParams.ts`).
+  and the breakdown stay on d3 and plain markup. The graphs that show transactions (spending, income/spending, breakdown) have a "View transactions" button; net worth, a total, does not. The button
+  (`shared/ViewTransactions.tsx`) opens `/transactions` (`features/accounts/TransactionsPage.tsx`),
+  every account's transactions in one list with an Account column, with the graph's dates,
+  categories and accounts as URL filters (`lib/transactions/filterParams.ts`).
 
 ## Styling
 
@@ -177,6 +178,10 @@ focus-visible:outline-offset-2 focus-visible:outline-accent`, `disabled:opacity-
 - `_Metadata` tab: header `Type | Name | Setting | Value`, one setting per row. It holds everything
   the app remembers about the spreadsheet that is not a transaction:
   - `category | Food | color | #4f7cff`: one row per category, in list order.
+  - `category | Interest | account | Savings`: limits the category to an account (tab name); one row
+    per account. A category with no `account` rows is global. The limit only decides what the
+    category picker on an account offers: charts and rules still group by name, and transactions
+    may use any name. Renaming an account updates these rows.
   - `account | Visa | inverted | TRUE`: the account (tab name) is a credit card or loan. Written only
     for inverted accounts; a missing row means off.
   - Rows of an unknown type or setting are ignored, and the app rewrites the tab whole when

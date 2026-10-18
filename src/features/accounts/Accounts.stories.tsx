@@ -6,6 +6,7 @@ import { BIG_ACCOUNT_NAME, CREDIT_CARD_NAME, Connected } from '../../storybook/p
 import { useLedger } from '../../state/ledgerData';
 import { AccountsOverviewPage } from './AccountsOverviewPage';
 import { AccountsPage } from './AccountsPage';
+import { TransactionsPage } from './TransactionsPage';
 
 const meta = { title: 'Pages/Accounts' } satisfies Meta;
 export default meta;
@@ -31,12 +32,12 @@ export const AccountPage: Story = {
   ),
 };
 
-/** Opened from a graph's "View transactions": a date range and category are already filtered. */
-export const OpenedFromAGraph: Story = {
+/** Opened from a graph's "View transactions": every account in one list, already narrowed to a date range. */
+export const AllTransactionsFromAGraph: Story = {
   render: () => (
-    <Connected shell route="/accounts/1?from=2026-09-01&to=2026-09-30&cat=Groceries">
+    <Connected shell route="/transactions?from=2026-09-01&to=2026-09-30">
       <Routes>
-        <Route path="/accounts/:accountId" element={<AccountsPage />} />
+        <Route path="/transactions" element={<TransactionsPage />} />
       </Routes>
     </Connected>
   ),
@@ -70,7 +71,32 @@ export const EditOnClick: Story = {
   },
 };
 
-/** Click, Shift+click and Ctrl/⌘+click select several rows; Delete is enabled once something is selected. */
+/**
+ * The category list on an account: global categories plus the ones limited to it. Interest is
+ * limited to Savings, so it is missing from the Current account's list (account 1) and present on
+ * Savings (account 2).
+ */
+export const CategoryPickerOnAccount: Story = {
+  render: () => (
+    <Connected shell route="/accounts/1">
+      <Routes>
+        <Route path="/accounts/:accountId" element={<AccountsPage />} />
+      </Routes>
+    </Connected>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const [dinner] = await canvas.findAllByText('Dinner');
+    await userEvent.click(dinner!);
+    await userEvent.click(dinner!);
+    const picker = await canvas.findByRole('combobox', { name: 'Category' });
+    await userEvent.clear(picker);
+    await canvas.findByRole('option', { name: 'Groceries' });
+    await expect(canvas.queryByRole('option', { name: 'Interest' })).toBeNull();
+  },
+};
+
+/** Click, Shift+click and Ctrl/⌘+click select several rows; Delete, Select all and Clear appear once something is selected. */
 export const SelectedRows: Story = {
   render: AccountRoute,
   play: async ({ canvasElement }) => {
@@ -101,18 +127,20 @@ export const RowMenu: Story = {
   },
 };
 
-/** Search plus the filter panel: money out over 50, in a date range. */
+/** Filters live on the column headers: the Amount one is open, with money out over 70 typed in. */
 export const Filtered: Story = {
   render: AccountRoute,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole('button', { name: 'Filter by note' }));
     await userEvent.type(
-      await canvas.findByRole('searchbox', { name: 'Search transactions' }),
+      within(document.body).getByRole('searchbox', { name: 'Search transactions' }),
       'super'
     );
-    await userEvent.click(canvas.getByRole('button', { name: /^Filters/ }));
-    await userEvent.click(canvas.getByRole('button', { name: 'Money out' }));
-    await userEvent.type(canvas.getByRole('textbox', { name: 'Smallest amount' }), '70');
+    await userEvent.click(canvas.getByRole('button', { name: 'Filter by amount' }));
+    const body = within(document.body);
+    await userEvent.click(body.getByRole('button', { name: 'Money out' }));
+    await userEvent.type(body.getByRole('textbox', { name: 'Smallest amount' }), '70');
   },
 };
 
@@ -201,6 +229,7 @@ export const LargeAccount: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await canvas.findByText('Big account');
+    await userEvent.click((await rowsOf(canvasElement))[0]!);
     await userEvent.click(await canvas.findByRole('button', { name: /^Select all/ }));
     await expect(await canvas.findByText('20,000 selected')).toBeTruthy();
     // Selecting everything leaves the page where it was.

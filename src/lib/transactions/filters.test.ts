@@ -36,6 +36,15 @@ describe('filterTransactions', () => {
     expect(hasFilters(noFilters)).toBe(false);
   });
 
+  it('keeps only the chosen accounts', () => {
+    const mixed = rows.map((t, i) => ({ ...t, accountId: i % 2 }));
+    const ids = (accounts: number[]) =>
+      filterTransactions(mixed, { ...noFilters, accounts }).map((t) => t.row);
+    expect(ids([])).toEqual([2, 3, 4, 5, 6]);
+    expect(ids([1])).toEqual([3, 5]);
+    expect(hasFilters({ ...noFilters, accounts: [1] })).toBe(true);
+  });
+
   it('searches note and category, every word, ignoring case', () => {
     expect(by({ search: 'tesco' })).toEqual([3, 4]);
     expect(by({ search: 'food shop' })).toEqual([3, 4]);

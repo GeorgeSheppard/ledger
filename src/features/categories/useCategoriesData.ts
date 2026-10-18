@@ -3,6 +3,7 @@ import {
   addCategory,
   moveCategory,
   recolorCategory,
+  setCategoryAccounts,
   setCategoryExcluded,
   removeCategory,
   sameName,
@@ -34,8 +35,8 @@ export function useCategoryActions() {
     const update = (change: (list: Category[]) => Category[]) =>
       mutate(async (r) => r.saveCategories(change(await r.listCategories())));
     return {
-      add: (name: string, color: string, excluded = false) =>
-        update((list) => addCategory(list, name, color, excluded)),
+      add: (name: string, color: string, excluded = false, accounts?: readonly string[]) =>
+        update((list) => addCategory(list, name, color, excluded, accounts)),
       /** Gives every category a clearly different palette colour. */
       spreadColors: () => update(respreadColors),
       remove: (name: string) => update((list) => removeCategory(list, name)),
@@ -53,6 +54,12 @@ export function useCategoryActions() {
             const list = await r.listCategories();
             const name = list.find((c) => sameName(c.name, next.name))?.name ?? next.name;
             await r.saveCategories(setCategoryExcluded(list, name, !!next.excluded));
+          }
+          const accounts = (c: Category) => (c.accounts ?? []).join('\n');
+          if (accounts(next) !== accounts(original)) {
+            const list = await r.listCategories();
+            const name = list.find((c) => sameName(c.name, next.name))?.name ?? next.name;
+            await r.saveCategories(setCategoryAccounts(list, name, next.accounts ?? []));
           }
         }),
     };

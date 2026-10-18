@@ -5,6 +5,7 @@ import {
   deleteTransaction,
   deleteTransactions,
   rebase,
+  renameAccount,
   renameCategory,
   sameData,
   sortAllByDate,
@@ -87,6 +88,22 @@ describe('renameCategory', () => {
     const next = renameCategory(data, 'Food', 'Groceries');
     expect(next.categories[0]!.name).toBe('Groceries');
     expect(next.rows[1]!.map((r) => r.category)).toEqual(['Groceries', '']);
+  });
+});
+
+describe('renameAccount', () => {
+  it('moves categories limited to the account onto its new name', () => {
+    const data = {
+      ...ledger([]),
+      categories: [
+        { name: 'Fees', color: '#4f7cff', accounts: ['Current', 'ISA'] },
+        { name: 'Food', color: '#d9534f' },
+      ],
+    };
+    const next = renameAccount(data, 1, 'Main');
+    expect(next.accounts[0]!.name).toBe('Main');
+    expect(next.categories[0]!.accounts).toEqual(['Main', 'ISA']);
+    expect(next.categories[1]).toEqual(data.categories[1]);
   });
 });
 

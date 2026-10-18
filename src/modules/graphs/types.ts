@@ -25,8 +25,8 @@ export interface GraphViewProps {
   onSelectMonth(month: MonthKey): void;
   /** Month stepping shortcuts are off while the layout is being edited. */
   interactive: boolean;
-  /** Opens one account's transactions narrowed to `filters`; the "view transactions" button calls it. */
-  openTransactions(accountId: number, filters: LinkedFilters): void;
+  /** Opens every transaction behind the graph, narrowed to `filters`; the "view transactions" button calls it. */
+  openTransactions(filters: LinkedFilters): void;
 }
 
 export interface GraphOptionsProps {

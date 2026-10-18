@@ -4,7 +4,6 @@ import type { AccountLedger } from '../../../lib/metrics/netWorth';
 import type { LinkedFilters } from '../../../lib/transactions/filterParams';
 import { filterTransactions, noFilters } from '../../../lib/transactions/filters';
 import { ActionButton } from '../../../ui/ActionButton';
-import { Menu } from '../../../ui/Menu';
 
 interface ViewTransactionsProps {
   ledgers: AccountLedger[];
@@ -14,13 +13,12 @@ interface ViewTransactionsProps {
   from: string;
   to: string;
   categories?: readonly string[];
-  open(accountId: number, filters: LinkedFilters): void;
+  open(filters: LinkedFilters): void;
 }
 
 /**
- * "View transactions": opens the transactions behind a graph, narrowed to the same dates and
- * categories. Accounts are separate pages, so a graph over several accounts offers a menu of the
- * accounts that have matching transactions.
+ * "View transactions": opens every transaction behind a graph in one list, across the accounts it
+ * covers and narrowed to the same dates and categories. Further filtering happens in that list.
  */
 export function ViewTransactions({
   ledgers,
@@ -31,42 +29,30 @@ export function ViewTransactions({
   open,
 }: ViewTransactionsProps) {
   const filters = useMemo<LinkedFilters>(
-    () => ({ from, to, categories: categories.map((c) => (c === UNCATEGORISED ? '' : c)) }),
-    [from, to, categories]
+    () => ({
+      from,
+      to,
+      categories: categories.map((c) => (c === UNCATEGORISED ? '' : c)),
+      accounts: accountIds,
+    }),
+    [from, to, categories, accountIds]
   );
-  const matches = useMemo(
+  const count = useMemo(
     () =>
       ledgers
         .filter((l) => accountIds.includes(l.account.id))
-        .map((l) => ({
-          account: l.account,
-          count: filterTransactions(l.transactions, { ...noFilters, ...filters }).length,
-        })),
+        .reduce(
+          (sum, l) =>
+            sum +
+            filterTransactions(l.transactions, { ...noFilters, ...filters, accounts: [] }).length,
+          0
+        ),
     [ledgers, accountIds, filters]
   );
-  const only = matches.length === 1 ? matches[0] : undefined;
 
-  if (only)
-    return (
-      <ActionButton
-        variant="ghost"
-        disabled={only.count === 0}
-        onAction={() => open(only.account.id, filters)}
-      >
-        View transactions
-      </ActionButton>
-    );
   return (
-    <Menu
-      label="View transactions in an account"
-      buttonClassName="size-auto gap-1 border border-transparent px-2 py-1 text-sm text-fg md:px-2.5"
-      items={matches.map(({ account, count }) => ({
-        label: `${account.name} (${count.toLocaleString()})`,
-        disabled: count === 0,
-        onSelect: () => open(account.id, filters),
-      }))}
-    >
-      View transactions ▾
-    </Menu>
+    <ActionButton variant="ghost" disabled={count === 0} onAction={() => open(filters)}>
+      View transactions
+    </ActionButton>
   );
 }
