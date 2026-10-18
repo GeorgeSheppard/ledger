@@ -21,7 +21,7 @@ export interface AccountOverview {
   transactions: Transaction[];
 }
 
-/** Every account with its transactions, for the accounts summary page. */
+/** Every account with its transactions, for the accounts summary page. Always ready. */
 export function useAccountOverview(): QueryState<AccountOverview[]> {
   const { accounts, transactionsByAccount } = useLedger();
   return useMemo(
@@ -37,8 +37,7 @@ export function useAccountOverview(): QueryState<AccountOverview[]> {
 }
 
 /**
- * Transactions of one account. While a different account's rows are still on screen after
- * switching, this reports `loading` so stale rows never show under the wrong account.
+ * Transactions of one account, oldest first. Always ready: the sheet is loaded up front.
  */
 export function useTransactions(accountId: number | undefined): QueryState<Transaction[]> {
   const { transactionsByAccount } = useLedger();
