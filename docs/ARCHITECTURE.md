@@ -42,6 +42,7 @@ src/
     Kbd.tsx                    renders a shortcut's keys
     ShortcutHelp.tsx           `?` overlay listing every shortcut
     cn.ts                      class name joiner (clsx + tailwind-merge)
+  storybook/                   providers for stories (real session and store, demo data)
   styles/
     global.css                 Tailwind import, design tokens (light + dark), base styles
   lib/                         pure TypeScript, unit tested
@@ -56,7 +57,6 @@ src/
     connection/                remembering which spreadsheet is connected
     metrics/                   net worth series, monthly spend by category
     csv/                       parsing, column mapping, reconciliation
-    files/                     opening and downloading a ledger as .xlsx/.csv (a `LedgerRemote` for a file)
   features/                    one folder per feature: pages, components, feature hooks
     landing/                   public homepage
     connect/                   sign in, pick or create a sheet
@@ -203,22 +203,10 @@ pnpm dev     # demo data, no Google account needed
 pnpm test    # unit tests for lib/
 pnpm lint
 pnpm build
+pnpm storybook         # components and pages with demo data, on :6006
+pnpm screenshots <id>  # PNG screenshots of stories, for PRs
 ```
 
-## Spreadsheet files (no Google)
-
-A ledger can also live in a file on the user's device. `openLedgerFile` (`src/lib/files/fileRemote.ts`)
-reads an `.xlsx` (or a `.csv` already in the account format) in the browser and returns a
-`LedgerRemote` like the Google one, so the store and every page work unchanged. The session marks it
-with `file: true` only so the shell can say "File" and "Close".
-
-- Same strictness as Sheets: the parser is shared, so only exact `Date | Category | Amount | Note | Total`
-  tabs become accounts and the rest are skipped.
-- A file remote has no place to save to. It provides `download(data)` instead, and the store's
-  `isFile` turns off autosave, replaces Save with Download, and warns before the tab closes with
-  changes that were not downloaded. Nothing from a file is kept in IndexedDB.
-- Downloading rebuilds from the original file's bytes and rewrites only the tabs Ledger owns (account
-  tabs, `_Categories`, `_Dashboard`, `_Paychecks`). Every other tab, including `_` tabs added by other features,
-  comes back as it was. A feature that adds a new `_` tab to the store needs to teach `writeWorkbook`
-  (`src/lib/files/workbook.ts`) and the Sheets remote how to write it.
-- ExcelJS is loaded with a dynamic import, so it is a separate chunk that Google users never fetch.
+Stories (`*.stories.tsx`, next to the component they show) render pages and dialogs through the
+real `SessionProvider` and `LedgerDataProvider` on the demo data, so what you see is what the app
+shows. See [STORYBOOK.md](STORYBOOK.md), including how to put before/after images on a PR.
