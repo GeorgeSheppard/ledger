@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { monthlyCashFlow, spendingCategories, UNCATEGORISED } from './cashFlow';
+import { monthlyCashFlow, onlyCategories, spendingCategories, UNCATEGORISED } from './cashFlow';
 import { makeTransactions } from './testing';
 
 const rows = makeTransactions(1, [
@@ -41,5 +41,27 @@ describe('spendingCategories', () => {
   it('orders categories by total spend', () => {
     const flows = monthlyCashFlow(rows, ['2026-04', '2026-05']);
     expect(spendingCategories(flows)).toEqual(['Rent', 'Groceries', UNCATEGORISED]);
+  });
+});
+
+describe('onlyCategories', () => {
+  const flows = monthlyCashFlow(
+    makeTransactions(1, [
+      ['2026-01-01', 1000, 'Salary'],
+      ['2026-01-02', -50, 'Food'],
+      ['2026-01-03', -30, 'Fun'],
+    ]),
+    ['2026-01']
+  );
+
+  it('limits spending to the chosen categories', () => {
+    const [flow] = onlyCategories(flows, ['Food']);
+    expect(flow!.spendingByCategory).toEqual({ Food: 50 });
+    expect(flow!.spending).toBe(50);
+    expect(flow!.income).toBe(1000);
+  });
+
+  it('keeps everything with no categories chosen', () => {
+    expect(onlyCategories(flows, [])).toEqual(flows);
   });
 });

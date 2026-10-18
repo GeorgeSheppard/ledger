@@ -75,3 +75,21 @@ export function spendingCategories(flows: readonly MonthCashFlow[]): string[] {
       totals.set(category, (totals.get(category) ?? 0) + amount);
   return [...totals].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([c]) => c);
 }
+
+/**
+ * The same months with spending limited to `categories` (all when empty), so a chart of a few
+ * categories scales to them rather than to total spending. Income is left as it is.
+ */
+export function onlyCategories(
+  flows: readonly MonthCashFlow[],
+  categories: readonly string[]
+): MonthCashFlow[] {
+  if (!categories.length) return [...flows];
+  return flows.map((flow) => {
+    const spendingByCategory = Object.fromEntries(
+      Object.entries(flow.spendingByCategory).filter(([c]) => categories.includes(c))
+    );
+    const spending = round(Object.values(spendingByCategory).reduce((sum, a) => sum + a, 0));
+    return { ...flow, spendingByCategory, spending, net: round(flow.income - spending) };
+  });
+}

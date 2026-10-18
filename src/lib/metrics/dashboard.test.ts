@@ -30,6 +30,28 @@ describe('buildDashboard', () => {
     expect(buildDashboard([], 6)).toBeNull();
   });
 
+  it('ignores rows without a readable date instead of showing nothing', () => {
+    const withSummaryTab = [
+      ...ledgers,
+      {
+        account: { id: 3, name: 'Summary' },
+        transactions: makeTransactions(3, [['', 500]]),
+      },
+    ];
+    const dashboard = buildDashboard(withSummaryTab, 'all')!;
+    expect(dashboard.months).toEqual(['2026-01', '2026-02', '2026-03']);
+    expect(dashboard.latest.netWorth).toBe(buildDashboard(ledgers, 'all')!.latest.netWorth);
+  });
+
+  it('limits to the chosen accounts but still matches transfers across all of them', () => {
+    const current = buildDashboard(ledgers, 3, [1])!;
+    expect(current.accounts.map((a) => a.account.id)).toEqual([1]);
+    expect(current.latest.netWorth).toBe(5400);
+    // The 500 moved to Savings is a transfer, not spending, even with Savings left out.
+    expect(current.latest.spending).toBe(400);
+    expect(buildDashboard(ledgers, 3, [])).toBeNull();
+  });
+
   it('ends at the latest month with data and clips to the first', () => {
     expect(buildDashboard(ledgers, 12)!.months).toEqual(['2026-01', '2026-02', '2026-03']);
     expect(buildDashboard(ledgers, 'all')!.months).toEqual(['2026-01', '2026-02', '2026-03']);

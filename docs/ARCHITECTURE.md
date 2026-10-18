@@ -49,7 +49,7 @@ src/
     data/repository.ts         LedgerRepository interface
     data/fixtures.ts           demo data (2 accounts, 6 months)
     store/                     LedgerStore (working copy, autosave), LedgerRemote, IndexedDB cache
-    shortcuts/                 key parsing, sequence matcher, the bindings table
+    shortcuts/                 key parsing and formatting, the bindings table
     transactions/              running totals, sorting, validation, formatting
     categories/                category list operations
     google/                    auth, picker, Sheets API client, sheetsRemote (load and save)

@@ -1,6 +1,6 @@
 import type { Account } from '../domain/types';
 import { monthlyCashFlow, spendingCategories, type MonthCashFlow } from './cashFlow';
-import { addMonths, monthsBetween, type MonthKey } from './months';
+import { addMonths, isIsoDate, monthsBetween, type MonthKey } from './months';
 import {
   dataMonthRange,
   netWorthByMonth,
@@ -63,11 +63,24 @@ function round(amount: number): number {
   return Math.round(amount * 100) / 100;
 }
 
-/** Returns null when there are no transactions at all. */
+/**
+ * Returns null when there are no dated transactions in the chosen accounts. `accountIds` limits
+ * the dashboard to some accounts (all when omitted). Transfers are still matched across every
+ * account, so money moved out of a chosen account into one that is not chosen is not counted as
+ * spending.
+ */
 export function buildDashboard(
-  ledgers: readonly AccountLedger[],
-  range: DashboardRange
+  allLedgers: readonly AccountLedger[],
+  range: DashboardRange,
+  accountIds?: readonly number[]
 ): Dashboard | null {
+  // A row without a readable date cannot be placed in a month. Leave it out rather than letting it
+  // sink the whole dashboard.
+  const dated = allLedgers.map((l) => ({
+    account: l.account,
+    transactions: l.transactions.filter((t) => isIsoDate(t.date)),
+  }));
+  const ledgers = accountIds ? dated.filter((l) => accountIds.includes(l.account.id)) : dated;
   const span = dataMonthRange(ledgers);
   if (!span) return null;
 
@@ -81,8 +94,9 @@ export function buildDashboard(
   const months = withPrevious.slice(1);
   const hasPrevious = start > span.first;
 
+  const excluded = excludedFromCashFlow(dated.flatMap((l) => l.transactions));
   const all = ledgers.flatMap((l) => l.transactions);
-  const flowsWithPrevious = monthlyCashFlow(all, withPrevious, excludedFromCashFlow(all));
+  const flowsWithPrevious = monthlyCashFlow(all, withPrevious, excluded);
   const worthWithPrevious = netWorthByMonth(ledgers, withPrevious);
   const cashFlow = flowsWithPrevious.slice(1);
   const netWorth = worthWithPrevious.slice(1);
