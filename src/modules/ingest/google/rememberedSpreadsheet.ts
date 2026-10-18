@@ -1,3 +1,4 @@
+import { spreadsheetRefSchema } from '../../../lib/domain/schemas';
 import type { SpreadsheetRef } from '../../../lib/domain/types';
 
 /**
@@ -12,8 +13,8 @@ export type KeyValueStore = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 export function loadRememberedSpreadsheet(store: KeyValueStore): SpreadsheetRef | null {
   try {
-    const parsed: unknown = JSON.parse(store.getItem(KEY) ?? 'null');
-    if (isSpreadsheetRef(parsed)) return { id: parsed.id, title: parsed.title };
+    const parsed = spreadsheetRefSchema.safeParse(JSON.parse(store.getItem(KEY) ?? 'null'));
+    if (parsed.success) return parsed.data;
   } catch {
     // Corrupt value: treat as nothing remembered.
   }
@@ -26,12 +27,6 @@ export function rememberSpreadsheet(store: KeyValueStore, spreadsheet: Spreadshe
 
 export function forgetSpreadsheet(store: KeyValueStore): void {
   store.removeItem(KEY);
-}
-
-function isSpreadsheetRef(value: unknown): value is SpreadsheetRef {
-  if (typeof value !== 'object' || value === null) return false;
-  const { id, title } = value as Record<string, unknown>;
-  return typeof id === 'string' && id.length > 0 && typeof title === 'string';
 }
 
 /** An in-memory `KeyValueStore`, for tests and for browsers that block storage. */

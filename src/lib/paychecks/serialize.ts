@@ -1,11 +1,6 @@
-import { isIsoDate } from '../transactions/dates';
-import {
-  REPEATS,
-  type Deduction,
-  type Paycheck,
-  type PaycheckList,
-  type Repeat,
-} from './paychecks';
+import { z } from 'zod';
+import { isoDateSchema } from '../domain/schemas';
+import { REPEATS, type Deduction, type Paycheck, type PaycheckList } from './paychecks';
 
 /**
  * Paychecks as stored in the spreadsheet (the store keeps them as JSON in the `_Paychecks` tab).
@@ -18,66 +13,59 @@ export const PAYCHECKS_FORMAT_VERSION = 1;
 /** The stored shape. Plain JSON: arrays, strings, numbers and null only. */
 export interface StoredPaychecks {
   version: number;
-  paychecks: {
-    id: string;
-    name: string;
-    date: string;
-    gross: number;
-    deductions: { id: string; name: string; amount: number }[];
-    accountId: number | null;
-    repeat: Repeat;
-    until: string | null;
-  }[];
+  paychecks: Paycheck[];
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
+const moneySchema = z.number().finite().min(0);
 
-const isMoney = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isFinite(value) && value >= 0;
+const storedDeductionSchema = z.object({
+  id: z.string().optional().catch(undefined),
+  name: z.string(),
+  amount: moneySchema,
+});
 
+/** Deductions that are not understood are dropped; missing or repeated ids are repaired. */
 function parseDeductions(value: unknown): Deduction[] {
   if (!Array.isArray(value)) return [];
   const seen = new Set<string>();
   const deductions: Deduction[] = [];
   value.forEach((item, i) => {
-    if (!isRecord(item) || typeof item.name !== 'string' || !isMoney(item.amount)) return;
-    let id = typeof item.id === 'string' && item.id ? item.id : `d${i + 1}`;
+    const parsed = storedDeductionSchema.safeParse(item);
+    if (!parsed.success) return;
+    let id = parsed.data.id || `d${i + 1}`;
     while (seen.has(id)) id = `${id}_`;
     seen.add(id);
-    deductions.push({ id, name: item.name, amount: item.amount });
+    deductions.push({ id, name: parsed.data.name, amount: parsed.data.amount });
   });
   return deductions;
 }
 
+const storedPaycheckSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().catch(''),
+  date: isoDateSchema,
+  gross: moneySchema.refine((gross) => gross > 0),
+  deductions: z.unknown().transform(parseDeductions),
+  accountId: z.number().int().nullable().catch(null),
+  repeat: z.enum(REPEATS).catch('none'),
+  until: isoDateSchema.nullable().catch(null),
+});
+
 /** One stored paycheck, or null when it has no id, a bad date or no positive gross pay. */
 export function parsePaycheck(value: unknown): Paycheck | null {
-  if (!isRecord(value)) return null;
-  const { id, date, gross } = value;
-  if (typeof id !== 'string' || !id) return null;
-  if (typeof date !== 'string' || !isIsoDate(date)) return null;
-  if (!isMoney(gross) || gross === 0) return null;
-  return {
-    id,
-    name: typeof value.name === 'string' ? value.name : '',
-    date,
-    gross,
-    deductions: parseDeductions(value.deductions),
-    accountId: Number.isInteger(value.accountId) ? (value.accountId as number) : null,
-    repeat: (REPEATS as readonly unknown[]).includes(value.repeat)
-      ? (value.repeat as Repeat)
-      : 'none',
-    until: typeof value.until === 'string' && isIsoDate(value.until) ? value.until : null,
-  };
+  const parsed = storedPaycheckSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }
+
+const storedListSchema = z.object({ paychecks: z.array(z.unknown()) });
 
 /** The stored list, or an empty one when there is none (or it is unreadable). */
 export function parsePaychecks(value: unknown): PaycheckList {
-  if (!isRecord(value) || !Array.isArray(value.paychecks)) return { paychecks: [] };
+  const parsed = storedListSchema.safeParse(value);
+  if (!parsed.success) return { paychecks: [] };
   const seen = new Set<string>();
   const paychecks: Paycheck[] = [];
-  for (const item of value.paychecks) {
+  for (const item of parsed.data.paychecks) {
     const paycheck = parsePaycheck(item);
     if (!paycheck || seen.has(paycheck.id)) continue;
     seen.add(paycheck.id);

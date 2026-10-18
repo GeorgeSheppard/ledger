@@ -1,16 +1,11 @@
-import type { LedgerData } from './ledgerData';
-import type { RemoteState } from './remote';
+import type { z } from 'zod';
+import { cachedLedgerSchema } from './schemas';
 
 /**
  * The working copy as kept in the browser, per spreadsheet. If the page closes before a save, the
  * next visit finds the unsaved edits here and replays them on top of a fresh read of the sheet.
  */
-export interface CachedLedger {
-  /** The last state read from or written to the sheet. */
-  saved: RemoteState;
-  /** The working copy, including edits not yet saved. */
-  current: LedgerData;
-}
+export type CachedLedger = z.infer<typeof cachedLedgerSchema>;
 
 export interface LedgerCache {
   get(spreadsheetId: string): Promise<CachedLedger | null>;
@@ -62,8 +57,12 @@ export function indexedDbCache(
     });
   };
   return {
-    get: async (id) =>
-      ((await run('readonly', (s) => s.get(id))) as CachedLedger | undefined) ?? null,
+    // What an older version of the app left behind may not fit today's shapes; treat it as no cache.
+    get: async (id) => {
+      const stored: unknown = await run('readonly', (s) => s.get(id));
+      const parsed = cachedLedgerSchema.safeParse(stored);
+      return parsed.success ? parsed.data : null;
+    },
     put: async (id, value) => {
       await run('readwrite', (s) => s.put(value, id));
     },

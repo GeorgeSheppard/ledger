@@ -1,6 +1,8 @@
 import type { Category, IsoDate, TransactionInput } from '../domain/types';
 import { ACCOUNT_COLUMNS } from '../domain/types';
+import { categorySchema } from '../domain/schemas';
 import type { JsonValue } from '../store/ledgerData';
+import { jsonSchema } from '../store/schemas';
 import type { CellData, RowData } from './sheetsTypes';
 
 /**
@@ -134,8 +136,6 @@ export function headerRow(columns: readonly string[] = ACCOUNT_COLUMNS): RowData
   };
 }
 
-const HEX_COLOR = /^#[0-9a-f]{6}$/i;
-
 /**
  * `_Categories` values (from row 2, columns A–B) as categories. Blank names are skipped. A missing
  * or invalid colour comes back as `''`; the store gives those a palette colour when it opens.
@@ -144,7 +144,7 @@ export function rowsToCategories(values: readonly (readonly unknown[])[]): Categ
   return values
     .map((cells) => ({ name: textCell(cells[0]), color: textCell(cells[1]) }))
     .filter((c) => c.name !== '')
-    .map((c) => ({ name: c.name, color: HEX_COLOR.test(c.color) ? c.color : '' }));
+    .map((c) => categorySchema.parse(c));
 }
 
 export function categoryRow(category: Category): RowData {
@@ -156,7 +156,8 @@ export function parseDashboardCell(value: unknown): JsonValue | null {
   const text = textCell(value);
   if (!text) return null;
   try {
-    return JSON.parse(text) as JsonValue;
+    const parsed = jsonSchema.safeParse(JSON.parse(text));
+    return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }

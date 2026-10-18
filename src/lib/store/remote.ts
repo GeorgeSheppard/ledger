@@ -1,4 +1,6 @@
+import type { z } from 'zod';
 import type { LedgerData, SkippedTab } from './ledgerData';
+import type { remoteStateSchema, sheetLayoutSchema } from './schemas';
 
 /**
  * Where the spreadsheet really lives. The store loads it once, edits a local working copy, and hands
@@ -23,23 +25,8 @@ export interface DownloadedFile {
   bytes: Uint8Array;
 }
 
-export interface RemoteState {
-  /** The data as it is in the sheet. */
-  data: LedgerData;
-  skippedTabs: SkippedTab[];
-  /** Remote bookkeeping (grid sizes, tab ids). Plain JSON so it can be cached; only the remote reads it. */
-  layout: SheetLayout;
-}
-
-export interface SheetLayout {
-  /** Row count of every tab's grid, by sheet id. Writing past it needs the grid to grow first. */
-  rowCounts: Record<number, number>;
-  /** Every sheet id in use, including skipped and reserved tabs, so new tabs get a fresh one. */
-  sheetIds: number[];
-  categoriesSheetId?: number;
-  dashboardSheetId?: number;
-  paychecksSheetId?: number;
-}
+export type RemoteState = z.infer<typeof remoteStateSchema>;
+export type SheetLayout = z.infer<typeof sheetLayoutSchema>;
 
 export const EMPTY_LAYOUT: SheetLayout = { rowCounts: {}, sheetIds: [] };
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GoogleApiError, HttpSheetsClient } from './sheetsClient';
+import { GoogleApiError, HttpSheetsClient, UnexpectedResponseError } from './sheetsClient';
 
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
@@ -24,6 +24,18 @@ describe('HttpSheetsClient', () => {
     expect(auth.getAccessToken).toHaveBeenLastCalledWith({ forceRefresh: true });
     const headers = fetchImpl.mock.calls[1]?.[1]?.headers as Record<string, string>;
     expect(headers.Authorization).toBe('Bearer new');
+  });
+
+  it('explains a reply that does not have the documented shape', async () => {
+    const auth = { getAccessToken: async () => 't' };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(json(200, { spreadsheetId: 'x', sheets: [{ properties: { title: 1 } }] }));
+    const error = await new HttpSheetsClient(auth, fetchImpl)
+      .getMetadata('x')
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(UnexpectedResponseError);
+    expect((error as Error).message).toMatch(/does not understand/);
   });
 
   it('surfaces Google error messages with the status', async () => {
