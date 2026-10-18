@@ -67,14 +67,23 @@ export function netWorthByMonth(
   }));
 }
 
-/** The first and last month that any transaction falls in, or null when there are none. */
+/**
+ * The first and last month that any transaction falls in, or null when there are none. With
+ * `today`, the last month stops at the current one, so a row dated in the future (a typo, or a
+ * scheduled payment) does not stretch the range past the real data. When every row is in the
+ * future the range is left alone.
+ */
 export function dataMonthRange(
-  ledgers: readonly AccountLedger[]
+  ledgers: readonly AccountLedger[],
+  today?: IsoDate
 ): { first: MonthKey; last: MonthKey } | null {
   const dates = ledgers
     .flatMap((l) => l.transactions.map((t) => t.date))
     .filter(isIsoDate)
     .sort();
   const [first, last] = [dates[0], dates.at(-1)];
-  return first && last ? { first: monthOf(first), last: monthOf(last) } : null;
+  if (!first || !last) return null;
+  const current = today ? monthOf(today) : undefined;
+  const capped = current && current >= monthOf(first) && current < monthOf(last) ? current : null;
+  return { first: monthOf(first), last: capped ?? monthOf(last) };
 }

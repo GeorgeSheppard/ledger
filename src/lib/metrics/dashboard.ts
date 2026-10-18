@@ -1,5 +1,6 @@
-import type { Account } from '../domain/types';
+import type { Account, IsoDate } from '../domain/types';
 import { monthlyCashFlow, spendingCategories, type MonthCashFlow } from './cashFlow';
+import { isoDateOf } from './buckets';
 import { addMonths, isIsoDate, monthsBetween, type MonthKey } from './months';
 import {
   dataMonthRange,
@@ -68,13 +69,15 @@ function round(amount: number): number {
  * the dashboard to some accounts (all when omitted). Transfers are still matched across every
  * account, so money moved out of a chosen account into one that is not chosen is not counted as
  * spending. `ignoredCategories` (lower-cased names) are left out of income and spending but still
- * count towards balances and net worth.
+ * count towards balances and net worth. Months after `today` are not shown: a row dated in the
+ * future would otherwise push the window past all the real data.
  */
 export function buildDashboard(
   allLedgers: readonly AccountLedger[],
   range: DashboardRange,
   accountIds?: readonly number[],
-  ignoredCategories?: ReadonlySet<string>
+  ignoredCategories?: ReadonlySet<string>,
+  today: IsoDate = isoDateOf(Date.now())
 ): Dashboard | null {
   // A row without a readable date cannot be placed in a month. Leave it out rather than letting it
   // sink the whole dashboard.
@@ -83,7 +86,7 @@ export function buildDashboard(
     transactions: l.transactions.filter((t) => isIsoDate(t.date)),
   }));
   const ledgers = accountIds ? dated.filter((l) => accountIds.includes(l.account.id)) : dated;
-  const span = dataMonthRange(ledgers);
+  const span = dataMonthRange(ledgers, today);
   if (!span) return null;
 
   const start =

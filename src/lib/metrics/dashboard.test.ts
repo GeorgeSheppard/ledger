@@ -30,6 +30,37 @@ describe('buildDashboard', () => {
     expect(buildDashboard([], 6)).toBeNull();
   });
 
+  it('stops at the current month when a row is dated in the future', () => {
+    const typo = [
+      {
+        account: { id: 1, name: 'Current' },
+        transactions: makeTransactions(1, [
+          ['2026-01-01', 1000, '', 'Opening balance'],
+          ['2026-02-25', 2000, 'Salary'],
+          ['2062-03-15', -100, 'Rent'],
+        ]),
+      },
+    ];
+    const dashboard = buildDashboard(typo, 6, undefined, undefined, '2026-03-10')!;
+    expect(dashboard.months).toEqual(['2026-01', '2026-02', '2026-03']);
+    expect(dashboard.latest.netWorth).toBe(3000);
+    expect(
+      buildDashboard(typo, 'all', undefined, undefined, '2026-03-10')!.netWorth.at(-1)?.total
+    ).toBe(3000);
+  });
+
+  it('keeps future months when every row is in the future', () => {
+    const later = [
+      {
+        account: { id: 1, name: 'Current' },
+        transactions: makeTransactions(1, [['2027-05-01', 100, 'Salary']]),
+      },
+    ];
+    expect(buildDashboard(later, 'all', undefined, undefined, '2026-03-10')!.months).toEqual([
+      '2027-05',
+    ]);
+  });
+
   it('ignores rows without a readable date instead of showing nothing', () => {
     const withSummaryTab = [
       ...ledgers,
