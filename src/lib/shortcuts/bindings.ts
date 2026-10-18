@@ -223,7 +223,11 @@ export const SHORTCUTS = {
   'import.mapping': { keys: 'm', description: 'Edit column mapping', scope: 'import' },
   'import.invert': { keys: 'i', description: 'Flip amount signs', scope: 'import' },
   'import.filter': { keys: 'f', description: 'Cycle preview filter', scope: 'import' },
-  'import.reset': { keys: 'x', description: 'Start over with another file or text', scope: 'import' },
+  'import.reset': {
+    keys: 'x',
+    description: 'Start over with another file or text',
+    scope: 'import',
+  },
   'import.close': {
     keys: 'escape',
     description: 'Close import',
