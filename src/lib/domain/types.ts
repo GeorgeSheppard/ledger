@@ -53,3 +53,6 @@ export const RESERVED_TAB_PREFIX = '_';
 
 /** Tab that holds the category list (columns: Name, Color). */
 export const CATEGORIES_TAB = '_Categories';
+
+/** Tab that holds the paychecks, as JSON in cell A2. */
+export const PAYCHECKS_TAB = '_Paychecks';

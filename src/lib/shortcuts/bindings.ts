@@ -16,6 +16,7 @@ export type ShortcutScope =
   | 'transactions'
   | 'accounts'
   | 'categories'
+  | 'paychecks'
   | 'import';
 
 export interface ShortcutBinding {
@@ -32,18 +33,29 @@ export const SHORTCUTS = {
   'nav.dashboard': { keys: 'mod+d', description: 'Go to dashboard', scope: 'global' },
   'nav.accounts': { keys: 'mod+a', description: 'Go to accounts', scope: 'global' },
   'nav.categories': { keys: 'mod+k', description: 'Go to categories', scope: 'global' },
+  'nav.paychecks': { keys: 'mod+y', description: 'Go to paychecks', scope: 'global' },
   'nav.switchSpreadsheet': {
     keys: 'mod+o',
     description: 'Switch spreadsheet',
     scope: 'global',
   },
   'help.toggle': { keys: '?', description: 'Show keyboard shortcuts', scope: 'global' },
+  'sync.save': {
+    keys: 'mod+s',
+    description: 'Save changes, or download the file',
+    scope: 'global',
+    allowInInputs: true,
+  },
 
   // Landing and connect (step 1)
   'landing.signIn': { keys: 'enter', description: 'Sign in with Google', scope: 'landing' },
   'connect.pick': { keys: 'o', description: 'Open an existing spreadsheet', scope: 'connect' },
   'connect.create': { keys: 'c', description: 'Create a new spreadsheet', scope: 'connect' },
   'connect.back': { keys: 'escape', description: 'Back to your dashboard', scope: 'connect' },
+  'landing.openFile': { keys: 'o', description: 'Choose a spreadsheet file', scope: 'landing' },
+  'landing.blank': { keys: 'b', description: 'Start a blank ledger', scope: 'landing' },
+  'connect.openFile': { keys: 'f', description: 'Choose a spreadsheet file', scope: 'connect' },
+  'connect.blank': { keys: 'b', description: 'Start a blank ledger', scope: 'connect' },
   'connect.signOut': { keys: 'shift+q', description: 'Sign out', scope: 'connect' },
 
   // Dashboard (step 3)
@@ -136,6 +148,41 @@ export const SHORTCUTS = {
     keys: 'mod+backspace',
     description: 'Delete row',
     scope: 'transactions',
+  },
+
+  // Paychecks
+  'paychecks.new': { keys: 'n', description: 'New paycheck', scope: 'paychecks' },
+  'paychecks.down': { keys: 'j', description: 'Next paycheck', scope: 'paychecks' },
+  'paychecks.up': { keys: 'k', description: 'Previous paycheck', scope: 'paychecks' },
+  'paychecks.edit': { keys: 'enter', description: 'Edit paycheck', scope: 'paychecks' },
+  'paychecks.delete': {
+    keys: 'mod+backspace',
+    description: 'Delete paycheck',
+    scope: 'paychecks',
+  },
+  'paychecks.save': {
+    keys: 'mod+enter',
+    description: 'Save paycheck',
+    scope: 'paychecks',
+    allowInInputs: true,
+  },
+  'paychecks.cancel': {
+    keys: 'escape',
+    description: 'Cancel editing',
+    scope: 'paychecks',
+    allowInInputs: true,
+  },
+  'paychecks.addDeduction': {
+    keys: 'alt+a',
+    description: 'Add a deduction',
+    scope: 'paychecks',
+    allowInInputs: true,
+  },
+  'paychecks.removeDeduction': {
+    keys: 'alt+backspace',
+    description: 'Remove the deduction being edited',
+    scope: 'paychecks',
+    allowInInputs: true,
   },
 
   // Categories (step 2)

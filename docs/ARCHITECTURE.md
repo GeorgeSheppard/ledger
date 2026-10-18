@@ -11,10 +11,10 @@ writes it from the browser. There is no backend.
 2. **UI lives in `src/features/<feature>/` and `src/ui/`.** Components render and handle input; they
    call `lib/` functions and the data hooks. They do not compute balances, parse CSVs or talk to
    Google.
-3. **One data seam.** Features only read and write through `LedgerRepository`
-   (`src/lib/data/repository.ts`), via the hooks in `src/state/ledgerData.tsx`. In dev the repository
-   is `MemoryRepository` seeded with demo data, so every feature can be built without Google
-   credentials.
+3. **One data seam.** Features read the spreadsheet with `useLedger()` and write through
+   `useRepository()` (a `LedgerStore`, which implements `LedgerRepository`), both in
+   `src/state/ledgerData.tsx`. In dev the store is backed by `MemoryRemote` seeded with demo data,
+   so every feature can be built without Google credentials. See [Data flow](#data-flow).
 4. **Every action has a shortcut, shown next to its button.** Shortcuts are declared once in
    `src/lib/shortcuts/bindings.ts`; buttons are `<ActionButton shortcut="…">`.
 5. **Styling is Tailwind only.** See [Styling](#styling) below. No `.css` files besides
@@ -33,7 +33,7 @@ src/
     AppShell.tsx               sidebar nav, sheet name, shortcut help
   state/                       React glue between lib/ and the UI
     session.tsx                useSession(): signed-out | signed-in | connected
-    ledgerData.tsx             useRepository(), useLedgerQuery(), useLedgerMutation()
+    ledgerData.tsx             useLedger(), useRepository(), useSyncStatus()
     shortcuts.tsx              ShortcutProvider, useShortcut(id, handler)
   ui/                          shared presentational components, no data access
     ActionButton.tsx           button + its shortcut (variants: primary, secondary, ghost, danger)
@@ -42,17 +42,18 @@ src/
     Kbd.tsx                    renders a shortcut's keys
     ShortcutHelp.tsx           `?` overlay listing every shortcut
     cn.ts                      class name joiner (clsx + tailwind-merge)
+  storybook/                   providers for stories (real session and store, demo data)
   styles/
     global.css                 Tailwind import, design tokens (light + dark), base styles
   lib/                         pure TypeScript, unit tested
     domain/types.ts            Account, Transaction, TransactionInput, Category, SpreadsheetRef
     data/repository.ts         LedgerRepository interface
-    data/memoryRepository.ts   in-memory implementation
     data/fixtures.ts           demo data (2 accounts, 6 months)
+    store/                     LedgerStore (working copy, autosave), LedgerRemote, IndexedDB cache
     shortcuts/                 key parsing and formatting, the bindings table
     transactions/              running totals, sorting, validation, formatting
     categories/                category list operations
-    google/                    auth, picker, Sheets API client, GoogleSheetsRepository
+    google/                    auth, picker, Sheets API client, sheetsRemote (load and save)
     connection/                remembering which spreadsheet is connected
     metrics/                   net worth series, monthly spend by category
     csv/                       parsing, column mapping, reconciliation
@@ -101,15 +102,42 @@ focus-visible:outline-offset-2 focus-visible:outline-accent`, `disabled:opacity-
 
 ## Sheet format
 
-- Every tab is an account, except tabs whose name starts with `_`.
-- Account tabs: row 1 is the header `Date | Category | Amount | Note | Total`, data from row 2.
+- A tab is an account only if it matches the format exactly; anything else is ignored and listed
+  in `useLedger().skippedTabs` with the reason. Tabs whose name starts with `_` are never accounts.
+- Account tabs: row 1 is exactly `Date | Category | Amount | Note | Total` with nothing after it,
+  data from row 2. Every non-blank row needs a real date and a numeric amount.
   - Date is written as a real date cell; the app uses `YYYY-MM-DD` strings.
   - Amount is a number: positive is money in, negative is money out.
-  - Total is a running-balance formula written by the app (e.g. `=SUM($C$2:C2)`), so it stays
-    correct when the user edits the sheet directly. The app reads it but never writes a value.
+  - Rows are kept in date order (oldest first). Total is a running-balance formula written by the
+    app (e.g. `=SUM($C$2:C2)`), so it stays correct when the user edits the sheet directly. The app
+    computes totals itself and never reads the Total column.
 - `_Categories` tab: header `Name | Color`, one category per row.
-- Transactions are addressed by row number. After any write, re-read rather than patching state;
-  `useLedgerMutation()` does this automatically.
+- `_Dashboard` tab: header `Config`, the dashboard layout as JSON in cell A2.
+- `_Paychecks` tab: header `Paychecks`, the paychecks as JSON in cell A2 (`src/lib/paychecks`). A
+  paycheck is a name, first payment date, gross pay, free-form named deductions, the account its
+  take-home pay lands in, and an optional repeat (weekly to yearly) with an end date. The
+  dashboard's Sankey graph expands them into payments for the months shown and follows the money:
+  paychecks → deductions and take-home → accounts → spending categories and savings.
+
+## Data flow
+
+The Sheets API allows 60 read and 60 write requests per minute per user, so the app never talks to
+it per page or per edit:
+
+1. **Load once.** When a spreadsheet is connected, `sheetsRemote.load()` reads the tab list and then
+   every tab's values in one batch: two requests in total. Pages never load anything themselves.
+2. **Edit locally.** `LedgerStore` holds the working copy. Edits apply at once (`useLedger()`
+   re-renders) and are written to IndexedDB, so closing the page never loses them.
+3. **Save in one batch.** Every minute, when the page is hidden, or when the user presses Save
+   (`mod+s`), `sheetsRemote.save()` sends everything that changed in one `batchUpdate`. Changed
+   account tabs are rewritten whole, in date order, with fresh Total formulas. `useSyncStatus()`
+   reports `saved`, `unsaved`, `saving` or `error`.
+4. **Unsaved edits survive.** On the next load, edits still in IndexedDB are replayed on top of the
+   fresh sheet, tab by tab: a tab changed locally keeps the local version, other tabs take the
+   sheet's.
+
+Transactions are addressed by row number, which is their position in date order. Adding or
+redating a transaction can change other rows' numbers, so read rows from the latest `useLedger()`.
 
 ## Shared contracts
 
@@ -118,12 +146,14 @@ These are in the scaffold and should not change without agreement across threads
 - `src/lib/domain/types.ts`
 - `src/lib/data/repository.ts` (`LedgerRepository`)
 - `src/state/session.tsx` (`Session`, `SessionApi`, `useSession`)
-- `src/state/ledgerData.tsx` (`useRepository`, `useLedgerQuery`, `useLedgerMutation`)
+- `src/state/ledgerData.tsx` (`useLedger`, `useRepository`, `useSyncStatus`; `useLedgerQuery` and
+  `useLedgerMutation` remain for older code)
+- `src/lib/store/` (`LedgerStore`, `LedgerSnapshot`, `LedgerRemote`)
 - `src/state/shortcuts.tsx` and `src/ui/ActionButton.tsx`
 - `src/app/paths.ts`
 
 If a feature needs a contract change (e.g. a new repository method), add it to the interface **and**
-`MemoryRepository` with a test, keep it additive, and call it out in the PR description.
+`LedgerStore` with a test, keep it additive, and call it out in the PR description.
 
 ## Ownership for the parallel work
 
@@ -143,7 +173,7 @@ Shared files each thread may edit additively:
   already reserved there.
 - `package.json` / `pnpm-lock.yaml`: add dependencies you need (e.g. a chart library for step 3, a
   CSV parser for step 4). Expect a trivial lockfile merge.
-- `src/lib/data/repository.ts` + `memoryRepository.ts`: additive methods only, as above.
+- `src/lib/data/repository.ts` + `src/lib/store/`: additive methods only, as above.
 
 ### Notes per thread
 
@@ -173,4 +203,10 @@ pnpm dev     # demo data, no Google account needed
 pnpm test    # unit tests for lib/
 pnpm lint
 pnpm build
+pnpm storybook         # components and pages with demo data, on :6006
+pnpm screenshots <id>  # PNG screenshots of stories, for PRs
 ```
+
+Stories (`*.stories.tsx`, next to the component they show) render pages and dialogs through the
+real `SessionProvider` and `LedgerDataProvider` on the demo data, so what you see is what the app
+shows. See [STORYBOOK.md](STORYBOOK.md), including how to put before/after images on a PR.

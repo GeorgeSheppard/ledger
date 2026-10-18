@@ -13,6 +13,7 @@ export const WIDGET_KINDS = [
   'spending',
   'breakdown',
   'cashFlow',
+  'sankey',
 ] as const;
 export type WidgetKind = (typeof WIDGET_KINDS)[number];
 
@@ -60,6 +61,7 @@ export const KIND_LABELS: Record<WidgetKind, string> = {
   spending: 'Spending by category, per month',
   breakdown: 'Category breakdown for a month',
   cashFlow: 'Income and spending',
+  sankey: 'Money flow from paychecks (Sankey)',
 };
 
 export const METRIC_LABELS: Record<StatMetric, string> = {
@@ -82,6 +84,7 @@ const DEFAULT_WIDTHS: Record<WidgetKind, WidgetWidth> = {
   spending: 4,
   breakdown: 2,
   cashFlow: 2,
+  sankey: 4,
 };
 
 /** The title shown when a widget has none of its own. */
@@ -92,6 +95,7 @@ export function widgetTitle(widget: Pick<Widget, 'kind' | 'title' | 'metric'>): 
   if (widget.kind === 'balances') return 'Accounts';
   if (widget.kind === 'spending') return 'Spending by category';
   if (widget.kind === 'breakdown') return 'Category breakdown';
+  if (widget.kind === 'sankey') return 'Where your money goes';
   return 'Income and spending';
 }
 

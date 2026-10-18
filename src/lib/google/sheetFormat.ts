@@ -1,6 +1,6 @@
-import type { Category, IsoDate, Transaction, TransactionInput } from '../domain/types';
+import type { Category, IsoDate, TransactionInput } from '../domain/types';
 import { ACCOUNT_COLUMNS } from '../domain/types';
-import { runningTotals } from '../transactions/runningTotal';
+import type { JsonValue } from '../store/ledgerData';
 import type { CellData, RowData } from './sheetsTypes';
 
 /**
@@ -57,34 +57,34 @@ function isBlankRow(row: readonly unknown[]): boolean {
   return row.every((cell) => textCell(cell) === '');
 }
 
+const HEADER_WIDTH = ACCOUNT_COLUMNS.length;
+
 /**
- * Account tab values (from row 2, columns A–E) as transactions. Blank rows are skipped but still
- * count towards row numbers, so `row` always matches the sheet. If a Total cell is not a number
- * (missing or broken formula), the running total is computed instead.
+ * An account tab's values (from row 1, columns A–F) as rows, or why the tab is not an account.
+ * Only tabs that match the format exactly are accepted: row 1 must be
+ * `Date | Category | Amount | Note | Total` with nothing after it, and every non-blank row must have
+ * a real date and a numeric amount. Totals are not read; the app computes them from the amounts.
+ * Blank rows are dropped.
  */
-export function rowsToTransactions(
-  accountId: number,
-  values: readonly (readonly unknown[])[],
-  firstRow = 2
-): Transaction[] {
-  const parsed = values
-    .map((cells, index) => ({ cells, row: firstRow + index }))
-    .filter(({ cells }) => !isBlankRow(cells))
-    .map(({ cells, row }) => ({
-      row,
-      date: parseDateCell(cells[0]),
-      category: textCell(cells[1]),
-      amount: parseNumberCell(cells[2]) ?? 0,
-      note: textCell(cells[3]),
-      sheetTotal: parseNumberCell(cells[4]),
-    }));
-  const computed = runningTotals(parsed.map((t) => t.amount));
-  return parsed.map(({ sheetTotal, ...t }, i) => ({
-    id: `${accountId}:${t.row}`,
-    accountId,
-    ...t,
-    total: sheetTotal ?? computed[i] ?? 0,
-  }));
+export function parseAccountTab(
+  values: readonly (readonly unknown[])[]
+): { rows: TransactionInput[] } | { error: string } {
+  const header = values[0] ?? [];
+  const matches =
+    ACCOUNT_COLUMNS.every((name, i) => textCell(header[i]) === name) &&
+    header.slice(HEADER_WIDTH).every((cell) => textCell(cell) === '');
+  if (!matches) return { error: `Row 1 is not ${ACCOUNT_COLUMNS.join(' | ')}` };
+  const rows: TransactionInput[] = [];
+  for (let i = 1; i < values.length; i++) {
+    const cells = values[i]!.slice(0, HEADER_WIDTH);
+    if (isBlankRow(cells)) continue;
+    const date = parseDateCell(cells[0]);
+    if (!date) return { error: `Row ${i + 1} has no valid date` };
+    const amount = parseNumberCell(cells[2]);
+    if (amount === null) return { error: `Row ${i + 1} has no valid amount` };
+    rows.push({ date, category: textCell(cells[1]), amount, note: textCell(cells[3]) });
+  }
+  return { rows };
 }
 
 /** Running balance formula for a data row. Survives row deletions because the range shrinks. */
@@ -148,3 +148,22 @@ export function rowsToCategories(values: readonly (readonly unknown[])[]): Categ
 export function categoryRow(category: Category): RowData {
   return { values: [stringCell(category.name), stringCell(category.color)] };
 }
+
+/** `_Dashboard` stores its config as JSON text in cell A2. Unreadable text counts as no config. */
+export function parseDashboardCell(value: unknown): JsonValue | null {
+  const text = textCell(value);
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as JsonValue;
+  } catch {
+    return null;
+  }
+}
+
+export function dashboardRow(config: JsonValue | null): RowData {
+  return { values: [config === null ? {} : stringCell(JSON.stringify(config))] };
+}
+
+/** `_Paychecks` stores its list as JSON text in cell A2, like `_Dashboard`. */
+export const parsePaychecksCell = parseDashboardCell;
+export const paychecksRow = dashboardRow;

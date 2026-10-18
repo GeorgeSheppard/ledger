@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fixtureData } from '../data/fixtures';
-import { MemoryRepository } from '../data/memoryRepository';
+import { toSnapshot } from '../store/ledgerData';
 import { buildDashboard, categoryBreakdown } from './dashboard';
 import { makeTransactions } from './testing';
 
@@ -90,15 +90,12 @@ describe('buildDashboard', () => {
     expect(buildDashboard(single, 6)!.latest.previousSpending).toBeNull();
   });
 
-  it('works on the demo data', async () => {
-    const repo = new MemoryRepository(fixtureData());
-    const accounts = await repo.listAccounts();
-    const loaded = await Promise.all(
-      accounts.map(async (account) => ({
-        account,
-        transactions: await repo.listTransactions(account.id),
-      }))
-    );
+  it('works on the demo data', () => {
+    const snapshot = toSnapshot(fixtureData(), []);
+    const loaded = snapshot.accounts.map((account) => ({
+      account,
+      transactions: snapshot.transactionsByAccount[account.id] ?? [],
+    }));
     const dashboard = buildDashboard(loaded, 6)!;
     expect(dashboard.months).toHaveLength(6);
     // Transfers to savings are not spending.

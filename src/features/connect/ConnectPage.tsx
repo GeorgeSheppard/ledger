@@ -6,6 +6,7 @@ import { useSession } from '../../state/session';
 import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
 import { Page } from '../../ui/Page';
+import { LocalFileCard } from './LocalFileCard';
 import { useAsyncAction } from './useAsyncAction';
 
 /** After sign-in: choose an existing spreadsheet with the Google Picker, or create a new one. */
@@ -114,6 +115,8 @@ export function ConnectPage() {
           </ActionButton>
         </Card>
       </div>
+
+      <LocalFileCard scope="connect" onOpened={() => navigate(paths.home)} />
 
       {error && (
         <p role="alert" className="rounded-lg bg-negative/10 px-4 py-3 text-sm text-negative">

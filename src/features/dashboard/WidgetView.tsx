@@ -1,6 +1,11 @@
 import { useMemo } from 'react';
+import { Link } from 'react-router';
+import { paths } from '../../app/paths';
 import { widgetAccountIds, type Widget } from '../../lib/dashboard/config';
 import type { Account } from '../../lib/domain/types';
+import { buildMoneyFlow, flowWindow } from '../../lib/paychecks/flow';
+import type { Paycheck } from '../../lib/paychecks/paychecks';
+import { todayIso } from '../../lib/transactions/dates';
 import { onlyCategories } from '../../lib/metrics/cashFlow';
 import {
   buildDashboard,
@@ -15,14 +20,16 @@ import { CategoryBreakdown } from './CategoryBreakdown';
 import { CashFlowChart } from './charts/CashFlowChart';
 import { ChartLegend } from './charts/ChartLegend';
 import { NetWorthChart } from './charts/NetWorthChart';
+import { SankeyChart } from './charts/SankeyChart';
 import { SpendingChart } from './charts/SpendingChart';
 import { INCOME_COLOR, NET_COLOR, SPENDING_COLOR } from './charts/theme';
-import { formatMonthLong } from './format';
+import { formatMonthLong, formatMoney } from './format';
 import { StatTile } from './StatTile';
 
 export interface WidgetViewProps {
   widget: Widget;
   ledgers: AccountLedger[];
+  paychecks: Paycheck[];
   /** Range for widgets that follow the page. */
   pageRange: DashboardRange;
   colorOf(category: string): string;
@@ -37,6 +44,7 @@ export interface WidgetViewProps {
 export function WidgetView({
   widget,
   ledgers,
+  paychecks,
   pageRange,
   colorOf,
   selectedMonth,
@@ -56,6 +64,38 @@ export function WidgetView({
     () => buildDashboard(ledgers, range, accountIds),
     [ledgers, range, accountIds]
   );
+
+  const flow = useMemo(() => {
+    if (widget.kind !== 'sankey') return null;
+    const { from, to } = flowWindow(ledgers, paychecks, range, todayIso());
+    return buildMoneyFlow({ paychecks, ledgers, from, to, accountIds: widget.accounts });
+  }, [widget.kind, widget.accounts, ledgers, paychecks, range]);
+
+  if (widget.kind === 'sankey') {
+    if (paychecks.length === 0)
+      return (
+        <p className="text-sm text-muted">
+          Add your paychecks to follow your money from gross pay to spending.{' '}
+          <Link to={paths.paychecks} className="text-accent">
+            Add a paycheck
+          </Link>
+        </p>
+      );
+    if (!flow)
+      return (
+        <p className="text-sm text-muted">No paychecks pay into these accounts in this period.</p>
+      );
+    return (
+      <>
+        <p className="mb-3 text-sm text-muted tabular-nums">
+          Gross {formatMoney(flow.totals.gross)} · Deductions {formatMoney(flow.totals.deductions)}{' '}
+          · Take-home {formatMoney(flow.totals.takeHome)} · Spent{' '}
+          {formatMoney(flow.totals.spending)}
+        </p>
+        <SankeyChart flow={flow} colorOf={colorOf} />
+      </>
+    );
+  }
 
   if (!dashboard)
     return <p className="text-sm text-muted">No transactions in these accounts yet.</p>;
