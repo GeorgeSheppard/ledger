@@ -6,6 +6,7 @@ import { useLedger } from '../../state/ledgerData';
 import { Page } from '../../ui/Page';
 import { AccountSwitcher } from './AccountSwitcher';
 import { TransactionTable } from './TransactionTable';
+import { useCashFlowExclusions } from './useAccountsData';
 
 /**
  * `/transactions`: the transactions of every account in one list, with an Account column. It is
@@ -16,6 +17,7 @@ import { TransactionTable } from './TransactionTable';
 export function TransactionsPage() {
   const { accounts, categories, transactionsByAccount } = useLedger();
   const navigate = useNavigate();
+  const excluded = useCashFlowExclusions();
   const [params] = useSearchParams();
   const transactions = useMemo(
     () => accounts.flatMap((account) => transactionsByAccount[account.id] ?? []),
@@ -40,6 +42,7 @@ export function TransactionsPage() {
         accounts={accounts}
         transactions={transactions}
         categories={categories}
+        excluded={excluded}
         initialFilters={filtersFromParams(params)}
       />
     </Page>

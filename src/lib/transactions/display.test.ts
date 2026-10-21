@@ -93,3 +93,32 @@ describe('flattenGroups', () => {
     expect(performance.now() - started).toBeLessThan(1000);
   });
 });
+
+describe('groupByMonth money', () => {
+  it('sums what moneyOf says, so excluded rows do not count', () => {
+    const rows = [
+      {
+        id: '1:3',
+        accountId: 1,
+        row: 3,
+        date: '2026-09-02',
+        category: '',
+        amount: -500,
+        note: '',
+        total: 0,
+      },
+      {
+        id: '1:2',
+        accountId: 1,
+        row: 2,
+        date: '2026-09-01',
+        category: '',
+        amount: 2000,
+        note: '',
+        total: 0,
+      },
+    ];
+    const [group] = groupByMonth(rows, (t) => (t.id === '1:3' ? 0 : t.amount));
+    expect(group).toMatchObject({ moneyIn: 2000, moneyOut: 0 });
+  });
+});

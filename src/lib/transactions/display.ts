@@ -20,8 +20,15 @@ export interface MonthGroup {
   moneyOut: number;
 }
 
-/** Splits already-ordered transactions into runs of the same month, for month headings. */
-export function groupByMonth(ordered: readonly Transaction[]): MonthGroup[] {
+/**
+ * Splits already-ordered transactions into runs of the same month, for month headings. The
+ * heading's money in and out sums `moneyOf(transaction)` (default: the amount); return 0 to leave a
+ * row out, or flip the sign for an inverted account.
+ */
+export function groupByMonth(
+  ordered: readonly Transaction[],
+  moneyOf: (transaction: Transaction) => number = (t) => t.amount
+): MonthGroup[] {
   const groups: MonthGroup[] = [];
   for (const transaction of ordered) {
     const key = monthKey(transaction.date);
@@ -31,8 +38,9 @@ export function groupByMonth(ordered: readonly Transaction[]): MonthGroup[] {
       groups.push(group);
     }
     group.transactions.push(transaction);
-    if (transaction.amount > 0) group.moneyIn = roundCents(group.moneyIn + transaction.amount);
-    else group.moneyOut = roundCents(group.moneyOut + transaction.amount);
+    const money = moneyOf(transaction);
+    if (money > 0) group.moneyIn = roundCents(group.moneyIn + money);
+    else group.moneyOut = roundCents(group.moneyOut + money);
   }
   return groups;
 }

@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import type { Account, Category, Transaction, TransactionInput } from '../../lib/domain/types';
-import { asMoney } from '../../lib/accounts/inverted';
+import { asMoney, moneyLedgers } from '../../lib/accounts/inverted';
+import { ignoredCategoryNames } from '../../lib/categories/categories';
+import { excludedFromCashFlow } from '../../lib/metrics/transfers';
 import { useLedger, useLedgerMutation, type QueryState } from '../../state/ledgerData';
 
 const NO_TRANSACTIONS: Transaction[] = [];
@@ -37,6 +39,23 @@ export function useAccountOverview(): QueryState<AccountOverview[]> {
       })),
     }),
     [accounts, transactionsByAccount]
+  );
+}
+
+/**
+ * Ids of every transaction that is not income or spending (transfers between accounts, opening
+ * balances, categories the user excluded), found across all accounts so a transfer is recognised
+ * whichever account's list is open. Matches the dashboard.
+ */
+export function useCashFlowExclusions(): ReadonlySet<string> {
+  const { accounts, categories, transactionsByAccount } = useLedger();
+  return useMemo(
+    () =>
+      excludedFromCashFlow(
+        moneyLedgers(accounts, transactionsByAccount).flatMap((l) => l.transactions),
+        ignoredCategoryNames(categories)
+      ),
+    [accounts, categories, transactionsByAccount]
   );
 }
 
