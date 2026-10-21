@@ -1,8 +1,9 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { Select } from '../../../ui/Select';
 import type { Graph } from '../types';
 import { NoData } from '../shared/NoData';
 import { METRIC_LABELS, STAT_METRICS, statMetric } from './metrics';
+import { StatDetail } from './StatDetail';
 import { StatTile } from './StatTile';
 
 export const statGraph: Graph = {
@@ -32,8 +33,16 @@ export const statGraph: Graph = {
       </div>
     );
   },
-  View({ widget, dashboard }) {
+  View(props) {
+    const [open, setOpen] = useState(false);
+    const { widget, dashboard } = props;
     if (!dashboard) return <NoData>No transactions in these accounts yet.</NoData>;
-    return <StatTile dashboard={dashboard} metric={statMetric(widget.metric)} />;
+    const metric = statMetric(widget.metric);
+    return (
+      <>
+        <StatTile dashboard={dashboard} metric={metric} onOpen={() => setOpen(true)} />
+        {open && <StatDetail metric={metric} props={props} onClose={() => setOpen(false)} />}
+      </>
+    );
   },
 };
