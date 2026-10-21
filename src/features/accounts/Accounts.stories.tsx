@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Navigate, Route, Routes } from 'react-router';
 import { paths } from '../../app/paths';
 import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test';
+import { expectOnTop } from '../../storybook/floating';
 import { BIG_ACCOUNT_NAME, CREDIT_CARD_NAME, Connected } from '../../storybook/providers';
 import { useLedger } from '../../state/ledgerData';
 import { AccountsOverviewPage } from './AccountsOverviewPage';
@@ -56,10 +57,13 @@ export const SwitcherWithAllAccounts: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(await canvas.findByRole('button', { name: /switch account/i }));
-    await userEvent.click(await canvas.findByRole('option', { name: 'All accounts' }));
+    // The list is portaled out of the page, so it is found from the document, not the canvas.
+    const screen = within(document.body);
+    await expectOnTop(await screen.findByRole('listbox'));
+    await userEvent.click(await screen.findByRole('option', { name: 'All accounts' }));
     await expect(await canvas.findByRole('heading', { name: 'All transactions' })).toBeVisible();
     await userEvent.click(await canvas.findByRole('button', { name: /switch account/i }));
-    await expect(await canvas.findByRole('option', { name: /All accounts/ })).toHaveAttribute(
+    await expect(await screen.findByRole('option', { name: /All accounts/ })).toHaveAttribute(
       'aria-selected'
     );
   },
@@ -124,8 +128,11 @@ export const CategoryPickerOnAccount: Story = {
     await userEvent.click(dinner!);
     const picker = await canvas.findByRole('combobox', { name: 'Category' });
     await userEvent.clear(picker);
-    await canvas.findByRole('option', { name: 'Groceries' });
-    await expect(canvas.queryByRole('option', { name: 'Interest' })).toBeNull();
+    const screen = within(document.body);
+    await screen.findByRole('option', { name: 'Groceries' });
+    await expect(screen.queryByRole('option', { name: 'Interest' })).toBeNull();
+    // The list must paint over the rows underneath it, not behind their text.
+    await expectOnTop(screen.getByRole('listbox'));
   },
 };
 
@@ -157,6 +164,7 @@ export const RowMenu: Story = {
   play: async ({ canvasElement }) => {
     const [first] = await rowsOf(canvasElement);
     await userEvent.click(within(first!).getByRole('button', { name: /^Actions for/ }));
+    await expectOnTop(await within(document.body).findByRole('menu'));
   },
 };
 
@@ -174,6 +182,17 @@ export const Filtered: Story = {
     const body = within(document.body);
     await userEvent.click(body.getByRole('button', { name: 'Money out' }));
     await userEvent.type(body.getByRole('textbox', { name: 'Smallest amount' }), '70');
+  },
+};
+
+/** The Date filter: quick presets over from and to pickers, and every row shows its year. */
+export const DateFilterOpen: Story = {
+  render: AccountRoute,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      await within(canvasElement).findByRole('button', { name: 'Filter by date' })
+    );
+    await userEvent.click(within(document.body).getByRole('button', { name: 'Last 12 months' }));
   },
 };
 
@@ -205,6 +224,7 @@ export const Duplicates: Story = {
     const canvas = within(canvasElement);
     const [first] = await rowsOf(canvasElement);
     await userEvent.click(within(first!).getByRole('button', { name: /^Actions for/ }));
+    await expectOnTop(await within(document.body).findByRole('menu'));
     await userEvent.click(canvas.getByRole('menuitem', { name: 'Duplicate this transaction' }));
     await waitFor(async () => expect((await rowsOf(canvasElement)).length).toBeGreaterThan(40));
     const [top] = await rowsOf(canvasElement);
