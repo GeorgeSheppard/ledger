@@ -50,6 +50,7 @@ import { ActionButton } from '../../ui/ActionButton';
 import { cn } from '../../ui/cn';
 import { Kbd } from '../../ui/Kbd';
 import type { MenuItem } from '../../ui/Menu';
+import { FLOATING_SELECTOR } from '../../ui/FloatingPanel';
 import { FunnelIcon, Popover } from '../../ui/Popover';
 import { DeleteConfirm } from './DeleteConfirm';
 import { TransactionEditor } from './TransactionEditor';
@@ -286,7 +287,7 @@ export function TransactionTable({
     const away = (event: PointerEvent) => {
       const target = event.target as HTMLElement;
       // Rows and menus handle themselves; the editor is inside its own row.
-      if (target.closest('[data-row-id], [role="menu"], dialog')) return;
+      if (target.closest(`[data-row-id], ${FLOATING_SELECTOR}, dialog`)) return;
       void commitRef.current();
     };
     document.addEventListener('pointerdown', away);

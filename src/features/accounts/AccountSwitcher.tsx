@@ -1,8 +1,9 @@
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useId, useMemo, useState, type KeyboardEvent } from 'react';
 import { filterAccounts } from '../../lib/accounts/accounts';
 import type { Account } from '../../lib/domain/types';
 import { ActionButton } from '../../ui/ActionButton';
 import { cn } from '../../ui/cn';
+import { FloatingPanel } from '../../ui/FloatingPanel';
 
 const OPTION = 'flex items-center justify-between rounded-md px-2.5 py-2 text-sm';
 
@@ -34,7 +35,8 @@ export function AccountSwitcher({
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const listId = useId();
-  const rootRef = useRef<HTMLDivElement>(null);
+  const [anchor, setAnchor] = useState<HTMLDivElement | null>(null);
+  const dismiss = useCallback(() => setOpen(false), []);
   const optionId = (account: Account | null) => `${listId}-${account ? account.id : 'all'}`;
 
   /** `null` is "All accounts", listed first while the search still matches its name. */
@@ -44,15 +46,6 @@ export function AccountSwitcher({
       ? [null, ...found]
       : found;
   }, [accounts, query]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [open]);
 
   const show = () => {
     setQuery('');
@@ -81,7 +74,7 @@ export function AccountSwitcher({
   };
 
   return (
-    <div className="relative" ref={rootRef}>
+    <div ref={setAnchor}>
       <ActionButton
         shortcut="accounts.switch"
         variant="ghost"
@@ -96,7 +89,13 @@ export function AccountSwitcher({
         </span>
       </ActionButton>
       {open && (
-        <div className="absolute top-full right-0 z-30 mt-1.5 w-72 rounded-xl border border-line bg-surface p-1.5 shadow-xl">
+        <FloatingPanel
+          anchor={anchor}
+          onDismiss={dismiss}
+          placement="bottom-end"
+          className="w-72 rounded-xl p-1.5 shadow-xl"
+          onPlaced={(panel) => panel.querySelector('input')?.focus()}
+        >
           <input
             className="h-9 w-full border-b border-line bg-transparent px-2.5 text-sm text-fg outline-none placeholder:text-muted/70"
             aria-label="Find account"
@@ -105,7 +104,6 @@ export function AccountSwitcher({
               matches[active] !== undefined ? optionId(matches[active]) : undefined
             }
             placeholder="Find account…"
-            autoFocus
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -156,7 +154,7 @@ export function AccountSwitcher({
               <span>+ New account</span>
             </button>
           )}
-        </div>
+        </FloatingPanel>
       )}
     </div>
   );
