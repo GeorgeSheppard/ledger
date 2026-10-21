@@ -185,6 +185,17 @@ export const Filtered: Story = {
   },
 };
 
+/** The Date filter: quick presets over from and to pickers, and every row shows its year. */
+export const DateFilterOpen: Story = {
+  render: AccountRoute,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      await within(canvasElement).findByRole('button', { name: 'Filter by date' })
+    );
+    await userEvent.click(within(document.body).getByRole('button', { name: 'Last 12 months' }));
+  },
+};
+
 /** Sorted by amount, smallest first. */
 export const SortedByAmount: Story = {
   render: AccountRoute,

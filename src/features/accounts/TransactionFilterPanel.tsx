@@ -1,5 +1,6 @@
 import { useState, type Ref } from 'react';
 import type { Account, Category } from '../../lib/domain/types';
+import { datePresets, todayIso } from '../../lib/transactions/dates';
 import { amountToInput, parseAmount } from '../../lib/transactions/amount';
 import {
   hasFilters,
@@ -92,23 +93,44 @@ export function NoteFilter({
 }
 
 export function DateFilter({ filters, set }: FilterFieldProps) {
+  const presets = datePresets(todayIso());
   return (
-    <div className="flex items-center gap-2">
-      <TextInput
-        type="date"
-        aria-label="From date"
-        value={filters.from ?? ''}
-        max={filters.to ?? undefined}
-        onChange={(e) => set({ from: e.target.value || null })}
-      />
-      <span className="text-sm text-muted">to</span>
-      <TextInput
-        type="date"
-        aria-label="To date"
-        value={filters.to ?? ''}
-        min={filters.from ?? undefined}
-        onChange={(e) => set({ to: e.target.value || null })}
-      />
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-1.5">
+        {presets.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            aria-pressed={filters.from === preset.from && filters.to === preset.to}
+            className={cn(
+              'cursor-pointer rounded-full border border-line px-2.5 py-0.5 text-sm transition-colors hover:bg-surface-hover',
+              filters.from === preset.from &&
+                filters.to === preset.to &&
+                'border-accent bg-accent/10 ring-2 ring-accent/20'
+            )}
+            onClick={() => set({ from: preset.from, to: preset.to })}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <TextInput
+          type="date"
+          aria-label="From date"
+          value={filters.from ?? ''}
+          max={filters.to ?? undefined}
+          onChange={(e) => set({ from: e.target.value || null })}
+        />
+        <span className="text-sm text-muted">to</span>
+        <TextInput
+          type="date"
+          aria-label="To date"
+          value={filters.to ?? ''}
+          min={filters.from ?? undefined}
+          onChange={(e) => set({ to: e.target.value || null })}
+        />
+      </div>
     </div>
   );
 }
