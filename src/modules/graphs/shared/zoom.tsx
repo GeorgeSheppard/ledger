@@ -33,7 +33,10 @@ export interface ZoomView {
   granularity: Granularity;
   /** Buckets overlapping the view (plus a little either side), in order. */
   shown: ShownBucket[];
+  /** Whether the view differs from where it started (the widget's range). */
   zoomed: boolean;
+  /** Whether the view is narrower than all the data, so zooming out is possible. */
+  canZoomOut: boolean;
   /** First and last day on screen, as ISO dates. */
   dates: { from: IsoDate; to: IsoDate };
   zoomIn(): void;
@@ -45,18 +48,23 @@ export interface ZoomView {
 
 /**
  * What a zoomable chart is showing: the part of the time range on screen, and how finely to cut it.
- * The view starts as the whole range and goes back to it when the data behind it changes. The chart
+ * The view starts as the series' window (the widget's range) and goes back to it when the data behind
+ * it changes. Panning and zooming are limited only by the full extent of the data. The chart
  * is controlled from here: `range` goes into its x scale, and its pan/zoom events come back through
  * `onChartZoom`.
  */
 export function useZoomView(series: TimeSeries): ZoomView {
   const full = useMemo<TimeRange>(() => [series.startMs, series.endMs], [series]);
   const [state, setState] = useState<{ series: TimeSeries; range: TimeRange } | null>(null);
-  const range = state?.series === series ? state.range : full;
+  const initial = useMemo<TimeRange>(
+    () => [Math.min(series.windowStartMs, series.endMs), series.endMs],
+    [series]
+  );
+  const range = state?.series === series ? state.range : initial;
   const set = (next: TimeRange) => setState({ series, range: next });
 
   const width = range[1] - range[0];
-  const granularity = granularityFor(width / DAY_MS, (full[1] - full[0]) / width);
+  const granularity = granularityFor(width / DAY_MS, (initial[1] - initial[0]) / width);
   const shown = useMemo(() => {
     const margin = (range[1] - range[0]) * 0.1;
     return series.buckets(granularity).flatMap((bucket, index) => {
@@ -77,11 +85,12 @@ export function useZoomView(series: TimeSeries): ZoomView {
     full,
     granularity,
     shown,
-    zoomed: width < full[1] - full[0] - 1,
+    zoomed: Math.abs(range[0] - initial[0]) > 1 || Math.abs(range[1] - initial[1]) > 1,
+    canZoomOut: width < full[1] - full[0] - 1,
     dates: { from: isoDateOf(range[0]), to: isoDateOf(Math.max(range[0], range[1] - 1)) },
     zoomIn: () => zoomBy(STEP),
     zoomOut: () => zoomBy(1 / STEP),
-    reset: () => set(full),
+    reset: () => set(initial),
     onChartZoom: (chart) => {
       const x = chart.scales.x;
       if (x) set([x.min, x.max]);
@@ -149,7 +158,7 @@ export function ZoomControls({ view, children }: { view: ZoomView; children?: Re
   return (
     <div className="mb-2 flex flex-wrap items-center justify-end gap-1">
       <span className="mr-auto text-xs text-muted no-keys:hidden">
-        {view.zoomed
+        {view.canZoomOut
           ? 'Drag to pan, Ctrl and scroll to zoom'
           : 'Ctrl and scroll to zoom, then drag to pan'}
       </span>
@@ -157,7 +166,7 @@ export function ZoomControls({ view, children }: { view: ZoomView; children?: Re
       <ActionButton
         variant="ghost"
         aria-label="Zoom out"
-        disabled={!view.zoomed}
+        disabled={!view.canZoomOut}
         onAction={view.zoomOut}
       >
         −
