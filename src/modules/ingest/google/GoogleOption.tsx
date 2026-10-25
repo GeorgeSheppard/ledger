@@ -7,7 +7,7 @@ import type { IngestOption, IngestSetupProps } from '../types';
 import { GoogleSpreadsheetStep } from './GoogleSpreadsheetStep';
 
 /** Step 1 signs in with Google; once signed in, step 2 picks or creates the spreadsheet. */
-function GoogleSetup({ onOpened }: IngestSetupProps) {
+function GoogleSetup({ onOpened, onUsed }: IngestSetupProps) {
   const { session, signIn, rememberedSpreadsheet } = useSession();
   const { busy, error, run } = useAsyncAction<'sign-in'>();
 
@@ -21,7 +21,12 @@ function GoogleSetup({ onOpened }: IngestSetupProps) {
       </p>
       <ActionButton
         variant="primary"
-        onAction={() => void run('sign-in', signIn)}
+        onAction={() =>
+          void run('sign-in', async () => {
+            await signIn();
+            onUsed();
+          })
+        }
         disabled={busy !== null}
       >
         {busy

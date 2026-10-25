@@ -47,7 +47,7 @@ export function PeriodPicker({
       <ActionButton
         shortcut="dashboard.backPeriod"
         variant="ghost"
-        aria-label="Back to the previous dates"
+        aria-label="Back to the previous dates or categories"
         disabled={!canGoBack}
         onAction={onBack}
       >

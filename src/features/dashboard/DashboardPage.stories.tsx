@@ -72,7 +72,7 @@ export const BackEnabled: Story = {
   },
 };
 
-/** A spending node clicked in the Sankey: the Sankey narrows to it (the rest is one "Everything else" node) and the other graphs follow. */
+/** A spending node clicked in the Sankey: it is outlined, the other spending is dimmed, and the other graphs follow. */
 export const SankeyCategoryClicked: Story = {
   render: Default.render,
   play: async ({ canvasElement }) => {
