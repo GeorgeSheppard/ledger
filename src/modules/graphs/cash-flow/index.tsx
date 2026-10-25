@@ -3,7 +3,7 @@ import { buildTimeSeries } from '../../../lib/metrics/timeSeries';
 import type { Graph } from '../types';
 import { ChartLegend } from '../shared/ChartLegend';
 import { NoData } from '../shared/NoData';
-import { INCOME_COLOR, NET_COLOR, SPENDING_COLOR } from '../shared/theme';
+import { INCOME_COLOR, SPENDING_COLOR } from '../shared/theme';
 import { CashFlowChart } from './CashFlowChart';
 
 export const cashFlowGraph: Graph = {
@@ -22,7 +22,6 @@ export const cashFlowGraph: Graph = {
           items={[
             { label: 'Income', color: INCOME_COLOR },
             { label: 'Spending', color: SPENDING_COLOR },
-            { label: 'Net', color: NET_COLOR, shape: 'dot' },
           ]}
         />
         <CashFlowChart series={series} onSelectPeriod={selectPeriod} />

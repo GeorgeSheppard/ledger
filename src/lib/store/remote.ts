@@ -59,6 +59,7 @@ export class MemoryRemote implements LedgerRemote {
     return {
       data: structuredClone(this.data),
       skippedTabs: this.skippedTabs,
+      tabReports: [],
       layout: EMPTY_LAYOUT,
     };
   }

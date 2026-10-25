@@ -3,7 +3,7 @@ import type { Account, Category, Transaction, TransactionInput } from '../domain
 import { RESERVED_TAB_PREFIX } from '../domain/types';
 import { addCategory, completeCategories, sameName } from '../categories/categories';
 import { runningTotals } from '../transactions/runningTotal';
-import type { jsonSchema, ledgerDataSchema, skippedTabSchema } from './schemas';
+import type { jsonSchema, ledgerDataSchema, skippedTabSchema, tabReportSchema } from './schemas';
 
 /**
  * The working copy of a whole spreadsheet, and the pure edits the store applies to it. Every edit
@@ -16,6 +16,7 @@ import type { jsonSchema, ledgerDataSchema, skippedTabSchema } from './schemas';
 export type JsonValue = z.infer<typeof jsonSchema>;
 export type LedgerData = z.infer<typeof ledgerDataSchema>;
 export type SkippedTab = z.infer<typeof skippedTabSchema>;
+export type TabReport = z.infer<typeof tabReportSchema>;
 
 /** What the UI reads: the working copy with row numbers and running totals filled in. */
 export interface LedgerSnapshot {
@@ -27,12 +28,18 @@ export interface LedgerSnapshot {
   paychecks: JsonValue | null;
   /** Tabs ignored on load, so the UI can say why a tab is missing. */
   skippedTabs: SkippedTab[];
+  /** What the last load did with every tab, in tab order. */
+  tabReports: TabReport[];
 }
 
 /** Rows arrays are never mutated, so their transactions can be reused across snapshots. */
 const derived = new WeakMap<readonly TransactionInput[], Transaction[]>();
 
-export function toSnapshot(data: LedgerData, skippedTabs: SkippedTab[]): LedgerSnapshot {
+export function toSnapshot(
+  data: LedgerData,
+  skippedTabs: SkippedTab[],
+  tabReports: TabReport[] = []
+): LedgerSnapshot {
   const transactionsByAccount: Record<number, Transaction[]> = {};
   for (const account of data.accounts) {
     const rows = data.rows[account.id] ?? [];
@@ -51,6 +58,7 @@ export function toSnapshot(data: LedgerData, skippedTabs: SkippedTab[]): LedgerS
     dashboard: data.dashboard,
     paychecks: data.paychecks ?? null,
     skippedTabs,
+    tabReports,
   };
 }
 

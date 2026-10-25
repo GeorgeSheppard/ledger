@@ -13,7 +13,7 @@ export function cloudSaver(client: SheetsClient, spreadsheetId: string): Saver {
     async save(base, next) {
       const { requests, layout } = saveRequests(base, next);
       await client.batchUpdate(spreadsheetId, requests);
-      return { data: next, skippedTabs: base.skippedTabs, layout };
+      return { data: next, skippedTabs: base.skippedTabs, tabReports: base.tabReports, layout };
     },
   };
 }

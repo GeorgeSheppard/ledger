@@ -26,13 +26,32 @@ describe('google ingest', () => {
       { date: '2026-04-02', category: 'Food', amount: -20, note: '' },
     ]);
     expect(skippedTabs).toEqual([
-      { title: 'Budget', reason: 'Row 1 is not Date | Category | Amount | Note | Total' },
+      {
+        title: 'Budget',
+        reason:
+          'Row 1 is not Date | Category | Amount | Note | Total (it is Month | Category | Budget)',
+      },
       { title: 'Notes', reason: 'Row 2 has no valid date' },
     ]);
     expect(data.categories).toEqual([{ name: 'Food', color: '#4f7cff' }]);
     expect(data.dashboard).toBeNull();
     expect(layout).toMatchObject({ metadataSheetId: 99, rowCounts: { 20: 3 } });
     expect(layout.sheetIds).toEqual([10, 20, 30, 40, 99, 98]);
+  });
+
+  it('reports what became of every tab, with the reason', async () => {
+    const { tabReports } = await open(fakeSheet()).load();
+    expect(tabReports.map((t) => [t.title, t.kind, t.imported])).toEqual([
+      ['Current', 'account', true],
+      ['Savings', 'account', true],
+      ['Budget', 'account', false],
+      ['Notes', 'account', false],
+      ['_Metadata', 'settings', true],
+      ['_Other', 'reserved', false],
+    ]);
+    expect(tabReports[0]!.reason).toBe('Account with 2 transactions.');
+    expect(tabReports[2]!.reason).toMatch(/Row 1 is not/);
+    expect(tabReports[5]!.reason).toMatch(/Rename it/);
   });
 
   it('still reads categories from an old _Categories tab', async () => {

@@ -13,7 +13,7 @@ const data = {
 describe('store schemas', () => {
   it('accepts a working copy as it comes back from IndexedDB', () => {
     const stored = structuredClone({
-      saved: { data, skippedTabs: [], layout: EMPTY_LAYOUT },
+      saved: { data, skippedTabs: [], tabReports: [], layout: EMPTY_LAYOUT },
       current: data,
     });
     expect(cachedLedgerSchema.safeParse(stored).success).toBe(true);
