@@ -48,9 +48,23 @@ export function shiftPeriod(period: Period, by: 1 | -1): Period {
   };
 }
 
-/** The period of the same length straight before, for "vs previous". */
-export function previousPeriod(period: Period): Period {
-  return shiftPeriod(period, -1);
+/** How many periods before the viewed one are averaged for "vs average". */
+export const COMPARISON_PERIODS = 6;
+
+/**
+ * The up to six periods of the same length straight before `period`, most recent first. A period
+ * that starts before `first` (the first transaction) is left out, so a short history averages over
+ * what exists instead of counting empty months as zero spending.
+ */
+export function comparisonPeriods(period: Period, first?: IsoDate): Period[] {
+  const found: Period[] = [];
+  let step = period;
+  for (let i = 0; i < COMPARISON_PERIODS; i++) {
+    step = shiftPeriod(step, -1);
+    if (first && step.from < first) break;
+    found.push(step);
+  }
+  return found;
 }
 
 export interface PeriodPreset {

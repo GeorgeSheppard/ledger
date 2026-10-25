@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { categoryBreakdown } from '../../../lib/metrics/dashboard';
-import { previousPeriod } from '../../../lib/metrics/period';
+import { comparisonPeriods, firstDate } from '../../../lib/metrics/period';
 import type { Graph } from '../types';
 import { NoData } from '../shared/NoData';
 import { CategoryBreakdown } from './CategoryBreakdown';
@@ -14,12 +14,16 @@ export const breakdownGraph: Graph = {
       () => categoryBreakdown(ledgers, accountIds, period, ignoredCategories),
       [ledgers, accountIds, period, ignoredCategories]
     );
+    const compared = useMemo(
+      () => comparisonPeriods(period, firstDate(ledgers)),
+      [ledgers, period]
+    );
     if (!accountIds.length) return <NoData>No accounts switched on.</NoData>;
     return (
       <CategoryBreakdown
         rows={rows}
         chosen={categories}
-        previous={previousPeriod(period)}
+        compared={compared}
         colorOf={colorOf}
         onToggle={toggleCategory}
       />

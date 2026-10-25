@@ -2,7 +2,7 @@ import type { IsoDate, Transaction } from '../domain/types';
 import { cashFlowByPeriod, type PeriodCashFlow } from './cashFlow';
 import { isIsoDate } from './months';
 import type { AccountLedger } from './netWorth';
-import { previousPeriod, type Period } from './period';
+import { comparisonPeriods, firstDate, type Period } from './period';
 import { excludedFromCashFlow } from './transfers';
 
 /**
@@ -22,8 +22,8 @@ export interface CategorySpend {
   category: string;
   /** Net spend in the period (a positive number). */
   amount: number;
-  /** Spend in the period of the same length just before. */
-  previous: number;
+  /** Average spend per period over the periods of the same length just before (see `comparisonPeriods`). */
+  average: number;
 }
 
 /** A row without a readable date cannot be placed; leave it out rather than sinking the page. */
@@ -67,7 +67,8 @@ export function periodCashFlow(
 }
 
 /**
- * Spending per category over `period`, biggest first, with the period before it for comparison.
+ * Spending per category over `period`, biggest first, with the average of the (up to six) periods
+ * of the same length before it for comparison. One period to the next is too noisy to compare.
  * Categories that only had spend before are included with an amount of 0.
  */
 export function categoryBreakdown(
@@ -77,19 +78,21 @@ export function categoryBreakdown(
   ignoredCategories?: ReadonlySet<string>
 ): CategorySpend[] {
   const now = periodCashFlow(ledgers, accountIds, period, ignoredCategories);
-  const before = periodCashFlow(ledgers, accountIds, previousPeriod(period), ignoredCategories);
-  const names = new Set([
-    ...Object.keys(now.spendingByCategory),
-    ...Object.keys(before.spendingByCategory),
-  ]);
+  const earlier = comparisonPeriods(period, firstDate(ledgers)).map(
+    (p) => periodCashFlow(ledgers, accountIds, p, ignoredCategories).spendingByCategory
+  );
+  const total: Record<string, number> = {};
+  for (const spending of earlier)
+    for (const [category, amount] of Object.entries(spending))
+      total[category] = (total[category] ?? 0) + amount;
+  const names = new Set([...Object.keys(now.spendingByCategory), ...Object.keys(total)]);
   return [...names]
     .map((category) => ({
       category,
       amount: round(now.spendingByCategory[category] ?? 0),
-      previous: round(before.spendingByCategory[category] ?? 0),
+      average: earlier.length ? round((total[category] ?? 0) / earlier.length) : 0,
     }))
     .sort(
-      (a, b) =>
-        b.amount - a.amount || b.previous - a.previous || a.category.localeCompare(b.category)
+      (a, b) => b.amount - a.amount || b.average - a.average || a.category.localeCompare(b.category)
     );
 }
