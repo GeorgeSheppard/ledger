@@ -100,25 +100,19 @@ export function DashboardPage() {
     );
 
   return (
-    <Page
-      title="Dashboard"
-      actions={
+    <Page title="Dashboard">
+      {/* Sticky, so the dates can be changed (and the view opened) from anywhere on the page. */}
+      <Card className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 p-3 shadow-md md:p-4">
         <PeriodPicker
           period={period}
           today={today}
           first={firstDate(query.data.ledgers)}
           onChange={setPicked}
         />
-      }
-    >
-      <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
-        <div className="min-w-0 text-sm">
-          <p className="font-medium">The transactions in this view</p>
-          <p className="text-muted">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <p className="min-w-0 text-sm text-muted max-md:hidden">
             {describeView(period, allIds.length, accountIds.length, categories)}
           </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
           {filtered && (
             <ActionButton
               variant="ghost"
