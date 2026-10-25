@@ -17,6 +17,10 @@ interface CategoryEditorProps {
   saving: boolean;
   onSave(category: Category): void;
   onCancel(): void;
+  /** Only for an existing category: archive, move its transactions, or delete it. */
+  onArchive?(): void;
+  onMigrate?(): void;
+  onDelete?(): void;
 }
 
 /** Inline editor for a category's name and colour. Enter or ⌘↵ saves, Escape cancels. */
@@ -29,6 +33,9 @@ export function CategoryEditor({
   saving,
   onSave,
   onCancel,
+  onArchive,
+  onMigrate,
+  onDelete,
 }: CategoryEditorProps) {
   const [name, setName] = useState(original?.name ?? '');
   const [color, setColor] = useState(original?.color ?? initialColor);
@@ -144,6 +151,19 @@ export function CategoryEditor({
           </span>
         </span>
       </label>
+      {original && (
+        <div className="flex flex-wrap gap-2 px-3 pb-3">
+          <ActionButton disabled={saving} onAction={() => onArchive?.()}>
+            Archive
+          </ActionButton>
+          <ActionButton disabled={saving} onAction={() => onMigrate?.()}>
+            Migrate
+          </ActionButton>
+          <ActionButton variant="danger" disabled={saving} onAction={() => onDelete?.()}>
+            Delete
+          </ActionButton>
+        </div>
+      )}
       <div className={EDITOR_FOOTER}>
         <p
           className={cn('text-[0.8125rem] text-muted', error && 'text-negative')}

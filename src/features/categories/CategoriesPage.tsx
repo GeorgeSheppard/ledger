@@ -108,15 +108,6 @@ function CategoryList({
       void run(() => actions.edit(selected, next), next.name);
   };
 
-  const move = (delta: number) => {
-    if (!selected || saving) return;
-    // The full list also holds archived categories, so step over those to move visibly.
-    const to = categories[categories.indexOf(selected) + delta];
-    if (!to) return;
-    const full = (name: string) => allCategories.findIndex((c) => c.name === name);
-    void run(() => actions.move(selected.name, full(to.name) - full(selected.name)), selected.name);
-  };
-
   const remove = () => {
     if (mode.kind !== 'confirm-delete' || !selected) return;
     const next = neighbourAfterRemoval(ids, selected.name);
@@ -140,23 +131,25 @@ function CategoryList({
     );
   };
 
+  const startMigrate = () => {
+    if (!selected) return;
+    dispatch({ type: 'cancel' });
+    setMigrating(selected.name);
+  };
+
+  const startDelete = () => {
+    if (!selected) return;
+    dispatch({ type: 'cancel' });
+    dispatch({ type: 'confirm-delete', id: selected.name });
+  };
+
   const cancel = () => {
     setMigrating(null);
     dispatch({ type: 'cancel' });
     setWriteError(null);
   };
 
-  useShortcut('categories.down', () => dispatch({ type: 'move', delta: 1, ids }), browsing);
-  useShortcut('categories.up', () => dispatch({ type: 'move', delta: -1, ids }), browsing);
-  useShortcut('categories.moveDown', () => move(1), browsing && !!selected);
-  useShortcut('categories.moveUp', () => move(-1), browsing && !!selected);
   useShortcut('categories.cancel', cancel, (browsing && !!selected) || migrating !== null);
-  useShortcut('categories.archive', archive, browsing && !!selected);
-  useShortcut(
-    'categories.migrate',
-    () => selected && setMigrating(selected.name),
-    browsing && !!selected
-  );
 
   const editorFor = (original?: Category) => (
     <CategoryEditor
@@ -169,6 +162,9 @@ function CategoryList({
       saving={saving}
       onSave={save}
       onCancel={cancel}
+      onArchive={original ? archive : undefined}
+      onMigrate={original ? startMigrate : undefined}
+      onDelete={original ? startDelete : undefined}
     />
   );
 
@@ -185,50 +181,6 @@ function CategoryList({
         >
           New category
         </ActionButton>
-        <ActionButton
-          shortcut="categories.edit"
-          disabled={!selected || !browsing || saving}
-          onAction={() => dispatch({ type: 'edit' })}
-        >
-          Edit
-        </ActionButton>
-        <ActionButton
-          shortcut="categories.archive"
-          disabled={!selected || !browsing || saving}
-          onAction={archive}
-        >
-          Archive
-        </ActionButton>
-        <ActionButton
-          shortcut="categories.migrate"
-          disabled={!selected || !browsing || saving}
-          onAction={() => selected && setMigrating(selected.name)}
-        >
-          Migrate
-        </ActionButton>
-        <ActionButton
-          shortcut="categories.delete"
-          variant="danger"
-          disabled={!selected || !browsing || saving}
-          onAction={() => dispatch({ type: 'confirm-delete' })}
-        >
-          Delete
-        </ActionButton>
-        <ActionButton
-          variant="ghost"
-          disabled={!browsing || saving || categories.length < 2}
-          onAction={() => void run(() => actions.spreadColors())}
-        >
-          Spread colours
-        </ActionButton>
-        <span className="ml-auto inline-flex items-center gap-1.5 text-[0.8125rem] text-muted max-md:hidden">
-          <Kbd shortcut="categories.down" />
-          <Kbd shortcut="categories.up" />
-          move
-          <Kbd shortcut="categories.moveDown" />
-          <Kbd shortcut="categories.moveUp" />
-          reorder
-        </span>
       </div>
 
       {writeError && (

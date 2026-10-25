@@ -97,16 +97,3 @@ export function stableCategoryColor(name: string, taken: ReadonlySet<string> = n
   for (const char of name.trim().toLowerCase()) hash = (hash * 31 + char.codePointAt(0)!) >>> 0;
   return pick([...taken], hash % CATEGORY_PALETTE.length);
 }
-
-/**
- * Every category recoloured from the palette, in list order, so no two are alike. Used by "Spread
- * colours" to repair a list whose colours have drifted together.
- */
-export function respreadColors(categories: readonly Category[]): Category[] {
-  const taken: string[] = [];
-  return categories.map((c) => {
-    const color = pick(taken, taken.length);
-    taken.push(color);
-    return { ...c, color };
-  });
-}
