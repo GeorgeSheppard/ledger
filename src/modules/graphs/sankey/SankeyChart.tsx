@@ -175,6 +175,18 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
                 clickable ? 'cursor-pointer outline-none focus-visible:opacity-100' : undefined
               }
             >
+              {clickable && (
+                // Small nodes are hard to hit, so the whole row is the target: the node, its
+                // label, and half the gap above and below (which keeps neighbours from overlapping).
+                <rect
+                  x={laid.x}
+                  y={laid.y - NODE_PADDING / 2}
+                  width={laid.width + labelRoom}
+                  height={laid.height + NODE_PADDING}
+                  fill="transparent"
+                  onMouseMove={track(`node:${laid.id}`)}
+                />
+              )}
               <rect
                 x={laid.x}
                 y={laid.y}
