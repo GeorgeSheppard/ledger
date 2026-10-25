@@ -12,7 +12,6 @@ interface Point {
   label: string;
   income: number;
   spending: number;
-  net: number;
   /** First and last day of the column, to pick as the dashboard's dates when it is clicked. */
   start: string;
   end: string;
@@ -25,7 +24,7 @@ interface CashFlowChartProps {
 }
 
 /**
- * Income above the zero line, spending below it, and the net as a dot, on one axis. Click a column
+ * Income above the zero line and spending below it, on one axis. Click a column
  * to make its dates the dashboard's.
  */
 export function CashFlowChart({ series, onSelectPeriod }: CashFlowChartProps) {
@@ -40,7 +39,6 @@ export function CashFlowChart({ series, onSelectPeriod }: CashFlowChartProps) {
       label: formatBucket(bucket, view.granularity),
       income: flow.income,
       spending: flow.spending,
-      net: flow.net,
       start: bucket.start,
       end: bucket.end,
     };
@@ -57,18 +55,6 @@ export function CashFlowChart({ series, onSelectPeriod }: CashFlowChartProps) {
     datasets: [
       bar('income', colors.positive, 1),
       bar('spending', colors.negative, -1),
-      {
-        type: 'line' as const,
-        label: 'Net',
-        showLine: false,
-        parsing: false as const,
-        pointRadius: 4.5,
-        pointHoverRadius: 5.5,
-        backgroundColor: colors.fg,
-        borderColor: colors.surface,
-        borderWidth: 2,
-        data: points.map<Point>((p) => ({ ...p, y: p.net })),
-      },
     ],
   } as ChartData<'bar', Point[]>;
 
