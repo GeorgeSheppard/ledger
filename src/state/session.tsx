@@ -83,10 +83,12 @@ type BaseSessionApi = Omit<
 const SessionContext = createContext<SessionApi | null>(null);
 
 /**
- * Where data comes from. `memory` (the default) starts connected to demo data so every page can be
- * built without credentials. `google` signs in with Google and uses the user's own sheet.
+ * Where data comes from. `memory` (the default under `pnpm dev` only) starts connected to demo data
+ * so every page can be built without credentials. `google` (the default in any built app, previews
+ * included) signs in with Google and uses the user's own sheet; demo data is then only reachable by
+ * choosing "Explore an example".
  */
-const DATA_SOURCE = import.meta.env.VITE_DATA_SOURCE ?? 'memory';
+const DATA_SOURCE = import.meta.env.VITE_DATA_SOURCE ?? (import.meta.env.DEV ? 'memory' : 'google');
 
 const DEMO_SPREADSHEET: SpreadsheetRef = { id: 'demo', title: 'Demo ledger' };
 
