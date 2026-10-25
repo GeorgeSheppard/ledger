@@ -5,8 +5,9 @@ import { cn } from './cn';
 import { Kbd } from './Kbd';
 
 const VARIANTS = {
-  primary: 'border-accent bg-accent text-accent-fg hover:enabled:bg-accent-hover',
-  secondary: 'border-line bg-surface text-fg hover:enabled:bg-surface-hover',
+  primary:
+    'border-accent bg-accent font-medium text-accent-fg shadow-sm hover:enabled:bg-accent-hover',
+  secondary: 'border-line bg-surface text-fg shadow-sm hover:enabled:bg-surface-hover',
   ghost: 'border-transparent bg-transparent text-fg hover:enabled:bg-surface-hover',
   danger: 'border-line bg-surface text-negative hover:enabled:bg-surface-hover',
 } as const;

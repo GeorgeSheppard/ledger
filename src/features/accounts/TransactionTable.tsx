@@ -522,10 +522,12 @@ export function TransactionTable({
         <div
           key={`month-${item.key}`}
           role="presentation"
-          className="flex items-end justify-between bg-canvas px-3 pb-2 text-[0.8125rem]"
+          className="flex items-end justify-between bg-canvas px-3 pb-2 text-sm"
           style={{ ...style, height: MONTH_HEIGHT }}
         >
-          <span className="font-semibold">{formatMonth(item.key)}</span>
+          <span className="flex items-center gap-2 font-bold before:size-2 before:rounded-full before:bg-accent">
+            {formatMonth(item.key)}
+          </span>
           <span className="flex gap-3 text-xs text-muted tabular-nums">
             {item.moneyIn > 0 && (
               <span className="text-positive">{formatAmount(item.moneyIn, { signed: true })}</span>
@@ -732,7 +734,7 @@ export function TransactionTable({
       <div
         className={cn(
           TRANSACTION_GRID,
-          'border-b border-line px-3 pb-2 text-xs font-semibold tracking-wide text-muted uppercase max-md:hidden'
+          'rounded-lg border border-line bg-surface px-3 py-2 text-xs font-semibold tracking-wide text-muted uppercase shadow-card max-md:hidden'
         )}
         role="row"
       >

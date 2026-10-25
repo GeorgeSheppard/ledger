@@ -28,8 +28,9 @@ function NavItem({ to, label, shortcut }: (typeof NAV)[number]) {
       end={to === paths.home}
       className={({ isActive }) =>
         cn(
-          'flex items-center justify-between rounded-lg px-2 py-1.5 text-fg no-underline hover:bg-surface-hover max-md:shrink-0 max-md:px-3',
-          isActive && 'bg-surface-hover font-semibold'
+          'relative flex items-center justify-between rounded-lg px-3 py-2 text-fg no-underline hover:bg-surface-hover max-md:shrink-0',
+          isActive &&
+            'bg-accent/15 font-semibold text-accent before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-full before:bg-accent hover:bg-accent/20'
         )
       }
     >
@@ -112,7 +113,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="grid min-h-dvh grid-cols-1 md:grid-cols-[220px_1fr]">
       <aside className="flex flex-col gap-4 border-b border-line bg-surface p-4 max-md:gap-2 max-md:py-2 md:sticky md:top-0 md:h-dvh md:self-start md:overflow-y-auto md:border-r md:border-b-0">
         <div className="flex items-center justify-between gap-2">
-          <div className="text-lg font-bold">Ledger</div>
+          <div className="flex items-center gap-2 text-lg font-bold">
+            <span aria-hidden="true" className="size-5 rounded-md bg-accent" />
+            Ledger
+          </div>
           <button
             type="button"
             className="cursor-pointer rounded-lg border border-line px-2.5 py-1 text-sm md:hidden"

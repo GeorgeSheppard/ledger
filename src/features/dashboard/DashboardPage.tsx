@@ -10,8 +10,10 @@ import { GRAPHS } from '../../modules/graphs';
 import { FALLBACK_COLOR, accountColor } from '../../modules/graphs/shared/theme';
 import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
+import { CardTitle } from '../../ui/CardTitle';
 import { cn } from '../../ui/cn';
 import { Page } from '../../ui/Page';
+import { SummaryStrip } from './SummaryStrip';
 import { PeriodPicker } from './PeriodPicker';
 import { describeView, ViewTransactions } from './ViewTransactions';
 import { useDashboardData } from './useDashboardData';
@@ -144,10 +146,17 @@ export function DashboardPage() {
         </div>
       </Card>
 
+      <SummaryStrip
+        ledgers={query.data.ledgers}
+        accountIds={accountIds}
+        period={period}
+        ignoredCategories={ignored}
+      />
+
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {GRAPHS.map((graph) => (
           <Card key={graph.kind} className={cn('min-w-0 self-start p-5', SPANS[graph.width])}>
-            <h2 className="mb-3 text-lg font-semibold">{graph.title}</h2>
+            <CardTitle>{graph.title}</CardTitle>
             <graph.View
               period={period}
               ledgers={query.data.ledgers}
