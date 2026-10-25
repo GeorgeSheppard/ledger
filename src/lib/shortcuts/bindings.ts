@@ -54,7 +54,7 @@ export const SHORTCUTS = {
   },
   'dashboard.backPeriod': {
     keys: 'b',
-    description: 'Back to the dates you had before',
+    description: 'Back to the dates and categories you had before',
     scope: 'dashboard',
   },
   'dashboard.viewTransactions': {

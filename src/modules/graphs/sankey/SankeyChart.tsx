@@ -28,7 +28,7 @@ interface Hover {
 interface SankeyChartProps {
   flow: MoneyFlow;
   colorOf(category: string): string;
-  /** Categories picked as the dashboard's filter; their nodes are outlined. */
+  /** Categories picked as the dashboard's filter; their nodes are outlined and the other spending is dimmed. */
   chosen?: readonly string[];
   /** Clicking a spending category node. Other nodes can't be filtered on, so do nothing. */
   onToggleCategory?(category: string): void;
@@ -63,6 +63,7 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
     node.kind === 'category' ? colorOf(node.category ?? node.label) : KIND_COLORS[node.kind];
   const isChosen = (node: FlowNode) =>
     node.kind === 'category' && chosen.includes(node.category ?? node.label);
+  const filtering = chosen.length > 0;
   const labelOf = (id: string) => nodeById.get(id)?.label ?? id;
 
   const share = (value: number, of: number) =>
@@ -103,6 +104,8 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
 
   const linkOpacity = (index: number) => {
     const link = layout.links[index]!;
+    const target = nodeById.get(link.target)!;
+    if (filtering && target.kind === 'category') return isChosen(target) ? 0.65 : 0.08;
     if (hoveredLink) return hoveredLink === link ? 0.65 : 0.15;
     if (hoveredNode)
       return link.source === hoveredNode.id || link.target === hoveredNode.id ? 0.65 : 0.12;
@@ -149,7 +152,9 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
           const node = nodeById.get(laid.id)!;
           const clickable = node.kind === 'category' && !!onToggleCategory;
           const selected = isChosen(node);
-          const dim = hoveredNode && !touches(laid.id);
+          const dim =
+            (hoveredNode && !touches(laid.id)) ||
+            (filtering && node.kind === 'category' && !selected);
           const lines = laid.height >= 28;
           const textY = laid.y + laid.height / 2;
           return (
