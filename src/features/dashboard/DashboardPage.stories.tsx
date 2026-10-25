@@ -57,3 +57,12 @@ export const SankeyCategoryClicked: Story = {
     await userEvent.click(node);
   },
 };
+
+/** Hovering a small spending node: its amount shows in the line above the Sankey, not a tooltip. */
+export const SankeyHovered: Story = {
+  render: Default.render,
+  play: async ({ canvasElement }) => {
+    const node = await within(canvasElement).findByRole('button', { name: /^Bills: / });
+    await userEvent.hover(node.querySelector('rect')!);
+  },
+};

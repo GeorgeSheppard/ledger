@@ -66,6 +66,24 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
   const filtering = chosen.length > 0;
   const labelOf = (id: string) => nodeById.get(id)?.label ?? id;
 
+  const share = (value: number, of: number) =>
+    of > 0 ? ` (${Math.round((value / of) * 100)}%)` : '';
+  const nodeReadout = (id: string, value: number) => (
+    <>
+      <span className="font-medium">{labelOf(id)}</span> {formatMoney(value)}
+      {nodeById.get(id)?.column === 3 ? share(value, flow.totals.takeHome) : ''}
+    </>
+  );
+  const linkReadout = (source: string, target: string, value: number) => (
+    <>
+      <span className="font-medium">
+        {labelOf(source)} → {labelOf(target)}
+      </span>{' '}
+      {formatMoney(value)}
+      {source === 'takeHome' ? share(value, flow.totals.takeHome) : ''}
+    </>
+  );
+
   const track = (key: string) => () => setHover({ key });
   const clear = () => setHover(null);
 
@@ -94,8 +112,18 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
     return MIN_LINK_OPACITY;
   };
 
+  // A fixed line above the diagram says what is under the pointer, so no tooltip covers the graph.
+  const readout = hoveredLink
+    ? linkReadout(hoveredLink.source, hoveredLink.target, hoveredLink.value)
+    : hoveredNode
+      ? nodeReadout(hoveredNode.id, hoveredNode.value)
+      : null;
+
   return (
     <div ref={frame} className="relative w-full" onMouseLeave={clear}>
+      <p className="mb-2 min-h-5 text-sm tabular-nums" aria-hidden="true">
+        {readout ?? <span className="text-muted">Point at a bar or ribbon to see its amount.</span>}
+      </p>
       <svg
         width={width}
         height={height}
@@ -181,7 +209,11 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
                   <tspan x={laid.x + laid.width + 6} dy="1.2em" className="fill-muted tabular-nums">
                     {formatMoney(laid.value)}
                   </tspan>
-                ) : null}
+                ) : (
+                  <tspan dx={6} className="fill-muted tabular-nums">
+                    {formatMoney(laid.value)}
+                  </tspan>
+                )}
               </text>
             </g>
           );

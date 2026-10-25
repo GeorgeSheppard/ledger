@@ -47,6 +47,8 @@ export function PaycheckFlow({
         Gross {formatMoney(flow.totals.gross)} · Deductions {formatMoney(flow.totals.deductions)} ·
         Take-home {formatMoney(flow.totals.takeHome)}
         {' · '}Spent {formatMoney(flow.totals.spending)}
+        {flow.totals.saved > 0 ? ` · Saved ${formatMoney(flow.totals.saved)}` : ''}
+        {flow.totals.overspent > 0 ? ` · Overspent ${formatMoney(flow.totals.overspent)}` : ''}
       </p>
       <SankeyChart
         flow={flow}
