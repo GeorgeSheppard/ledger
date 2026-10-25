@@ -2,181 +2,127 @@ import { describe, expect, it } from 'vitest';
 import {
   addPaycheck,
   netPay,
-  newDeduction,
   newPaycheck,
   paycheckProblem,
-  paymentDates,
   removePaycheck,
   replacePaycheck,
+  suggestedNames,
   tidyPaycheck,
+  totalDeductions,
+  totalIncome,
   type Paycheck,
+  type PaycheckList,
 } from './paychecks';
-import { parsePaychecks, serializePaychecks } from './serialize';
 
-const salary = (overrides: Partial<Paycheck> = {}): Paycheck => ({
-  id: 'p1',
-  name: 'Acme',
-  date: '2026-01-31',
-  gross: 3000,
-  deductions: [
-    { id: 'd1', name: 'Income tax', amount: 600.1 },
-    { id: 'd2', name: 'Student loan', amount: 150.2 },
+const payslip = (id: string, date = '2026-01-25', over: Partial<Paycheck> = {}): Paycheck => ({
+  id,
+  date,
+  income: [
+    { id: 'l1', name: 'Salary', amount: 3000 },
+    { id: 'l2', name: 'Allowance', amount: 200 },
   ],
-  accountId: 1,
-  repeat: 'monthly',
-  until: null,
-  ...overrides,
+  deductions: [
+    { id: 'l1', name: 'Income tax', amount: 500 },
+    { id: 'l2', name: 'Pension', amount: 150.1 },
+  ],
+  ...over,
 });
 
-describe('paycheck maths', () => {
-  it('takes deductions off gross without float drift', () => {
-    expect(netPay(salary())).toBe(2249.7);
-    expect(netPay({ gross: 100, deductions: [] })).toBe(100);
+describe('totals', () => {
+  it('derives take-home from income less deductions, to the cent', () => {
+    expect(totalIncome(payslip('a'))).toBe(3200);
+    expect(totalDeductions(payslip('a'))).toBe(650.1);
+    expect(netPay(payslip('a'))).toBe(2549.9);
   });
+});
 
-  it('edits the list', () => {
-    let list = addPaycheck({ paychecks: [] }, newPaycheck([], '2026-02-01'));
-    const id = list.paychecks[0]!.id;
-    list = replacePaycheck(list, { ...list.paychecks[0]!, name: 'Job' });
-    expect(list.paychecks[0]!.name).toBe('Job');
-    expect(newPaycheck(list.paychecks, '2026-02-01').id).not.toBe(id);
-    expect(removePaycheck(list, id).paychecks).toEqual([]);
-    expect(newDeduction([{ id: 'd1', name: '', amount: 0 }]).id).toBe('d2');
-  });
+describe('the list', () => {
+  const list: PaycheckList = {
+    paychecks: [payslip('a', '2026-01-25'), payslip('b', '2026-03-25')],
+  };
 
-  it('explains what stops a paycheck being saved', () => {
-    expect(paycheckProblem(salary())).toBeNull();
-    expect(paycheckProblem(salary({ name: ' ' }))).toMatch(/name/);
-    expect(paycheckProblem(salary({ gross: 0 }))).toMatch(/Gross/);
-    expect(paycheckProblem(salary({ date: 'soon' }))).toMatch(/date/);
-    expect(paycheckProblem(salary({ until: '2025-01-01' }))).toMatch(/before/);
-    expect(paycheckProblem(salary({ deductions: [{ id: 'd', name: 'x', amount: 5000 }] }))).toMatch(
-      /more than gross/
+  it('keeps entries in date order, and several can share a month', () => {
+    const added = addPaycheck(
+      addPaycheck(list, payslip('c', '2026-02-10')),
+      payslip('d', '2026-03-01')
     );
-    expect(paycheckProblem(salary({ deductions: [{ id: 'd', name: '', amount: 5 }] }))).toMatch(
-      /Name every/
-    );
+    expect(added.paychecks.map((p) => p.id)).toEqual(['a', 'c', 'd', 'b']);
   });
 
-  it('tidies blank deduction lines', () => {
+  it('replaces by id, allowing the date to change', () => {
+    const moved = replacePaycheck(list, payslip('a', '2026-05-01'));
+    expect(moved.paychecks.map((p) => p.id)).toEqual(['b', 'a']);
+  });
+
+  it('removes by id', () => {
+    expect(removePaycheck(list, 'b').paychecks.map((p) => p.id)).toEqual(['a']);
+  });
+
+  it('starts a blank paycheck on the given day with an unused id', () => {
+    expect(newPaycheck(list, '2026-10-18')).toEqual({
+      id: 'p3',
+      date: '2026-10-18',
+      income: [],
+      deductions: [],
+    });
+  });
+});
+
+describe('suggestedNames', () => {
+  it('lists names used before, most used first, one spelling each', () => {
+    const list = {
+      paychecks: [
+        payslip('a', '2026-01-25', { deductions: [{ id: 'a', name: 'Tax', amount: 1 }] }),
+        payslip('b', '2026-02-25', {
+          deductions: [
+            { id: 'a', name: 'tax', amount: 1 },
+            { id: 'b', name: 'Union', amount: 1 },
+            { id: 'c', name: '', amount: 1 },
+          ],
+        }),
+      ],
+    };
+    expect(suggestedNames(list, 'deductions')).toEqual(['tax', 'Union']);
+    expect(suggestedNames(list, 'income')).toEqual(['Allowance', 'Salary']);
+  });
+});
+
+describe('paycheckProblem', () => {
+  it('accepts a normal payslip', () => {
+    expect(paycheckProblem(payslip('a'))).toBeNull();
+  });
+
+  it('explains what is wrong', () => {
+    expect(paycheckProblem(payslip('a', 'nope'))).toMatch(/date/);
+    expect(paycheckProblem(payslip('a', '2026-01-25', { income: [] }))).toMatch(/income/);
+    expect(
+      paycheckProblem(
+        payslip('a', '2026-01-25', { deductions: [{ id: 'a', name: '', amount: 5 }] })
+      )
+    ).toMatch(/Name/);
+    expect(
+      paycheckProblem(
+        payslip('a', '2026-01-25', { deductions: [{ id: 'a', name: 'Tax', amount: 9999 }] })
+      )
+    ).toMatch(/more than/);
+    expect(
+      paycheckProblem(
+        payslip('a', '2026-01-25', { deductions: [{ id: 'a', name: 'Tax', amount: -1 }] })
+      )
+    ).toMatch(/negative/);
+  });
+});
+
+describe('tidyPaycheck', () => {
+  it('drops blank lines and trims names', () => {
     const tidy = tidyPaycheck(
-      salary({
-        name: ' Acme ',
-        deductions: [
+      payslip('a', '2026-01-25', {
+        income: [
           { id: 'a', name: '', amount: 0 },
-          { id: 'b', name: ' Pension ', amount: 10 },
+          { id: 'b', name: ' Salary ', amount: 10 },
         ],
       })
     );
-    expect(tidy.name).toBe('Acme');
-    expect(tidy.deductions).toEqual([{ id: 'b', name: 'Pension', amount: 10 }]);
-  });
-});
-
-describe('paymentDates', () => {
-  it('pays once', () => {
-    const once = salary({ repeat: 'none', date: '2026-03-10' });
-    expect(paymentDates(once, '2026-03-01', '2026-03-31')).toEqual(['2026-03-10']);
-    expect(paymentDates(once, '2026-04-01', '2026-04-30')).toEqual([]);
-  });
-
-  it('keeps the day of the month, using the last day of short months', () => {
-    expect(paymentDates(salary(), '2026-01-01', '2026-05-31')).toEqual([
-      '2026-01-31',
-      '2026-02-28',
-      '2026-03-31',
-      '2026-04-30',
-      '2026-05-31',
-    ]);
-  });
-
-  it('repeats weekly, fortnightly and four-weekly from the first payment', () => {
-    const weekly = salary({ repeat: 'weekly', date: '2026-01-02' });
-    expect(paymentDates(weekly, '2026-01-10', '2026-01-31')).toEqual([
-      '2026-01-16',
-      '2026-01-23',
-      '2026-01-30',
-    ]);
-    const fortnightly = salary({ repeat: 'every2weeks', date: '2026-01-02' });
-    expect(paymentDates(fortnightly, '2026-02-01', '2026-02-28')).toEqual([
-      '2026-02-13',
-      '2026-02-27',
-    ]);
-    const fourWeekly = salary({ repeat: 'every4weeks', date: '2026-01-02' });
-    expect(paymentDates(fourWeekly, '2026-01-01', '2026-03-01')).toEqual([
-      '2026-01-02',
-      '2026-01-30',
-      '2026-02-27',
-    ]);
-  });
-
-  it('repeats yearly, and stops at the end date', () => {
-    const yearly = salary({ repeat: 'yearly', date: '2024-02-29' });
-    expect(paymentDates(yearly, '2024-01-01', '2026-12-31')).toEqual([
-      '2024-02-29',
-      '2025-02-28',
-      '2026-02-28',
-    ]);
-    expect(paymentDates(salary({ until: '2026-03-15' }), '2026-01-01', '2026-12-31')).toHaveLength(
-      2
-    );
-  });
-
-  it('does not pay before the first payment', () => {
-    expect(paymentDates(salary(), '2025-01-01', '2025-12-31')).toEqual([]);
-  });
-});
-
-describe('stored paychecks', () => {
-  it('round-trips', () => {
-    const list = { paychecks: [salary(), salary({ id: 'p2', repeat: 'none', until: null })] };
-    const stored = JSON.parse(JSON.stringify(serializePaychecks(list)));
-    expect(parsePaychecks(stored)).toEqual(list);
-  });
-
-  it('is empty when missing or unreadable', () => {
-    expect(parsePaychecks(null)).toEqual({ paychecks: [] });
-    expect(parsePaychecks('nonsense')).toEqual({ paychecks: [] });
-    expect(parsePaychecks({ paychecks: 3 })).toEqual({ paychecks: [] });
-  });
-
-  it('drops bad paychecks and repairs bad fields', () => {
-    const { paychecks } = parsePaychecks({
-      paychecks: [
-        { id: 'a', date: 'x', gross: 10 },
-        { id: 'b', date: '2026-01-01', gross: 0 },
-        { date: '2026-01-01', gross: 10 },
-        {
-          id: 'c',
-          date: '2026-01-01',
-          gross: 10,
-          repeat: 'sometimes',
-          accountId: 'x',
-          until: 'later',
-          deductions: [
-            { name: 'Tax', amount: 2 },
-            { name: 'Tax', amount: 1 },
-            { name: 'Bad', amount: -1 },
-            'nope',
-          ],
-        },
-        { id: 'c', date: '2026-02-01', gross: 20 },
-      ],
-    });
-    expect(paychecks).toEqual([
-      {
-        id: 'c',
-        name: '',
-        date: '2026-01-01',
-        gross: 10,
-        deductions: [
-          { id: 'd1', name: 'Tax', amount: 2 },
-          { id: 'd2', name: 'Tax', amount: 1 },
-        ],
-        accountId: null,
-        repeat: 'none',
-        until: null,
-      },
-    ]);
+    expect(tidy.income).toEqual([{ id: 'b', name: 'Salary', amount: 10 }]);
   });
 });

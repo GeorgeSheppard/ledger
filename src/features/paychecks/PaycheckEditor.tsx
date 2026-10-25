@@ -1,34 +1,42 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import type { Account } from '../../lib/domain/types';
 import {
   netPay,
-  newId,
+  newLine,
   paycheckProblem,
-  REPEAT_LABELS,
-  REPEATS,
+  suggestedNames,
   tidyPaycheck,
+  totalDeductions,
+  totalIncome,
+  type LineKind,
+  type PaycheckList,
   type Paycheck,
-  type Repeat,
 } from '../../lib/paychecks/paychecks';
 import { useShortcut } from '../../state/shortcuts';
 import { ActionButton } from '../../ui/ActionButton';
-import { Select } from '../../ui/Select';
 import { TextInput } from '../../ui/TextInput';
 import { formatMoney } from '../../modules/graphs/shared/format';
 
 /** Amounts are typed as text, so half-typed numbers are not rewritten under the cursor. */
-interface Draft extends Omit<Paycheck, 'gross' | 'deductions'> {
-  gross: string;
-  deductions: { id: string; name: string; amount: string }[];
+interface DraftLine {
+  id: string;
+  name: string;
+  amount: string;
+}
+interface Draft {
+  date: string;
+  income: DraftLine[];
+  deductions: DraftLine[];
 }
 
 const amountText = (amount: number) => (amount === 0 ? '' : String(amount));
 
 function toDraft(paycheck: Paycheck): Draft {
+  const lines = (list: Paycheck['income']) =>
+    list.map((l) => ({ ...l, amount: amountText(l.amount) }));
   return {
-    ...paycheck,
-    gross: amountText(paycheck.gross),
-    deductions: paycheck.deductions.map((d) => ({ ...d, amount: amountText(d.amount) })),
+    date: paycheck.date,
+    income: lines(paycheck.income),
+    deductions: lines(paycheck.deductions),
   };
 }
 
@@ -38,12 +46,122 @@ function parseAmount(text: string): number {
   return cleaned === '' ? 0 : Number(cleaned);
 }
 
-function fromDraft(draft: Draft): Paycheck {
+function fromDraft(draft: Draft, id: string): Paycheck {
+  const lines = (list: DraftLine[]) => list.map((l) => ({ ...l, amount: parseAmount(l.amount) }));
   return {
-    ...draft,
-    gross: parseAmount(draft.gross),
-    deductions: draft.deductions.map((d) => ({ ...d, amount: parseAmount(d.amount) })),
+    id,
+    date: draft.date,
+    income: lines(draft.income),
+    deductions: lines(draft.deductions),
   };
+}
+
+interface Focus {
+  kind: LineKind;
+  id: string;
+}
+
+interface LinesProps {
+  legend: string;
+  hint: string;
+  kind: LineKind;
+  lines: DraftLine[];
+  placeholder: string;
+  suggestions: string[];
+  addLabel: string;
+  addShortcut: 'paychecks.addIncome' | 'paychecks.addDeduction';
+  total: number;
+  onAdd(): void;
+  /** Use a suggested name: fills an empty line, else adds one. */
+  onPick(name: string): void;
+  onChange(id: string, patch: Partial<DraftLine>): void;
+  onFocus(id: string): void;
+  focused: string | null;
+  onRemove(): void;
+}
+
+function Lines({
+  legend,
+  hint,
+  kind,
+  lines,
+  placeholder,
+  suggestions,
+  addLabel,
+  addShortcut,
+  total,
+  onAdd,
+  onPick,
+  onChange,
+  onFocus,
+  focused,
+  onRemove,
+}: LinesProps) {
+  const listId = useId();
+  const unused = suggestions.filter(
+    (name) => !lines.some((l) => l.name.trim().toLowerCase() === name.toLowerCase())
+  );
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="mb-1 flex w-full justify-between text-sm font-medium">
+        <span>{legend}</span>
+        <span className="font-normal text-muted tabular-nums">{formatMoney(total)}</span>
+      </legend>
+      <p className="text-xs text-muted">{hint}</p>
+      <datalist id={listId}>
+        {suggestions.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+      {lines.map((line, i) => (
+        <div
+          key={line.id}
+          className="grid grid-cols-[1fr_8rem] gap-2"
+          onFocus={() => onFocus(line.id)}
+        >
+          <TextInput
+            aria-label={`${legend} ${i + 1} name`}
+            list={listId}
+            value={line.name}
+            placeholder={placeholder}
+            onChange={(e) => onChange(line.id, { name: e.target.value })}
+          />
+          <TextInput
+            aria-label={`${legend} ${i + 1} amount`}
+            inputMode="decimal"
+            value={line.amount}
+            placeholder="0.00"
+            onChange={(e) => onChange(line.id, { amount: e.target.value })}
+          />
+        </div>
+      ))}
+      <div className="flex flex-wrap gap-2" data-kind={kind}>
+        <ActionButton shortcut={addShortcut} onAction={onAdd}>
+          {addLabel}
+        </ActionButton>
+        {focused && (
+          <ActionButton shortcut="paychecks.removeLine" variant="ghost" onAction={onRemove}>
+            Remove line
+          </ActionButton>
+        )}
+      </div>
+      {unused.length > 0 && (
+        <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+          Used before:
+          {unused.slice(0, 6).map((name) => (
+            <button
+              key={name}
+              type="button"
+              className="cursor-pointer rounded-full border border-line px-2 py-0.5 text-fg hover:bg-canvas"
+              onClick={() => onPick(name)}
+            >
+              {name}
+            </button>
+          ))}
+        </p>
+      )}
+    </fieldset>
+  );
 }
 
 function Field({
@@ -71,34 +189,28 @@ function Field({
 interface PaycheckEditorProps {
   paycheck: Paycheck;
   isNew: boolean;
-  accounts: Account[];
+  /** Everything already saved, for suggested names. */
+  list: PaycheckList;
   onSave(paycheck: Paycheck): void;
   onCancel(): void;
 }
 
-/** Modal for a paycheck: where it comes from, when it pays, gross pay and every deduction. */
-export function PaycheckEditor({
-  paycheck,
-  isNew,
-  accounts,
-  onSave,
-  onCancel,
-}: PaycheckEditorProps) {
+/** Modal for one payslip: income lines, deductions and the take-home pay they leave. */
+export function PaycheckEditor({ paycheck, isNew, list, onSave, onCancel }: PaycheckEditorProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [draft, setDraft] = useState(() => toDraft(paycheck));
-  const [focusedDeduction, setFocusedDeduction] = useState<string | null>(null);
+  const [focus, setFocus] = useState<Focus | null>(null);
   const [showProblem, setShowProblem] = useState(false);
   const id = useId();
-  const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
   useEffect(() => {
     dialog.current?.showModal();
   }, []);
 
-  const current = fromDraft(draft);
+  const current = fromDraft(draft, paycheck.id);
   const problem = paycheckProblem(current);
   const net = netPay(current);
-  const takeHome = Number.isFinite(net) ? net : 0;
+  const finite = (n: number) => (Number.isFinite(n) ? n : 0);
 
   const submit = () => {
     if (problem) {
@@ -108,28 +220,40 @@ export function PaycheckEditor({
     onSave(tidyPaycheck(current));
   };
 
-  const addDeduction = () =>
+  const addLine = (kind: LineKind) =>
+    setDraft((d) => ({ ...d, [kind]: [...d[kind], { ...newLine(d[kind]), amount: '' }] }));
+  const setLine = (kind: LineKind, lineId: string, patch: Partial<DraftLine>) =>
     setDraft((d) => ({
       ...d,
-      deductions: [...d.deductions, { id: newId(d.deductions, 'd'), name: '', amount: '' }],
+      [kind]: d[kind].map((l) => (l.id === lineId ? { ...l, ...patch } : l)),
     }));
-  const removeDeduction = (deductionId: string | null) => {
-    if (!deductionId) return;
-    setDraft((d) => ({ ...d, deductions: d.deductions.filter((x) => x.id !== deductionId) }));
-    setFocusedDeduction(null);
+  const pickName = (kind: LineKind, name: string) =>
+    setDraft((d) => {
+      const blank = d[kind].find((l) => !l.name.trim() && !l.amount.trim());
+      if (blank) return { ...d, [kind]: d[kind].map((l) => (l === blank ? { ...l, name } : l)) };
+      return { ...d, [kind]: [...d[kind], { ...newLine(d[kind]), name, amount: '' }] };
+    });
+  const removeFocused = () => {
+    if (!focus) return;
+    setDraft((d) => ({ ...d, [focus.kind]: d[focus.kind].filter((l) => l.id !== focus.id) }));
+    setFocus(null);
   };
-  const setDeduction = (deductionId: string, patch: Partial<Draft['deductions'][number]>) =>
-    setDraft((d) => ({
-      ...d,
-      deductions: d.deductions.map((x) => (x.id === deductionId ? { ...x, ...patch } : x)),
-    }));
 
-  useShortcut('paychecks.addDeduction', addDeduction);
-  useShortcut(
-    'paychecks.removeDeduction',
-    () => removeDeduction(focusedDeduction),
-    !!focusedDeduction
-  );
+  useShortcut('paychecks.addIncome', () => addLine('income'));
+  useShortcut('paychecks.addDeduction', () => addLine('deductions'));
+  useShortcut('paychecks.removeLine', removeFocused, !!focus);
+
+  const common = (kind: LineKind) => ({
+    kind,
+    lines: draft[kind],
+    suggestions: suggestedNames(list, kind),
+    onAdd: () => addLine(kind),
+    onPick: (name: string) => pickName(kind, name),
+    onChange: (lineId: string, patch: Partial<DraftLine>) => setLine(kind, lineId, patch),
+    onFocus: (lineId: string) => setFocus({ kind, id: lineId }),
+    focused: focus?.kind === kind ? focus.id : null,
+    onRemove: removeFocused,
+  });
 
   return (
     <dialog
@@ -149,129 +273,41 @@ export function PaycheckEditor({
         <h2 className="text-lg font-semibold">{isNew ? 'New paycheck' : 'Edit paycheck'}</h2>
 
         <Field
-          label="Name"
-          htmlFor={`${id}-name`}
-          hint="Where the money comes from, e.g. your employer."
+          label="Date"
+          htmlFor={`${id}-date`}
+          hint="The day it was paid. The dashboard counts it in that month."
         >
           <TextInput
-            id={`${id}-name`}
-            value={draft.name}
-            autoFocus
-            placeholder="Salary"
-            onChange={(e) => set({ name: e.target.value })}
+            id={`${id}-date`}
+            type="date"
+            value={draft.date}
+            onChange={(e) => setDraft((d) => ({ ...d, date: e.target.value }))}
           />
         </Field>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="First payment" htmlFor={`${id}-date`}>
-            <TextInput
-              id={`${id}-date`}
-              type="date"
-              value={draft.date}
-              onChange={(e) => set({ date: e.target.value })}
-            />
-          </Field>
-          <Field label="Repeats" htmlFor={`${id}-repeat`}>
-            <Select
-              id={`${id}-repeat`}
-              value={draft.repeat}
-              onChange={(e) => set({ repeat: e.target.value as Repeat })}
-            >
-              {REPEATS.map((repeat) => (
-                <option key={repeat} value={repeat}>
-                  {REPEAT_LABELS[repeat]}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          {draft.repeat !== 'none' && (
-            <Field
-              label="Last payment"
-              htmlFor={`${id}-until`}
-              hint="Leave empty if it carries on."
-            >
-              <TextInput
-                id={`${id}-until`}
-                type="date"
-                value={draft.until ?? ''}
-                onChange={(e) => set({ until: e.target.value || null })}
-              />
-            </Field>
-          )}
-          <Field label="Paid into" htmlFor={`${id}-account`}>
-            <Select
-              id={`${id}-account`}
-              value={draft.accountId === null ? '' : String(draft.accountId)}
-              onChange={(e) =>
-                set({ accountId: e.target.value === '' ? null : Number(e.target.value) })
-              }
-            >
-              <option value="">First account</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        </div>
+        <Lines
+          {...common('income')}
+          legend="Income"
+          hint="Everything paid before anything is taken out. Give an allowance or bonus its own line, as it appears on the payslip."
+          placeholder="Salary"
+          addLabel="Add income"
+          addShortcut="paychecks.addIncome"
+          total={finite(totalIncome(current))}
+        />
 
-        <Field label="Gross pay (before anything is taken out)" htmlFor={`${id}-gross`}>
-          <TextInput
-            id={`${id}-gross`}
-            inputMode="decimal"
-            value={draft.gross}
-            placeholder="0.00"
-            onChange={(e) => set({ gross: e.target.value })}
-          />
-        </Field>
-
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1 text-sm font-medium">Deductions</legend>
-          <p className="text-xs text-muted">
-            Anything taken out before the money reaches you: tax, national insurance, student loan,
-            pension, and so on. Use whatever names fit your paycheck.
-          </p>
-          {draft.deductions.map((deduction, i) => (
-            <div
-              key={deduction.id}
-              className="grid grid-cols-[1fr_8rem] gap-2"
-              onFocus={() => setFocusedDeduction(deduction.id)}
-            >
-              <TextInput
-                aria-label={`Deduction ${i + 1} name`}
-                value={deduction.name}
-                placeholder="Income tax"
-                onChange={(e) => setDeduction(deduction.id, { name: e.target.value })}
-              />
-              <TextInput
-                aria-label={`Deduction ${i + 1} amount`}
-                inputMode="decimal"
-                value={deduction.amount}
-                placeholder="0.00"
-                onChange={(e) => setDeduction(deduction.id, { amount: e.target.value })}
-              />
-            </div>
-          ))}
-          <div className="flex flex-wrap gap-2">
-            <ActionButton shortcut="paychecks.addDeduction" onAction={addDeduction}>
-              Add deduction
-            </ActionButton>
-            {focusedDeduction && (
-              <ActionButton
-                shortcut="paychecks.removeDeduction"
-                variant="ghost"
-                onAction={() => removeDeduction(focusedDeduction)}
-              >
-                Remove deduction
-              </ActionButton>
-            )}
-          </div>
-        </fieldset>
+        <Lines
+          {...common('deductions')}
+          legend="Deductions"
+          hint="Anything taken out before the money reaches you: income tax, national insurance, pension, student loan, and so on."
+          placeholder="Income tax"
+          addLabel="Add deduction"
+          addShortcut="paychecks.addDeduction"
+          total={finite(totalDeductions(current))}
+        />
 
         <p className="flex justify-between rounded-lg bg-canvas px-3 py-2 text-sm">
           <span className="text-muted">Take-home pay</span>
-          <span className="font-semibold tabular-nums">{formatMoney(takeHome)}</span>
+          <span className="font-semibold tabular-nums">{formatMoney(finite(net))}</span>
         </p>
 
         {showProblem && problem && (

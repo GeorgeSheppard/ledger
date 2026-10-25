@@ -54,6 +54,28 @@ function savingsAccountRows(): TransactionInput[] {
   return rows;
 }
 
+/** Six payslips matching the transactions, paid on the 25th; the last has a bonus, so tax rises with it. */
+function fixturePaychecks() {
+  return ['2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09'].map((month, i) => {
+    const bonus = i === 5;
+    return {
+      id: `p${i + 1}`,
+      date: `${month}-25`,
+      income: [
+        { id: 'l1', name: 'Salary', amount: 2600 },
+        { id: 'l2', name: 'Allowance', amount: 150 },
+        ...(bonus ? [{ id: 'l3', name: 'Bonus', amount: 400 }] : []),
+      ],
+      deductions: [
+        { id: 'l1', name: 'Income tax', amount: bonus ? 520 : 390 },
+        { id: 'l2', name: 'National insurance', amount: bonus ? 190 : 150 },
+        { id: 'l3', name: 'Pension', amount: 110 },
+        { id: 'l4', name: 'Student loan', amount: bonus ? 70 : 40 },
+      ],
+    };
+  });
+}
+
 export function fixtureData(): LedgerData {
   return {
     accounts: [
@@ -63,24 +85,6 @@ export function fixtureData(): LedgerData {
     rows: { 1: currentAccountRows(), 2: savingsAccountRows() },
     categories: FIXTURE_CATEGORIES,
     dashboard: null,
-    paychecks: {
-      version: 1,
-      paychecks: [
-        {
-          id: 'p1',
-          name: 'Salary',
-          date: '2026-04-25',
-          gross: 3750,
-          deductions: [
-            { id: 'd1', name: 'Income tax', amount: 540 },
-            { id: 'd2', name: 'National insurance', amount: 210 },
-            { id: 'd3', name: 'Pension', amount: 150 },
-          ],
-          accountId: 1,
-          repeat: 'monthly',
-          until: null,
-        },
-      ],
-    },
+    paychecks: { version: 3, paychecks: fixturePaychecks() },
   };
 }
