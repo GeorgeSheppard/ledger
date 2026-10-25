@@ -23,13 +23,7 @@ export const ledgerDataSchema = z.object({
 export const skippedTabSchema = z.object({ title: z.string(), reason: z.string() });
 
 /** What kind of tab Ledger took a tab to be, for the sheet report. */
-export const tabKindSchema = z.enum([
-  'account',
-  'settings',
-  'categories',
-  'paychecks',
-  'reserved',
-]);
+export const tabKindSchema = z.enum(['account', 'settings', 'categories', 'paychecks', 'reserved']);
 
 /** What loading did with one tab of the spreadsheet, and why. Shown on the sheet report page. */
 export const tabReportSchema = z.object({
