@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeTransactions } from '../metrics/testing';
-import { buildMoneyFlow, flowWindow, type MoneyFlow } from './flow';
+import { allTime, buildMoneyFlow, type MoneyFlow } from './flow';
 import type { Paycheck } from './paychecks';
 
 const payslip = (month: string, over: Partial<Paycheck> = {}): Paycheck => ({
@@ -48,7 +48,7 @@ describe('buildMoneyFlow', () => {
   const paychecks = [payslip('2026-01'), payslip('2026-02')];
 
   it('follows each income line through gross pay, deductions and take-home into spending', () => {
-    const flow = buildMoneyFlow({ paychecks, ledgers, from: '2026-01', to: '2026-02' })!;
+    const flow = buildMoneyFlow({ paychecks, ledgers, from: '2026-01-01', to: '2026-02-28' })!;
     expect(flow.totals).toEqual({ gross: 6000, deductions: 1200, takeHome: 4800, spending: 2000 });
     expect(value(flow, 'income:salary', 'gross')).toBe(5600);
     expect(value(flow, 'income:allowance', 'gross')).toBe(400);
@@ -72,8 +72,8 @@ describe('buildMoneyFlow', () => {
         payslip('2026-01', { benefits: [{ id: 'b', name: 'Health insurance', amount: 100 }] }),
       ],
       ledgers,
-      from: '2026-01',
-      to: '2026-01',
+      from: '2026-01-01',
+      to: '2026-01-31',
     })!;
     expect(flow.totals).toMatchObject({ gross: 3100, deductions: 600, takeHome: 2400 });
     expect(value(flow, 'benefit:health insurance', 'gross')).toBe(100);
@@ -84,13 +84,13 @@ describe('buildMoneyFlow', () => {
 
   it('needs no account for take-home pay', () => {
     const two = [...ledgers, { account: { id: 2, name: 'Savings' }, transactions: [] }];
-    const flow = buildMoneyFlow({ paychecks, ledgers: two, from: '2026-01', to: '2026-02' })!;
+    const flow = buildMoneyFlow({ paychecks, ledgers: two, from: '2026-01-01', to: '2026-02-28' })!;
     expect(flow.nodes.some((n) => n.id.startsWith('account'))).toBe(false);
     expect(flow.totals.takeHome).toBe(4800);
   });
 
   it('counts only the months in the window', () => {
-    const flow = buildMoneyFlow({ paychecks, ledgers, from: '2026-02', to: '2026-02' })!;
+    const flow = buildMoneyFlow({ paychecks, ledgers, from: '2026-02-01', to: '2026-02-28' })!;
     expect(flow.totals.gross).toBe(3000);
     expect(value(flow, 'takeHome', 'category:Rent')).toBe(800);
   });
@@ -106,8 +106,8 @@ describe('buildMoneyFlow', () => {
     const flow = buildMoneyFlow({
       paychecks,
       ledgers: two,
-      from: '2026-01',
-      to: '2026-01',
+      from: '2026-01-01',
+      to: '2026-01-31',
       accountIds: [2],
     })!;
     expect(flow.totals.spending).toBe(70);
@@ -118,8 +118,8 @@ describe('buildMoneyFlow', () => {
     const flow = buildMoneyFlow({
       paychecks,
       ledgers: poor,
-      from: '2026-01',
-      to: '2026-01',
+      from: '2026-01-01',
+      to: '2026-01-31',
     })!;
     expect(value(flow, 'other', 'takeHome')).toBe(600);
     expect(flow.nodes.some((n) => n.id === 'saved')).toBe(false);
@@ -133,8 +133,8 @@ describe('buildMoneyFlow', () => {
     const flow = buildMoneyFlow({
       paychecks: [payslip('2026-01'), second],
       ledgers,
-      from: '2026-01',
-      to: '2026-02',
+      from: '2026-01-01',
+      to: '2026-02-28',
     })!;
     expect(flow.nodes.filter((n) => n.kind === 'deduction')).toHaveLength(2);
     expect(value(flow, 'gross', 'deduction:income tax')).toBe(550);
@@ -151,35 +151,29 @@ describe('buildMoneyFlow', () => {
         transactions: makeTransactions(2, [['2026-01-26', 500]]),
       },
     ];
-    const flow = buildMoneyFlow({ paychecks, ledgers: two, from: '2026-01', to: '2026-01' })!;
+    const flow = buildMoneyFlow({ paychecks, ledgers: two, from: '2026-01-01', to: '2026-01-31' })!;
     expect(flow.totals.spending).toBe(20);
   });
 
   it('is null without a paycheck in the window or without accounts', () => {
-    expect(buildMoneyFlow({ paychecks: [], ledgers, from: '2026-01', to: '2026-02' })).toBeNull();
-    expect(buildMoneyFlow({ paychecks, ledgers, from: '2025-01', to: '2025-12' })).toBeNull();
-    expect(buildMoneyFlow({ paychecks, ledgers: [], from: '2026-01', to: '2026-02' })).toBeNull();
+    expect(
+      buildMoneyFlow({ paychecks: [], ledgers, from: '2026-01-01', to: '2026-02-28' })
+    ).toBeNull();
+    expect(buildMoneyFlow({ paychecks, ledgers, from: '2025-01-01', to: '2025-12-31' })).toBeNull();
+    expect(
+      buildMoneyFlow({ paychecks, ledgers: [], from: '2026-01-01', to: '2026-02-28' })
+    ).toBeNull();
   });
 });
 
-describe('flowWindow', () => {
-  const ledgers = [current([['2026-02-01', 1]])];
-  it('ends at the latest month with data', () => {
-    expect(flowWindow(ledgers, [payslip('2026-01')], 3, '2026-10-18')).toEqual({
-      from: '2025-12',
-      to: '2026-02',
+describe('allTime', () => {
+  it('runs from the earliest transaction or paycheck to today', () => {
+    const ledgers = [current([['2026-02-01', 1]])];
+    expect(allTime(ledgers, [payslip('2025-06')], '2026-10-18')).toEqual({
+      from: '2025-06-15',
+      to: '2026-10-18',
     });
-  });
-  it('starts at the earliest data or paycheck for all', () => {
-    expect(flowWindow(ledgers, [payslip('2025-06')], 'all', '2026-10-18')).toEqual({
-      from: '2025-06',
-      to: '2026-02',
-    });
-  });
-  it('ends this month without transactions', () => {
-    expect(flowWindow([], [payslip('2026-01')], 6, '2026-10-18')).toEqual({
-      from: '2026-05',
-      to: '2026-10',
-    });
+    expect(allTime(ledgers, [], '2026-10-18').from).toBe('2026-02-01');
+    expect(allTime([], [], '2026-10-18')).toEqual({ from: '2026-10-18', to: '2026-10-18' });
   });
 });

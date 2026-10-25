@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Account, Transaction } from '../domain/types';
-import { buildDashboard } from '../metrics/dashboard';
+import { periodCashFlow } from '../metrics/dashboard';
+import { netWorthByMonth } from '../metrics/netWorth';
+import { monthPeriod } from '../metrics/period';
 import { findTransfers } from '../metrics/transfers';
 import { toTransactions } from '../store/ledgerData';
 import { asMoney, moneyLedgers } from './inverted';
@@ -44,16 +46,18 @@ describe('with an inverted account', () => {
   const byAccount: Record<number, Transaction[]> = { 1: bankTx, 2: cardTx };
 
   it('counts the balance owed against net worth', () => {
-    const d = buildDashboard(moneyLedgers([bank, card], byAccount), 'all')!;
-    const feb = d.netWorth.at(-1)!;
+    const feb = netWorthByMonth(moneyLedgers([bank, card], byAccount), ['2026-02'])[0]!;
     expect(feb.byAccount).toEqual({ 1: 800, 2: -50 });
     expect(feb.total).toBe(750);
   });
 
   it('counts purchases as spending and does not count the card payment as spending', () => {
-    const d = buildDashboard(moneyLedgers([bank, card], byAccount), 'all')!;
-    expect(d.cashFlow.map((m) => m.spending)).toEqual([200, 50]);
-    expect(d.cashFlow.map((m) => m.income)).toEqual([1000, 0]);
+    const ledgers = moneyLedgers([bank, card], byAccount);
+    const flows = ['2026-01', '2026-02'].map((m) =>
+      periodCashFlow(ledgers, [1, 2], monthPeriod(m))
+    );
+    expect(flows.map((f) => f.spending)).toEqual([200, 50]);
+    expect(flows.map((f) => f.income)).toEqual([1000, 0]);
   });
 
   it('pairs the payment with the bank withdrawal as a transfer', () => {

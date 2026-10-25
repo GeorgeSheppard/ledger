@@ -1,43 +1,55 @@
+import { useMemo } from 'react';
+import { categoryBreakdown } from '../../../lib/metrics/dashboard';
+import { buildTimeSeries } from '../../../lib/metrics/timeSeries';
 import type { Graph } from '../types';
 import { ChartLegend } from '../shared/ChartLegend';
 import { NoData } from '../shared/NoData';
-import { ViewTransactions } from '../shared/ViewTransactions';
-import { useTimeSeries } from '../shared/useTimeSeries';
 import { SpendingChart } from './SpendingChart';
 
 export const spendingGraph: Graph = {
   kind: 'spending',
-  label: 'Spending by category, per month',
-  defaultWidth: 4,
-  usesCategories: true,
-  title: () => 'Spending by category',
-  View(props) {
-    const { widget, dashboard, month, onSelectMonth, colorOf } = props;
-    const series = useTimeSeries(props);
-    if (!dashboard || !series) return <NoData>No transactions in these accounts yet.</NoData>;
-    const chosen = widget.categories;
-    const categories = chosen.length
-      ? dashboard.categories.filter((c) => chosen.includes(c))
-      : dashboard.categories;
-    if (!categories.length) return <NoData>No spending in range.</NoData>;
+  title: 'Spending by category',
+  width: 4,
+  View({
+    period,
+    ledgers,
+    accountIds,
+    categories,
+    ignoredCategories,
+    colorOf,
+    toggleCategory,
+    selectPeriod,
+  }) {
+    // The legend always lists every category with spending, so a filtered one can be switched back on.
+    const spent = useMemo(
+      () =>
+        categoryBreakdown(ledgers, accountIds, period, ignoredCategories)
+          .filter((row) => row.amount > 0)
+          .map((row) => row.category),
+      [ledgers, accountIds, period, ignoredCategories]
+    );
+    const series = useMemo(
+      () => buildTimeSeries(ledgers, accountIds, period, ignoredCategories, categories),
+      [ledgers, accountIds, period, ignoredCategories, categories]
+    );
+    if (!accountIds.length) return <NoData>No accounts switched on.</NoData>;
+    if (!spent.length) return <NoData>No spending in these dates.</NoData>;
+    const stack = categories.length ? spent.filter((c) => categories.includes(c)) : spent;
     return (
       <>
-        <ChartLegend items={categories.map((c) => ({ label: c, color: colorOf(c) }))} />
+        <ChartLegend
+          items={spent.map((category) => ({
+            label: category,
+            color: colorOf(category),
+            on: !categories.length || categories.includes(category),
+            onToggle: () => toggleCategory(category),
+          }))}
+        />
         <SpendingChart
           series={series}
-          categories={categories}
+          categories={stack}
           colorOf={colorOf}
-          selectedMonth={month ?? dashboard.months.at(-1)!}
-          onSelectMonth={onSelectMonth}
-          toolbar={({ dates }) => (
-            <ViewTransactions
-              ledgers={props.ledgers}
-              accountIds={props.accountIds}
-              {...dates}
-              categories={chosen}
-              open={props.openTransactions}
-            />
-          )}
+          onSelectPeriod={selectPeriod}
         />
       </>
     );

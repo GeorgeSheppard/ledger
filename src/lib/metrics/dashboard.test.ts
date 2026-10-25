@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { fixtureData } from '../data/fixtures';
 import { toSnapshot } from '../store/ledgerData';
-import { buildDashboard, categoryBreakdown } from './dashboard';
+import { categoryBreakdown, periodCashFlow } from './dashboard';
+import { monthPeriod } from './period';
 import { makeTransactions } from './testing';
 
 const ledgers = [
@@ -24,111 +25,53 @@ const ledgers = [
     transactions: makeTransactions(2, [['2026-03-27', 500, 'Savings']]),
   },
 ];
+const march = monthPeriod('2026-03');
 
-describe('buildDashboard', () => {
-  it('is null with no transactions', () => {
-    expect(buildDashboard([], 6)).toBeNull();
-  });
-
-  it('stops at the current month when a row is dated in the future', () => {
-    const typo = [
-      {
-        account: { id: 1, name: 'Current' },
-        transactions: makeTransactions(1, [
-          ['2026-01-01', 1000, '', 'Opening balance'],
-          ['2026-02-25', 2000, 'Salary'],
-          ['2062-03-15', -100, 'Rent'],
-        ]),
-      },
-    ];
-    const dashboard = buildDashboard(typo, 6, undefined, undefined, '2026-03-10')!;
-    expect(dashboard.months).toEqual(['2026-01', '2026-02', '2026-03']);
-    expect(dashboard.latest.netWorth).toBe(3000);
-    expect(
-      buildDashboard(typo, 'all', undefined, undefined, '2026-03-10')!.netWorth.at(-1)?.total
-    ).toBe(3000);
-  });
-
-  it('keeps future months when every row is in the future', () => {
-    const later = [
-      {
-        account: { id: 1, name: 'Current' },
-        transactions: makeTransactions(1, [['2027-05-01', 100, 'Salary']]),
-      },
-    ];
-    expect(buildDashboard(later, 'all', undefined, undefined, '2026-03-10')!.months).toEqual([
-      '2027-05',
-    ]);
-  });
-
-  it('ignores rows without a readable date instead of showing nothing', () => {
-    const withSummaryTab = [
-      ...ledgers,
-      {
-        account: { id: 3, name: 'Summary' },
-        transactions: makeTransactions(3, [['', 500]]),
-      },
-    ];
-    const dashboard = buildDashboard(withSummaryTab, 'all')!;
-    expect(dashboard.months).toEqual(['2026-01', '2026-02', '2026-03']);
-    expect(dashboard.latest.netWorth).toBe(buildDashboard(ledgers, 'all')!.latest.netWorth);
+describe('periodCashFlow', () => {
+  it('leaves out transfers and opening balances', () => {
+    const flow = periodCashFlow(ledgers, [1, 2], monthPeriod('2026-01'));
+    expect(flow.income).toBe(2000);
+    expect(flow.spending).toBe(300);
   });
 
   it('limits to the chosen accounts but still matches transfers across all of them', () => {
-    const current = buildDashboard(ledgers, 3, [1])!;
-    expect(current.accounts.map((a) => a.account.id)).toEqual([1]);
-    expect(current.latest.netWorth).toBe(5400);
     // The 500 moved to Savings is a transfer, not spending, even with Savings left out.
-    expect(current.latest.spending).toBe(400);
-    expect(buildDashboard(ledgers, 3, [])).toBeNull();
+    expect(periodCashFlow(ledgers, [1], march).spending).toBe(400);
+    expect(periodCashFlow(ledgers, [], march).spending).toBe(0);
   });
 
-  it('ends at the latest month with data and clips to the first', () => {
-    expect(buildDashboard(ledgers, 12)!.months).toEqual(['2026-01', '2026-02', '2026-03']);
-    expect(buildDashboard(ledgers, 'all')!.months).toEqual(['2026-01', '2026-02', '2026-03']);
-    expect(buildDashboard(ledgers, 2)!.months).toEqual(['2026-02', '2026-03']);
+  it('counts any range of days, not just months', () => {
+    const flow = periodCashFlow(ledgers, [1], { from: '2026-02-26', to: '2026-03-26' });
+    expect(flow.spending).toBe(300 + 100 + 400);
+    expect(flow.income).toBe(2000);
   });
 
-  it('summarises the latest month, leaving out transfers and opening balances', () => {
-    const { latest, accounts } = buildDashboard(ledgers, 3)!;
-    expect(latest).toEqual({
-      month: '2026-03',
-      netWorth: 5900,
-      netWorthChange: 1600,
-      income: 2000,
-      spending: 400,
-      previousSpending: 400,
-      savingsRate: 0.8,
-      averageSpending: 366.67,
-    });
-    expect(accounts.map((a) => [a.account.name, a.balance, a.change])).toEqual([
-      ['Current', 5400, 1100],
-      ['Savings', 500, 500],
+  it('leaves excluded categories out of spending', () => {
+    expect(periodCashFlow(ledgers, [1], march, new Set(['rent'])).spending).toBe(0);
+  });
+
+  it('ignores rows without a readable date', () => {
+    const withSummaryTab = [
+      ...ledgers,
+      { account: { id: 3, name: 'Summary' }, transactions: makeTransactions(3, [['', -500]]) },
+    ];
+    expect(periodCashFlow(withSummaryTab, [1, 2, 3], march).spending).toBe(400);
+  });
+});
+
+describe('categoryBreakdown', () => {
+  it('compares with the period of the same length before', () => {
+    expect(categoryBreakdown(ledgers, [1], monthPeriod('2026-02'))).toEqual([
+      { category: 'Rent', amount: 300, previous: 300 },
+      { category: 'Groceries', amount: 100, previous: 0 },
     ]);
   });
 
-  it('leaves excluded categories out of spending but keeps balances and net worth', () => {
-    const all = buildDashboard(ledgers, 3)!;
-    const ignored = buildDashboard(ledgers, 3, undefined, new Set(['rent']))!;
-    expect(all.latest.spending).toBe(400);
-    expect(ignored.latest.spending).toBe(0);
-    expect(ignored.categories).not.toContain('Rent');
-    expect(ignored.latest.netWorth).toBe(all.latest.netWorth);
-    expect(ignored.accounts.map((a) => a.balance)).toEqual(all.accounts.map((a) => a.balance));
-  });
-
-  it('compares the first month in range with the month before it', () => {
-    const dashboard = buildDashboard(ledgers, 2)!;
-    expect(dashboard.previousCashFlow?.month).toBe('2026-01');
-    expect(categoryBreakdown(dashboard, '2026-02')).toEqual([
-      { category: 'Rent', amount: 300, previous: 300, average: 350 },
-      { category: 'Groceries', amount: 100, previous: 0, average: 50 },
+  it('keeps categories that only had spending before, with an amount of 0', () => {
+    expect(categoryBreakdown(ledgers, [1], march)).toEqual([
+      { category: 'Rent', amount: 400, previous: 300 },
+      { category: 'Groceries', amount: 0, previous: 100 },
     ]);
-  });
-
-  it('has no previous spending when the data starts in the latest month', () => {
-    const single = [ledgers[1]!];
-    expect(buildDashboard(single, 6)!.latest.previousSpending).toBeNull();
   });
 
   it('works on the demo data', () => {
@@ -137,10 +80,17 @@ describe('buildDashboard', () => {
       account,
       transactions: snapshot.transactionsByAccount[account.id] ?? [],
     }));
-    const dashboard = buildDashboard(loaded, 6)!;
-    expect(dashboard.months).toHaveLength(6);
+    const latest = loaded
+      .flatMap((l) => l.transactions.map((t) => t.date))
+      .sort()
+      .at(-1)!;
+    const rows = categoryBreakdown(
+      loaded,
+      loaded.map((l) => l.account.id),
+      monthPeriod(latest.slice(0, 7))
+    );
     // Transfers to savings are not spending.
-    expect(dashboard.categories).not.toContain('Savings');
-    expect(dashboard.latest.income).toBe(2850);
+    expect(rows.map((r) => r.category)).not.toContain('Savings');
+    expect(rows.length).toBeGreaterThan(0);
   });
 });

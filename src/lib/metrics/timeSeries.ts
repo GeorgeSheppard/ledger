@@ -6,35 +6,37 @@ import {
   type Bucket,
   type Granularity,
 } from './buckets';
-import { cashFlowByPeriod, type PeriodCashFlow } from './cashFlow';
-import { monthEnd, isIsoDate, type MonthKey } from './months';
+import { cashFlowByPeriod, UNCATEGORISED, type PeriodCashFlow } from './cashFlow';
+import { inPeriod } from './dashboard';
+import { isIsoDate } from './months';
 import { netWorthAtEnds, type AccountLedger, type PeriodNetWorth } from './netWorth';
+import type { Period } from './period';
 import { excludedFromCashFlow } from './transfers';
 
 /**
- * The dashboard's numbers at any level of detail, for the zoomable graphs. It covers every month with
- * data (the dashboard's range only picks the window shown first, `windowStartMs`) and answers the same questions (income, spending, balances), but cut into
- * weeks or days on request. Each cut is worked out the first time it is asked for.
+ * The dashboard's numbers for one period at any level of detail, for the graphs: income and
+ * spending, and the balance of every chosen account. Cut into months, weeks or days on request; each
+ * cut is worked out the first time it is asked for. Buckets at the edges may stick out of the
+ * period, but only transactions inside it are counted.
  */
 export interface TimeSeries {
-  /** Start of the first month, in ms (midnight UTC). */
+  /** Start of the period's first day, in ms (midnight UTC). */
   startMs: number;
-  /** Midnight after the last day of the last month, in ms. */
+  /** Midnight after the period's last day, in ms. */
   endMs: number;
-  /** Where a chart's view starts when first shown: the dashboard's range, within `startMs`..`endMs`. */
-  windowStartMs: number;
   buckets(granularity: Granularity): Bucket[];
+  /** Income and spending, limited to the chosen categories when there are any. */
   cashFlow(granularity: Granularity): PeriodCashFlow[];
+  /** Balances at the end of each bucket. Not narrowed by category: a balance has no category. */
   netWorth(granularity: Granularity): PeriodNetWorth[];
 }
 
 export function buildTimeSeries(
   allLedgers: readonly AccountLedger[],
   accountIds: readonly number[],
-  firstMonth: MonthKey,
-  lastMonth: MonthKey,
+  { from: first, to: last }: Period,
   ignoredCategories?: ReadonlySet<string>,
-  windowFirstMonth: MonthKey = firstMonth
+  categories: readonly string[] = []
 ): TimeSeries {
   // Same as the dashboard: rows without a readable date cannot be placed, so they are left out.
   const dated = allLedgers.map((l) => ({
@@ -42,13 +44,17 @@ export function buildTimeSeries(
     transactions: l.transactions.filter((t) => isIsoDate(t.date)),
   }));
   const ledgers = dated.filter((l) => accountIds.includes(l.account.id));
-  const transactions = ledgers.flatMap((l) => l.transactions);
+  const transactions = ledgers
+    .flatMap((l) => l.transactions)
+    .filter(
+      (t) =>
+        inPeriod(t.date, { from: first, to: last }) &&
+        (!categories.length || categories.includes(t.category || UNCATEGORISED))
+    );
   const excluded = excludedFromCashFlow(
     dated.flatMap((l) => l.transactions),
     ignoredCategories
   );
-  const first = `${firstMonth}-01`;
-  const last = monthEnd(lastMonth);
 
   const cache = <T>(compute: (granularity: Granularity) => T) => {
     const done = new Map<Granularity, T>();
@@ -61,7 +67,6 @@ export function buildTimeSeries(
   return {
     startMs: dayStart(first),
     endMs: dayStart(last) + DAY_MS,
-    windowStartMs: Math.max(dayStart(first), dayStart(`${windowFirstMonth}-01`)),
     buckets,
     cashFlow: cache((g) =>
       cashFlowByPeriod(
@@ -74,7 +79,8 @@ export function buildTimeSeries(
     netWorth: cache((g) =>
       netWorthAtEnds(
         ledgers,
-        buckets(g).map((b) => b.end)
+        // A balance is as of the end of the period, even when its last bucket carries on past it.
+        buckets(g).map((b) => (b.end > last ? last : b.end))
       )
     ),
   };

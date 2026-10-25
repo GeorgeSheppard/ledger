@@ -42,62 +42,19 @@ export const SHORTCUTS = {
   },
 
   // Dashboard (step 3)
-  'dashboard.range3': { keys: '1', description: 'Show last 3 months', scope: 'dashboard' },
-  'dashboard.range6': { keys: '2', description: 'Show last 6 months', scope: 'dashboard' },
-  'dashboard.range12': { keys: '3', description: 'Show last 12 months', scope: 'dashboard' },
-  'dashboard.rangeAll': { keys: '4', description: 'Show all months', scope: 'dashboard' },
-  'dashboard.previousMonth': {
+  'dashboard.previousPeriod': {
     keys: '[',
-    description: 'Previous month in breakdown',
+    description: 'Previous period on the dashboard',
     scope: 'dashboard',
   },
-  'dashboard.nextMonth': { keys: ']', description: 'Next month in breakdown', scope: 'dashboard' },
-  'dashboard.edit': { keys: 'e', description: 'Edit dashboard layout', scope: 'dashboard' },
-  'dashboard.addWidget': { keys: 'a', description: 'Add a graph', scope: 'dashboard' },
-  // Shared by the layout and the graph editor; only one of them is listening at a time.
-  'dashboard.save': {
-    keys: 'mod+enter',
-    description: 'Save layout or graph',
-    scope: 'dashboard',
-    allowInInputs: true,
-  },
-  'dashboard.cancel': {
-    keys: 'escape',
-    description: 'Cancel editing',
-    scope: 'dashboard',
-    allowInInputs: true,
-  },
-  'dashboard.resetLayout': {
-    keys: 'shift+r',
-    description: 'Reset to the default layout',
+  'dashboard.nextPeriod': {
+    keys: ']',
+    description: 'Next period on the dashboard',
     scope: 'dashboard',
   },
-  'dashboard.nextWidget': { keys: 'j', description: 'Select next graph', scope: 'dashboard' },
-  'dashboard.previousWidget': {
-    keys: 'k',
-    description: 'Select previous graph',
-    scope: 'dashboard',
-  },
-  'dashboard.editWidget': { keys: 'enter', description: 'Edit selected graph', scope: 'dashboard' },
-  'dashboard.moveEarlier': {
-    keys: 'shift+arrowleft',
-    description: 'Move selected graph earlier',
-    scope: 'dashboard',
-  },
-  'dashboard.moveLater': {
-    keys: 'shift+arrowright',
-    description: 'Move selected graph later',
-    scope: 'dashboard',
-  },
-  'dashboard.narrower': {
-    keys: '-',
-    description: 'Make selected graph narrower',
-    scope: 'dashboard',
-  },
-  'dashboard.wider': { keys: '=', description: 'Make selected graph wider', scope: 'dashboard' },
-  'dashboard.removeWidget': {
-    keys: 'backspace',
-    description: 'Remove selected graph',
+  'dashboard.viewTransactions': {
+    keys: 'v',
+    description: 'View the transactions behind the dashboard',
     scope: 'dashboard',
   },
 

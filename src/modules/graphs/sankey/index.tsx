@@ -1,14 +1,14 @@
 import { Link } from 'react-router';
 import { paths } from '../../../app/paths';
 import type { Graph } from '../types';
+import { NoData } from '../shared/NoData';
 import { PaycheckFlow } from './PaycheckFlow';
 
 export const sankeyGraph: Graph = {
   kind: 'sankey',
-  label: 'Money flow from paychecks (Sankey)',
-  defaultWidth: 4,
-  title: () => 'Where your money goes',
-  View({ widget, ledgers, paychecks, range, ignoredCategories, colorOf }) {
+  title: 'Where your money goes',
+  width: 4,
+  View({ period, ledgers, paychecks, accountIds, ignoredCategories, colorOf }) {
     if (paychecks.length === 0)
       return (
         <p className="text-sm text-muted">
@@ -18,12 +18,13 @@ export const sankeyGraph: Graph = {
           </Link>
         </p>
       );
+    if (!accountIds.length) return <NoData>No accounts switched on.</NoData>;
     return (
       <PaycheckFlow
         ledgers={ledgers}
         paychecks={paychecks}
-        range={range}
-        accountIds={widget.accounts}
+        period={period}
+        accountIds={accountIds}
         ignoredCategories={ignoredCategories}
         colorOf={colorOf}
       />

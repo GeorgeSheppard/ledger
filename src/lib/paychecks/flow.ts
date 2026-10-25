@@ -1,8 +1,8 @@
 import type { IsoDate } from '../domain/types';
-import { monthlyCashFlow } from '../metrics/cashFlow';
-import type { DashboardRange } from '../metrics/dashboard';
-import { addMonths, isIsoDate, monthsBetween, monthOf, type MonthKey } from '../metrics/months';
-import { dataMonthRange, type AccountLedger } from '../metrics/netWorth';
+import { cashFlowByPeriod } from '../metrics/cashFlow';
+import { isIsoDate } from '../metrics/months';
+import type { AccountLedger } from '../metrics/netWorth';
+import { firstDate, type Period } from '../metrics/period';
 import { excludedFromCashFlow } from '../metrics/transfers';
 import { round, type Paycheck } from './paychecks';
 
@@ -12,7 +12,7 @@ import { round, type Paycheck } from './paychecks';
  * (`../sankey/layout.ts`).
  *
  * Take-home pay is one pool: it is not tied to an account, so it flows to whatever the chosen
- * accounts spent in the months shown, and what is left is "Saved". Spending beyond take-home is
+ * accounts spent in the period shown, and what is left is "Saved". Spending beyond take-home is
  * shown as "other income" flowing in, so every node's inflow equals its outflow. Transfers between
  * accounts and opening balances are left out, as on the rest of the dashboard.
  */
@@ -47,9 +47,9 @@ export interface FlowLink {
 export interface MoneyFlow {
   nodes: FlowNode[];
   links: FlowLink[];
-  /** First and last month covered. */
-  from: MonthKey;
-  to: MonthKey;
+  /** First and last day covered. */
+  from: IsoDate;
+  to: IsoDate;
   /** Gross pay, deductions, take-home pay and spending over the whole window. */
   totals: { gross: number; deductions: number; takeHome: number; spending: number };
 }
@@ -60,24 +60,16 @@ export const BENEFITS_ID = 'benefits';
 export const TAKE_HOME_ID = 'takeHome';
 export const SAVED_ID = 'saved';
 
-/**
- * The months a money-flow chart covers: the last `range` months, ending at the latest month with
- * transactions (or this month when there are none), like the rest of the dashboard.
- */
-export function flowWindow(
+/** From the first transaction or paycheck to today: everything there is to follow. */
+export function allTime(
   ledgers: readonly AccountLedger[],
   paychecks: readonly Paycheck[],
-  range: DashboardRange,
   today: IsoDate
-): { from: MonthKey; to: MonthKey } {
-  const span = dataMonthRange(ledgers);
-  const to = span?.last ?? monthOf(today);
-  if (range !== 'all') return { from: addMonths(to, 1 - range), to };
-  const from =
-    [span?.first, ...paychecks.map((p) => monthOf(p.date))]
-      .filter((m): m is MonthKey => !!m)
-      .sort()[0] ?? to;
-  return { from: from < to ? from : to, to };
+): Period {
+  const starts = [firstDate(ledgers), ...paychecks.map((p) => p.date)].filter(
+    (d): d is IsoDate => !!d
+  );
+  return { from: starts.sort()[0] ?? today, to: today };
 }
 
 interface Tally {
@@ -101,8 +93,9 @@ export interface FlowInput {
   paychecks: readonly Paycheck[];
   /** Every account, so transfers can be matched. */
   ledgers: readonly AccountLedger[];
-  from: MonthKey;
-  to: MonthKey;
+  /** First and last day to count, inclusive. */
+  from: IsoDate;
+  to: IsoDate;
   /** Count spending from these accounts only. All when omitted or empty. */
   accountIds?: readonly number[];
   /** Lower-cased names of categories to leave out of the spending side. */
@@ -127,8 +120,7 @@ export function buildMoneyFlow({
   const benefits = new Map<string, Tally>();
   const deductions = new Map<string, Tally>();
   for (const paycheck of paychecks) {
-    const month = monthOf(paycheck.date);
-    if (month < from || month > to) continue;
+    if (paycheck.date < from || paycheck.date > to) continue;
     for (const line of paycheck.income) if (line.amount > 0) add(incomes, line.name, line.amount);
     for (const line of paycheck.benefits)
       if (line.amount > 0) add(benefits, line.name, line.amount);
@@ -144,15 +136,19 @@ export function buildMoneyFlow({
   const deducted = sumOf(deductions);
   const takeHome = round(cash - deducted);
 
-  // Spending per category, netted per month like the dashboard.
+  // Spending per category, netted over the period like the dashboard.
   const excluded = excludedFromCashFlow(
     ledgers.flatMap((l) => l.transactions.filter((t) => isIsoDate(t.date))),
     ignoredCategories
   );
-  const months = monthsBetween(from, to);
   const categoryTotals = new Map<string, number>();
   for (const { transactions } of chosen)
-    for (const flow of monthlyCashFlow(transactions, months, excluded))
+    for (const flow of cashFlowByPeriod(
+      transactions,
+      ['period'],
+      (d) => (d >= from && d <= to ? 'period' : ''),
+      excluded
+    ))
       for (const [category, amount] of Object.entries(flow.spendingByCategory))
         categoryTotals.set(category, round((categoryTotals.get(category) ?? 0) + amount));
   const spending = round([...categoryTotals.values()].reduce((a, b) => a + b, 0));

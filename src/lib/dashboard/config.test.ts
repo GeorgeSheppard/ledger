@@ -9,20 +9,13 @@ import {
   resizeWidget,
   widgetAccountIds,
 } from './config';
-import { defaultDashboard } from '../../modules/graphs';
 import { parseDashboard, serializeDashboard } from './serialize';
 
 const ids = (config: { widgets: { id: string }[] }) => config.widgets.map((w) => w.id);
 
 describe('dashboard config', () => {
-  it('has a default layout with unique ids', () => {
-    const config = defaultDashboard();
-    expect(new Set(ids(config)).size).toBe(config.widgets.length);
-    expect(config.widgets.map((w) => w.kind)).toContain('netWorth');
-  });
-
   it('adds, replaces and removes widgets', () => {
-    let config = defaultDashboard();
+    let config = { widgets: ['a', 'b'].map((id) => newWidget('stat', id)) };
     const id = newWidgetId(config.widgets);
     expect(ids(config)).not.toContain(id);
     config = addWidget(config, newWidget('cashFlow', id));
@@ -64,7 +57,7 @@ describe('sankey widget', () => {
 
 describe('stored dashboard', () => {
   it('round-trips', () => {
-    const config = defaultDashboard();
+    const config = { widgets: [newWidget('spending', 'w1'), newWidget('cashFlow', 'w2')] };
     config.widgets[0] = { ...config.widgets[0]!, accounts: [3], categories: ['Food'], range: 12 };
     const stored = JSON.parse(JSON.stringify(serializeDashboard(config)));
     expect(parseDashboard(stored)).toEqual(config);
