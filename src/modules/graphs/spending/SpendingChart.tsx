@@ -5,7 +5,7 @@ import { dayStart, DAY_MS } from '../../../lib/metrics/buckets';
 import { monthEnd, type MonthKey } from '../../../lib/metrics/months';
 import type { TimeSeries } from '../../../lib/metrics/timeSeries';
 import { useChartColors, useChartsReady } from '../shared/chartjs';
-import { formatBucket, formatCompact, formatMoney } from '../shared/format';
+import { formatBucket, formatCompact } from '../shared/format';
 import {
   anchorTime,
   timeScale,
@@ -119,25 +119,7 @@ export function SpendingChart({
     plugins: {
       legend: { display: false },
       zoom: zoomPlugin(view),
-      tooltip: {
-        itemSort: (a, b) => b.datasetIndex - a.datasetIndex,
-        filter: (item) => (item.raw as BarPoint).y > 0,
-        backgroundColor: colors.surface,
-        titleColor: colors.fg,
-        bodyColor: colors.fg,
-        footerColor: colors.fg,
-        borderColor: colors.line,
-        borderWidth: 1,
-        padding: 10,
-        boxWidth: 8,
-        boxHeight: 8,
-        callbacks: {
-          title: (items) => (items[0]?.raw as BarPoint | undefined)?.label ?? '',
-          label: (item) => `${item.dataset.label}  ${formatMoney((item.raw as BarPoint).y)}`,
-          footer: (items) =>
-            `Total spending  ${formatMoney(items.reduce((sum, i) => sum + (i.raw as BarPoint).y, 0))}`,
-        },
-      },
+      tooltip: { enabled: false },
     },
   };
 
