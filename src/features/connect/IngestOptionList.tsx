@@ -36,9 +36,10 @@ export function IngestOptionList({
             <button
               type="button"
               onClick={() => choose(option)}
+              disabled={!!option.unavailable}
               className={cn(
                 'flex w-full cursor-pointer flex-col items-start gap-1 rounded-xl border p-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                'bg-surface shadow-sm hover:bg-surface-hover',
+                'bg-surface shadow-sm hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-surface',
                 last ? 'border-accent ring-1 ring-accent' : 'border-line'
               )}
             >
@@ -50,7 +51,7 @@ export function IngestOptionList({
                   </span>
                 )}
               </span>
-              <span className="text-sm text-muted">{option.description}</span>
+              <span className="text-sm text-muted">{option.unavailable ?? option.description}</span>
             </button>
           </li>
         );
