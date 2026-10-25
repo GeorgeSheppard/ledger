@@ -1,16 +1,24 @@
 import type { Account } from '../../lib/domain/types';
-import { Card } from '../../ui/Card';
+import { Link } from 'react-router';
+import { paths } from '../../app/paths';
+import { EDITOR_PANEL } from './rowStyles';
+import { cn } from '../../ui/cn';
 
 interface AccountSettingsProps {
   account: Account;
   onInvertedChange(inverted: boolean): void;
+  onClose(): void;
 }
 
-/** The account's settings tab. Anything about how Ledger treats the account, rather than its rows, goes here. */
-export function AccountSettings({ account, onInvertedChange }: AccountSettingsProps) {
+/** The account's settings, shown in place of its row on the accounts overview when it is clicked. Anything about how Ledger treats the account, rather than its rows, goes here. */
+export function AccountSettings({ account, onInvertedChange, onClose }: AccountSettingsProps) {
   const inverted = !!account.inverted;
   return (
-    <Card className="flex flex-col gap-4 px-4 py-4" aria-label={`${account.name} settings`}>
+    <div
+      className={cn(EDITOR_PANEL, 'flex flex-col gap-4 px-4 py-4')}
+      aria-label={`${account.name} settings`}
+      onClick={(e) => e.stopPropagation()}
+    >
       {/* Credit card or loan: those tabs record amounts from the account's own side (a purchase is
           positive), so Ledger flips the sign when it counts the money. */}
       <label className="flex w-fit cursor-pointer items-start gap-2 text-sm">
@@ -29,6 +37,14 @@ export function AccountSettings({ account, onInvertedChange }: AccountSettingsPr
           </span>
         </span>
       </label>
-    </Card>
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <Link to={paths.account(account.id)} className="text-accent hover:underline">
+          Open transactions ›
+        </Link>
+        <button type="button" className="cursor-pointer text-muted hover:text-fg" onClick={onClose}>
+          Done
+        </button>
+      </div>
+    </div>
   );
 }
