@@ -7,7 +7,7 @@ import { sankey } from 'd3-sankey';
 
 export interface SankeyNodeInput {
   id: string;
-  /** Left to right, from 0. Nodes in a column keep the order they are given in. */
+  /** Left to right, from 0. Nodes in a column are laid out largest first. */
   column: number;
 }
 
@@ -80,6 +80,8 @@ export function layoutSankey(
     .nodeId((n) => n.id)
     // Columns are given, not inferred.
     .nodeAlign((n) => n.column)
+    // Largest first within each column, so the biggest flows sit at the top.
+    .nodeSort((a, b) => (b.value ?? 0) - (a.value ?? 0))
     .nodeWidth(nodeWidth)
     .nodePadding(nodePadding)
     .extent([

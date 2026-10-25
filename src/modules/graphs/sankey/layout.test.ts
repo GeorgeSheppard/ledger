@@ -48,8 +48,13 @@ describe('layoutSankey', () => {
       expect(l.y0 - l.width / 2).toBeGreaterThanOrEqual(gross.y - 1e-9);
       expect(l.y0 + l.width / 2).toBeLessThanOrEqual(gross.y + gross.height + 1e-9);
     }
-    // Ribbons leave top to bottom in the order of their targets.
-    expect(toTax.y0).toBeLessThan(toNet.y0);
+    // Ribbons leave top to bottom, largest target first.
+    expect(toNet.y0).toBeLessThan(toTax.y0);
+  });
+
+  it('puts the largest node of each column at the top', () => {
+    expect(node('net').y).toBeLessThan(node('tax').y);
+    expect(node('rent').y).toBeLessThan(node('saved').y);
   });
 
   it('ignores empty links and unknown nodes', () => {

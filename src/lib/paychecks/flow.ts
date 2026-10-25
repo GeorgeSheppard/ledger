@@ -69,6 +69,8 @@ export const GROSS_ID = 'gross';
 export const BENEFITS_ID = 'benefits';
 export const TAKE_HOME_ID = 'takeHome';
 export const SAVED_ID = 'saved';
+/** Stands in for the spending categories and savings left out by a category filter. */
+export const REST_ID = 'rest';
 
 /** From the first transaction or paycheck to today: everything there is to follow. */
 export function allTime(
@@ -110,6 +112,8 @@ export interface FlowInput {
   accountIds?: readonly number[];
   /** Lower-cased names of categories to leave out of the spending side. */
   ignoredCategories?: ReadonlySet<string>;
+  /** Show only these spending categories; the rest and savings collapse into one node. All when empty. */
+  categories?: readonly string[];
   /** Follow take-home pay on into spending and savings. On unless false: false stops at take-home pay. */
   withSpending?: boolean;
 }
@@ -122,6 +126,7 @@ export function buildMoneyFlow({
   to,
   accountIds,
   ignoredCategories,
+  categories,
   withSpending = true,
 }: FlowInput): MoneyFlow | null {
   if (withSpending && ledgers.length === 0) return null;
@@ -172,6 +177,15 @@ export function buildMoneyFlow({
   const other = withSpending ? round(Math.max(0, spending - takeHome)) : 0;
   const saved = withSpending ? round(Math.max(0, takeHome - spending)) : 0;
 
+  // With a category filter only the picked categories keep their own node; everything else the
+  // take-home pay went to (other spending, savings) is one "Everything else" node.
+  const picked = categories?.length ? new Set(categories) : null;
+  const shownTotals = picked
+    ? new Map([...categoryTotals].filter(([category]) => picked.has(category)))
+    : categoryTotals;
+  const shownSpending = round([...shownTotals.values()].reduce((a, b) => a + b, 0));
+  const rest = picked ? round(spending - shownSpending + saved) : 0;
+
   const links: FlowLink[] = [];
   for (const [key] of incomes) addLink(links, `income:${key}`, GROSS_ID, incomes.get(key)!.value);
   for (const [key, d] of deductions) addLink(links, GROSS_ID, `deduction:${key}`, d.value);
@@ -179,9 +193,10 @@ export function buildMoneyFlow({
   addLink(links, GROSS_ID, BENEFITS_ID, benefit);
   addLink(links, GROSS_ID, TAKE_HOME_ID, takeHome);
   addLink(links, OTHER_INCOME_ID, TAKE_HOME_ID, other);
-  for (const [category, amount] of categoryTotals)
+  for (const [category, amount] of shownTotals)
     addLink(links, TAKE_HOME_ID, `category:${category}`, amount);
-  addLink(links, TAKE_HOME_ID, SAVED_ID, saved);
+  if (picked) addLink(links, TAKE_HOME_ID, REST_ID, rest);
+  else addLink(links, TAKE_HOME_ID, SAVED_ID, saved);
 
   const incomeNodes: FlowNode[] = [...incomes]
     .sort((a, b) => b[1].value - a[1].value)
@@ -194,7 +209,7 @@ export function buildMoneyFlow({
   const deductionNodes: FlowNode[] = [...deductions]
     .sort((a, b) => b[1].value - a[1].value)
     .map(([key, d]) => ({ id: `deduction:${key}`, label: d.label, kind: 'deduction', column: 2 }));
-  const categoryNodes: FlowNode[] = [...categoryTotals]
+  const categoryNodes: FlowNode[] = [...shownTotals]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([category]) => ({
       id: `category:${category}`,
@@ -203,7 +218,11 @@ export function buildMoneyFlow({
       column: 3,
       category,
     }));
-  if (saved > 0) categoryNodes.push({ id: SAVED_ID, label: 'Saved', kind: 'saved', column: 3 });
+  if (picked) {
+    if (rest > 0)
+      categoryNodes.push({ id: REST_ID, label: 'Everything else', kind: 'other', column: 3 });
+  } else if (saved > 0)
+    categoryNodes.push({ id: SAVED_ID, label: 'Saved', kind: 'saved', column: 3 });
 
   return {
     nodes: [
@@ -220,6 +239,13 @@ export function buildMoneyFlow({
     links,
     from,
     to,
-    totals: { gross, deductions: deducted, takeHome, spending, saved, overspent: other },
+    totals: {
+      gross,
+      deductions: deducted,
+      takeHome,
+      spending: picked ? shownSpending : spending,
+      saved,
+      overspent: other,
+    },
   };
 }
