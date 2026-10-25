@@ -11,7 +11,6 @@ import { ImportDialog } from '../../modules/import/ui/ImportDialog';
 import { EditableTitle } from './EditableTitle';
 import { AccountNameForm } from './AccountNameForm';
 import { AccountSummary } from './AccountSummary';
-import { AccountSettings } from './AccountSettings';
 import { AccountSwitcher } from './AccountSwitcher';
 import { TransactionTable } from './TransactionTable';
 import {
@@ -20,7 +19,6 @@ import {
   useCashFlowExclusions,
   useTransactions,
 } from './useAccountsData';
-import { cn } from '../../ui/cn';
 import { Card } from '../../ui/Card';
 import { Page } from '../../ui/Page';
 
@@ -38,11 +36,8 @@ export function AccountsPage() {
   const excluded = useCashFlowExclusions();
   const [nameForm, setNameForm] = useState<NameForm>(null);
   const [importing, setImporting] = useState(false);
-  const [params, setParams] = useSearchParams();
-  const tab: AccountTab = params.get('tab') === 'settings' ? 'settings' : 'transactions';
+  const [params] = useSearchParams();
   const linked = hasFilters(filtersFromParams(params)) ? filtersFromParams(params) : undefined;
-  const showTab = (next: AccountTab) =>
-    setParams(next === 'settings' ? { tab: 'settings' } : {}, { replace: true });
 
   if (meta.status === 'loading')
     return (
@@ -126,24 +121,16 @@ export function AccountsPage() {
       {transactions.status === 'ready' && (
         <>
           <AccountSummary transactions={asMoney(account, transactions.data)} />
-          <AccountTabs tab={tab} onChange={showTab} />
-          {tab === 'settings' ? (
-            <AccountSettings
-              account={account}
-              onInvertedChange={(inverted) => actions.setAccountInverted(account.id, inverted)}
-            />
-          ) : (
-            <TransactionTable
-              key={`${account.id}?${params.toString()}`}
-              account={account}
-              accounts={meta.data.accounts}
-              initialFilters={linked}
-              transactions={transactions.data}
-              categories={categories}
-              excluded={excluded}
-              paused={importing}
-            />
-          )}
+          <TransactionTable
+            key={`${account.id}?${params.toString()}`}
+            account={account}
+            accounts={meta.data.accounts}
+            initialFilters={linked}
+            transactions={transactions.data}
+            categories={categories}
+            excluded={excluded}
+            paused={importing}
+          />
           {importing && (
             <ImportDialog
               account={account}
@@ -155,35 +142,6 @@ export function AccountsPage() {
         </>
       )}
     </Page>
-  );
-}
-
-type AccountTab = 'transactions' | 'settings';
-
-const TABS: { id: AccountTab; label: string }[] = [
-  { id: 'transactions', label: 'Transactions' },
-  { id: 'settings', label: 'Settings' },
-];
-
-function AccountTabs({ tab, onChange }: { tab: AccountTab; onChange(tab: AccountTab): void }) {
-  return (
-    <div role="tablist" aria-label="Account" className="flex gap-1 border-b border-line">
-      {TABS.map(({ id, label }) => (
-        <button
-          key={id}
-          type="button"
-          role="tab"
-          aria-selected={tab === id}
-          className={cn(
-            '-mb-px cursor-pointer border-b-2 border-transparent px-3 py-2 text-sm text-muted hover:text-fg',
-            tab === id && 'border-accent font-medium text-fg'
-          )}
-          onClick={() => onChange(id)}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
   );
 }
 

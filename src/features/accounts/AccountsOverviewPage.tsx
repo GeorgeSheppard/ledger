@@ -18,6 +18,7 @@ import { Page } from '../../ui/Page';
 import { Select } from '../../ui/Select';
 import { formatDate } from '../../modules/import/ui/format';
 import { AccountNameForm } from './AccountNameForm';
+import { AccountSettings } from './AccountSettings';
 import { useAccountActions, useAccountOverview } from './useAccountsData';
 
 const COLUMNS: { key: AccountSortKey; align?: 'right' }[] = [
@@ -45,6 +46,8 @@ export function AccountsOverviewPage() {
   const overview = useAccountOverview();
   const actions = useAccountActions();
   const [adding, setAdding] = useState(false);
+  /** The account whose settings are open in place of its row. */
+  const [editingId, setEditingId] = useState<number | null>(null);
   /** `null` is the sheet's own tab order. */
   const [sort, setSort] = useState<AccountSort | null>(null);
 
@@ -86,7 +89,7 @@ export function AccountsOverviewPage() {
   return (
     <Page
       title="Accounts"
-      description="Every account in your spreadsheet. Open one to see and edit its transactions."
+      description="Every account in your spreadsheet. Click one to change its settings."
       actions={
         <ActionButton disabled={adding} onAction={() => setAdding(true)}>
           New account
@@ -175,44 +178,62 @@ export function AccountsOverviewPage() {
             })}
           </div>
           <div className="flex flex-col pt-2" role="rowgroup">
-            {rows.map(({ account, summary }) => (
-              <div
-                key={account.id}
-                role="row"
-                tabIndex={0}
-                className={cn(
-                  GRID,
-                  'min-h-11 cursor-pointer items-center rounded-lg px-3 text-sm transition-colors hover:bg-surface-hover max-md:grid-cols-[1fr_auto] max-md:py-2',
-                  'focus-visible:outline-2 focus-visible:outline-accent'
-                )}
-                onClick={() => navigate(paths.account(account.id))}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') navigate(paths.account(account.id));
-                }}
-              >
-                <div role="cell" className="truncate font-medium">
-                  {account.name}
-                </div>
-                <div role="cell" className="text-right text-muted tabular-nums max-md:hidden">
-                  {summary.count}
-                </div>
+            {rows.map(({ account, summary }) =>
+              editingId === account.id ? (
                 <div
-                  role="cell"
-                  className="text-right whitespace-nowrap text-muted tabular-nums max-md:hidden"
+                  key={account.id}
+                  role="row"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') setEditingId(null);
+                  }}
                 >
-                  {summary.lastDate ? formatDate(summary.lastDate) : '—'}
+                  <AccountSettings
+                    account={account}
+                    onInvertedChange={(inverted) =>
+                      actions.setAccountInverted(account.id, inverted)
+                    }
+                    onClose={() => setEditingId(null)}
+                  />
                 </div>
+              ) : (
                 <div
-                  role="cell"
+                  key={account.id}
+                  role="row"
+                  tabIndex={0}
                   className={cn(
-                    'text-right whitespace-nowrap tabular-nums',
-                    summary.balance < 0 && 'text-negative'
+                    GRID,
+                    'min-h-11 cursor-pointer items-center rounded-lg px-3 text-sm transition-colors hover:bg-surface-hover max-md:grid-cols-[1fr_auto] max-md:py-2',
+                    'focus-visible:outline-2 focus-visible:outline-accent'
                   )}
+                  onClick={() => setEditingId(account.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') setEditingId(account.id);
+                  }}
                 >
-                  {formatAmount(summary.balance)}
+                  <div role="cell" className="truncate font-medium">
+                    {account.name}
+                  </div>
+                  <div role="cell" className="text-right text-muted tabular-nums max-md:hidden">
+                    {summary.count}
+                  </div>
+                  <div
+                    role="cell"
+                    className="text-right whitespace-nowrap text-muted tabular-nums max-md:hidden"
+                  >
+                    {summary.lastDate ? formatDate(summary.lastDate) : '—'}
+                  </div>
+                  <div
+                    role="cell"
+                    className={cn(
+                      'text-right whitespace-nowrap tabular-nums',
+                      summary.balance < 0 && 'text-negative'
+                    )}
+                  >
+                    {formatAmount(summary.balance)}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
           <div
             className={cn(

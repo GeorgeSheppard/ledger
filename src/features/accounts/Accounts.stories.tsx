@@ -328,13 +328,15 @@ export const OverviewSorted: Story = {
   },
 };
 
-/** The account's Settings tab, where "Credit card or loan" lives. */
+/** Clicking an account on the overview opens its settings, where "Credit card or loan" lives. */
 export const Settings: Story = {
   render: () => (
-    <Connected shell route="/accounts/1?tab=settings">
-      <Routes>
-        <Route path="/accounts/:accountId" element={<AccountsPage />} />
-      </Routes>
+    <Connected shell route="/accounts">
+      <AccountsOverviewPage />
     </Connected>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click((await canvas.findAllByRole('row'))[1]!);
+  },
 };
