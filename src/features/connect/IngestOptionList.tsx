@@ -14,27 +14,33 @@ export function IngestOptionList({
 }) {
   return (
     <ul className="flex flex-col gap-3">
-      {INGEST_OPTIONS.map((option) => {
+      {INGEST_OPTIONS.map((option, index) => {
         const last = option.id === lastUsed;
+        // The option to push people towards: the one used last time, else the first.
+        const primary = lastUsed ? last : index === 0;
         return (
           <li key={option.id}>
             <button
               type="button"
               onClick={() => onChoose(option)}
               className={cn(
-                'flex w-full cursor-pointer flex-col items-start gap-1 rounded-xl border bg-surface p-4 text-left transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                last ? 'border-accent ring-1 ring-accent' : 'border-line'
+                'flex w-full cursor-pointer flex-col items-start gap-1 rounded-xl border p-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                primary
+                  ? 'border-accent bg-accent text-accent-fg shadow-md hover:bg-accent-hover'
+                  : 'border-line bg-surface hover:bg-surface-hover'
               )}
             >
               <span className="flex items-center gap-2 font-semibold">
                 {option.title}
                 {last && (
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-fg">
+                  <span className="rounded-full bg-accent-fg px-2 py-0.5 text-xs font-medium text-accent">
                     Last used
                   </span>
                 )}
               </span>
-              <span className="text-sm text-muted">{option.description}</span>
+              <span className={cn('text-sm', primary ? 'text-accent-fg/85' : 'text-muted')}>
+                {option.description}
+              </span>
             </button>
           </li>
         );
