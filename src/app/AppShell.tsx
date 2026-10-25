@@ -10,6 +10,7 @@ import { DonateLink } from '../ui/DonateLink';
 import { Menu } from '../ui/Menu';
 import { cn } from '../ui/cn';
 import { SaveStatus } from '../modules/save/ui/SaveStatus';
+import { useSaveAction } from '../modules/save/ui/useSaveAction';
 import { paths } from './paths';
 
 const NAV: { to: string; label: string; shortcut: ShortcutId }[] = [
@@ -61,6 +62,7 @@ function SpreadsheetTools({ title, id, isFile }: { title: string; id: string; is
   const { tabReports } = useLedger();
   const history = useHistory();
   const { undoLabel, redoLabel } = useHistoryState();
+  const save = useSaveAction();
   useShortcut('nav.sheets', () => navigate(paths.sheets));
   const leave = () => {
     if (!isFile) return navigate(paths.connect);
@@ -104,17 +106,15 @@ function SpreadsheetTools({ title, id, isFile }: { title: string; id: string; is
           name
         )}
       </div>
-      <SaveStatus
-        className="flex-row items-center gap-2"
-        labelClassName="sr-only"
-        buttonClassName="justify-center"
-      />
+      <SaveStatus action={save} className="max-sm:[&>span:last-child]:sr-only" />
       <Menu
         label="Spreadsheet actions"
         buttonClassName="border-2 border-rule"
         items={[
+          { label: save.menuLabel, onSelect: save.run },
           {
             label: undoLabel ? `Undo ${undoLabel}` : 'Undo',
+            separated: true,
             disabled: !undoLabel,
             onSelect: () => history.undo(),
           },
