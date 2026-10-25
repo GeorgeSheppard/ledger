@@ -1,6 +1,10 @@
 import { defaultRangeExtractor, useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { addCategory, categoriesForAccount } from '../../lib/categories/categories';
+import {
+  activeCategories,
+  addCategory,
+  categoriesForAccount,
+} from '../../lib/categories/categories';
 import type { Account, Category, Transaction } from '../../lib/domain/types';
 import { formatAmount } from '../../lib/transactions/amount';
 import { formatMonth, todayIso } from '../../lib/transactions/dates';
@@ -446,7 +450,7 @@ export function TransactionTable({
   ];
 
   const offeredCategories = useMemo(
-    () => (account ? categoriesForAccount(categories, account.name) : categories),
+    () => (account ? categoriesForAccount(categories, account.name) : activeCategories(categories)),
     [categories, account]
   );
 

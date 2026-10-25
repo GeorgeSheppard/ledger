@@ -7,6 +7,8 @@ import {
   rebase,
   renameAccount,
   renameCategory,
+  migrateCategory,
+  countCategoryUse,
   sameData,
   sortAllByDate,
   toSnapshot,
@@ -88,6 +90,40 @@ describe('renameCategory', () => {
     const next = renameCategory(data, 'Food', 'Groceries');
     expect(next.categories[0]!.name).toBe('Groceries');
     expect(next.rows[1]!.map((r) => r.category)).toEqual(['Groceries', '']);
+  });
+});
+
+describe('migrateCategory', () => {
+  const data = () => ({
+    ...ledger([
+      { ...tx('2026-01-01', 1), category: 'Food' },
+      { ...tx('2026-01-02', 2), category: 'food' },
+      { ...tx('2026-01-03', 3), category: 'Rent' },
+    ]),
+    categories: [
+      { name: 'Food', color: '#d9534f' },
+      { name: 'Groceries', color: '#4f7cff' },
+      { name: 'Rent', color: '#e8913a' },
+    ],
+  });
+
+  it('moves every matching transaction and counts them first', () => {
+    expect(countCategoryUse(data(), 'Food')).toBe(2);
+    const next = migrateCategory(data(), 'Food', 'groceries');
+    expect(next.rows[1]!.map((r) => r.category)).toEqual(['Groceries', 'Groceries', 'Rent']);
+    expect(next.categories.find((c) => c.name === 'Food')!.archived).toBeUndefined();
+  });
+
+  it('archives the old category when asked, and adds a new target', () => {
+    const next = migrateCategory(data(), 'Food', 'Shopping', true);
+    expect(next.categories.find((c) => c.name === 'Food')!.archived).toBe(true);
+    expect(next.categories.map((c) => c.name)).toContain('Shopping');
+    expect(countCategoryUse(next, 'Shopping')).toBe(2);
+  });
+
+  it('does nothing when the target is the same category', () => {
+    const before = data();
+    expect(migrateCategory(before, 'Food', 'FOOD', true)).toBe(before);
   });
 });
 

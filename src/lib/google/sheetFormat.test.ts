@@ -169,6 +169,22 @@ describe('_Metadata', () => {
     ]);
   });
 
+  it('reads and writes archived categories as plain rows', () => {
+    const { categories } = parseMetadata([
+      ['category', 'Gym', 'color', '#4f7cff'],
+      ['category', 'Gym', 'archived', 'TRUE'],
+      ['category', 'Food', 'color', '#d9534f'],
+      ['category', 'Food', 'archived', 'no'],
+    ]);
+    expect(categories).toEqual([
+      { name: 'Gym', color: '#4f7cff', archived: true },
+      { name: 'Food', color: '#d9534f' },
+    ]);
+    expect(metadataEntries(categories, []).filter((e) => e.setting === 'archived')).toEqual([
+      { type: 'category', name: 'Gym', setting: 'archived', value: true },
+    ]);
+  });
+
   it('reads and writes the accounts a category is limited to; none means global', () => {
     const values = [
       ['category', 'Interest', 'account', 'Savings'],

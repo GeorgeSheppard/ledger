@@ -169,6 +169,12 @@ export const SHORTCUTS = {
     scope: 'categories',
     allowInInputs: true,
   },
+  'categories.archive': { keys: 'a', description: 'Archive category', scope: 'categories' },
+  'categories.migrate': {
+    keys: 'm',
+    description: 'Move transactions to another category',
+    scope: 'categories',
+  },
   'categories.delete': {
     keys: 'mod+backspace',
     description: 'Delete category',

@@ -202,6 +202,10 @@ viewport. `pnpm screenshots <story-id>` runs the play functions and exits 1 when
     per account. A category with no `account` rows is global. The limit only decides what the
     category picker on an account offers: charts and rules still group by name, and transactions
     may use any name. Renaming an account updates these rows.
+  - `category | Gym | archived | TRUE`: the category is archived. Written only for archived ones; a
+    missing row means active. Archived categories are hidden from category lists and pickers (and
+    listed under "Archived" on the categories page, where they can be restored), but transactions
+    keep the name, so graphs and filters still group by it.
   - `account | Visa | inverted | TRUE`: the account (tab name) is a credit card or loan. Written only
     for inverted accounts; a missing row means off.
   - Rows of an unknown type or setting are ignored, and the app rewrites the tab whole when
