@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  CATEGORY_PALETTE,
-  colorDistance,
-  nextCategoryColor,
-  stableCategoryColor,
-} from './palette';
+import { CATEGORY_PALETTE, colorDistance, nextCategoryColor, stableCategoryColor } from './palette';
 
 describe('category palette', () => {
   it('has no two colours that look alike', () => {
