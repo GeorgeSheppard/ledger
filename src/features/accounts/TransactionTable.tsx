@@ -103,6 +103,15 @@ const COLUMNS: { key: SortKey; label: string; align?: 'right' }[] = [
   { key: 'total', label: 'Total', align: 'right' },
 ];
 
+/** Height of the app's sticky top bar, which the AppShell publishes (0 outside the shell). */
+function barHeight(): number {
+  return (
+    parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--ledger-bar-height')
+    ) || 0
+  );
+}
+
 /**
  * The account's transactions, newest first and grouped by month until a column is sorted.
  * A click selects a row; clicking the row that is the only one selected (or double-clicking) edits
@@ -202,6 +211,8 @@ export function TransactionTable({
     },
     overscan: 8,
     scrollMargin,
+    // Rows scrolled into view stop below the sticky top bar.
+    scrollPaddingStart: barHeight(),
     // The row being edited stays rendered even when scrolled out of the window, so it keeps focus.
     rangeExtractor: (range) => {
       const indexes = defaultRangeExtractor(range);
