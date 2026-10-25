@@ -48,3 +48,14 @@ export const DatePicker: Story = {
     );
   },
 };
+
+/** All time: the dates cross years, so the axis labels say which year each month is in. */
+export const AllTime: Story = {
+  render: Default.render,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    await userEvent.click(await page.findByRole('button', { name: /choose dates/i }));
+    await userEvent.click(await page.findByRole('button', { name: 'All time' }));
+    await page.findByRole('button', { name: /choose dates, now Jan/i });
+  },
+};

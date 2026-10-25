@@ -62,8 +62,20 @@ export function timeScale(view: TimeView, anchor: Anchor, labelColor: string) {
       maxRotation: 0,
       color: labelColor,
       // A balance is plotted at the end of its period, which is the start of the next one.
-      callback: (value: string | number) =>
-        formatTick(Number(value) - (anchor === 'end' ? 1 : 0), view.granularity),
+      callback: (value: string | number, index: number, ticks: { value: number }[]) => {
+        const shift = anchor === 'end' ? 1 : 0;
+        const year = (t: number) => new Date(t - shift).getUTCFullYear();
+        const time = Number(value);
+        const crosses = year(ticks[0]!.value) !== year(ticks[ticks.length - 1]!.value);
+        // When the dates cross years, months always say which year; other labels say it when the
+        // year changes (and on the first one), so a thinned axis never leaves it ambiguous.
+        const withYear =
+          crosses &&
+          (view.granularity === 'month' ||
+            index === 0 ||
+            year(time) !== year(ticks[index - 1]!.value));
+        return formatTick(time - shift, view.granularity, withYear);
+      },
     },
     afterBuildTicks: (scale: { width: number; ticks: { value: number }[] }) => {
       const times = view.shown

@@ -10,7 +10,7 @@ export const cashFlowGraph: Graph = {
   kind: 'cashFlow',
   title: 'Income and spending',
   width: 2,
-  View({ period, ledgers, accountIds, categories, ignoredCategories }) {
+  View({ period, ledgers, accountIds, categories, ignoredCategories, selectPeriod }) {
     const series = useMemo(
       () => buildTimeSeries(ledgers, accountIds, period, ignoredCategories, categories),
       [ledgers, accountIds, period, ignoredCategories, categories]
@@ -25,7 +25,7 @@ export const cashFlowGraph: Graph = {
             { label: 'Net', color: NET_COLOR, shape: 'dot' },
           ]}
         />
-        <CashFlowChart series={series} />
+        <CashFlowChart series={series} onSelectPeriod={selectPeriod} />
       </>
     );
   },

@@ -63,6 +63,12 @@ const dayLabel = new Intl.DateTimeFormat(undefined, {
   month: 'short',
   timeZone: 'UTC',
 });
+const dayLabelYear = new Intl.DateTimeFormat(undefined, {
+  day: 'numeric',
+  month: 'short',
+  year: '2-digit',
+  timeZone: 'UTC',
+});
 const dayLong = new Intl.DateTimeFormat(undefined, {
   weekday: 'short',
   day: 'numeric',
@@ -71,12 +77,15 @@ const dayLong = new Intl.DateTimeFormat(undefined, {
   timeZone: 'UTC',
 });
 
-/** Axis label for a point in time (ms, UTC): `Apr` (`Apr 26` on January), `6 Apr`, or `6`. */
-export function formatTick(time: number, granularity: Granularity): string {
+/**
+ * Axis label for a point in time (ms, UTC): `Apr`, `6 Apr` or `6`. `withYear` adds the year
+ * (`Apr 26`, `6 Apr 26`); the axis asks for it wherever the dates cross years.
+ */
+export function formatTick(time: number, granularity: Granularity, withYear = false): string {
   const date = new Date(time);
-  if (granularity === 'month')
-    return formatMonthShort(date.toISOString().slice(0, 7), date.getUTCMonth() === 0);
-  if (granularity === 'week' || date.getUTCDate() === 1) return dayLabel.format(date);
+  if (granularity === 'month') return formatMonthShort(date.toISOString().slice(0, 7), withYear);
+  if (granularity === 'week' || date.getUTCDate() === 1)
+    return withYear ? dayLabelYear.format(date) : dayLabel.format(date);
   return String(date.getUTCDate());
 }
 

@@ -1,8 +1,12 @@
-import type { ChartData, ChartOptions } from 'chart.js';
+import type { Chart as ChartJS, ChartData, ChartOptions } from 'chart.js';
+import { useRef } from 'react';
 import { Chart } from 'react-chartjs-2';
+import type { Period } from '../../../lib/metrics/period';
 import type { TimeSeries } from '../../../lib/metrics/timeSeries';
 import { useChartColors } from '../shared/chartjs';
 import { formatBucket, formatCompact } from '../shared/format';
+import { DragHint } from '../shared/DragHint';
+import { SELECT_EVENTS, useSelectPeriod } from '../shared/selectPeriod';
 import { anchorTime, timeScale, useTimeView } from '../shared/timeView';
 
 interface Point {
@@ -14,8 +18,17 @@ interface Point {
   net: number;
 }
 
-/** Income above the zero line, spending below it, and the net as a dot, on one axis. */
-export function CashFlowChart({ series }: { series: TimeSeries }) {
+/**
+ * Income above the zero line, spending below it, and the net as a dot, on one axis. Drag across it
+ * to pick other dates.
+ */
+export function CashFlowChart({
+  series,
+  onSelectPeriod,
+}: {
+  series: TimeSeries;
+  onSelectPeriod(period: Period): void;
+}) {
   const view = useTimeView(series);
   const colors = useChartColors();
   const flows = series.cashFlow(view.granularity);
@@ -57,7 +70,14 @@ export function CashFlowChart({ series }: { series: TimeSeries }) {
     ],
   } as ChartData<'bar', Point[]>;
 
+  const chart = useRef<ChartJS<'bar', Point[]>>(null);
+  const { plugin } = useSelectPeriod(chart, {
+    onSelectPeriod,
+    colors: { fill: colors.surfaceHover, stroke: colors.accent },
+  });
+
   const options: ChartOptions<'bar'> = {
+    events: [...SELECT_EVENTS],
     responsive: true,
     maintainAspectRatio: false,
     layout: { padding: { top: 8 } },
@@ -77,8 +97,19 @@ export function CashFlowChart({ series }: { series: TimeSeries }) {
   };
 
   return (
-    <div className="relative h-60 w-full">
-      <Chart type="bar" data={data} options={options} aria-label="Income and spending" role="img" />
+    <div>
+      <DragHint />
+      <div className="relative h-60 w-full cursor-crosshair">
+        <Chart
+          ref={chart}
+          type="bar"
+          data={data}
+          options={options}
+          plugins={[plugin]}
+          aria-label="Income and spending"
+          role="img"
+        />
+      </div>
     </div>
   );
 }
