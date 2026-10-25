@@ -60,17 +60,25 @@ describe('periodCashFlow', () => {
 });
 
 describe('categoryBreakdown', () => {
-  it('compares with the period of the same length before', () => {
+  it('compares with the average of the periods of the same length before', () => {
+    // January had only Rent (300), so February averages over one month.
     expect(categoryBreakdown(ledgers, [1], monthPeriod('2026-02'))).toEqual([
-      { category: 'Rent', amount: 300, previous: 300 },
-      { category: 'Groceries', amount: 100, previous: 0 },
+      { category: 'Rent', amount: 300, average: 300 },
+      { category: 'Groceries', amount: 100, average: 0 },
     ]);
   });
 
-  it('keeps categories that only had spending before, with an amount of 0', () => {
+  it('averages only the months that exist and keeps categories that only had spending before', () => {
+    // January 300, February 300 + 100 groceries; the months before the data are not counted.
     expect(categoryBreakdown(ledgers, [1], march)).toEqual([
-      { category: 'Rent', amount: 400, previous: 300 },
-      { category: 'Groceries', amount: 0, previous: 100 },
+      { category: 'Rent', amount: 400, average: 300 },
+      { category: 'Groceries', amount: 0, average: 50 },
+    ]);
+  });
+
+  it('has no average for the first month of data', () => {
+    expect(categoryBreakdown(ledgers, [1], monthPeriod('2026-01'))).toEqual([
+      { category: 'Rent', amount: 300, average: 0 },
     ]);
   });
 
