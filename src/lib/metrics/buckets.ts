@@ -64,11 +64,10 @@ export function bucketSpan(bucket: Bucket): [number, number] {
 }
 
 /**
- * How finely to cut the time currently on screen. Zoomed out (or barely zoomed) it is months, as
- * the dashboard always was; zooming in switches to weeks and then days so more detail appears.
- * `zoom` is how many times narrower the view is than the whole range.
+ * How finely to cut a stretch of time: months for five months or more, then weeks down to about
+ * ten weeks, and single days below that.
  */
-export function granularityFor(visibleDays: number, zoom: number): Granularity {
-  if (zoom < 2 || visibleDays >= 150) return 'month';
+export function granularityFor(visibleDays: number): Granularity {
+  if (visibleDays >= 150) return 'month';
   return visibleDays >= 70 ? 'week' : 'day';
 }

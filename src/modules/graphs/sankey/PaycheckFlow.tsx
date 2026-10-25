@@ -1,9 +1,8 @@
 import { useMemo } from 'react';
-import { buildMoneyFlow, flowWindow } from '../../../lib/paychecks/flow';
+import { buildMoneyFlow } from '../../../lib/paychecks/flow';
 import type { Paycheck } from '../../../lib/paychecks/paychecks';
-import type { DashboardRange } from '../../../lib/metrics/dashboard';
 import type { AccountLedger } from '../../../lib/metrics/netWorth';
-import { todayIso } from '../../../lib/transactions/dates';
+import type { Period } from '../../../lib/metrics/period';
 import { formatMoney } from '../shared/format';
 import { NoData } from '../shared/NoData';
 import { SankeyChart } from './SankeyChart';
@@ -11,25 +10,31 @@ import { SankeyChart } from './SankeyChart';
 interface PaycheckFlowProps {
   ledgers: AccountLedger[];
   paychecks: readonly Paycheck[];
-  range: DashboardRange;
+  period: Period;
   accountIds?: number[];
   ignoredCategories: ReadonlySet<string>;
   colorOf(category: string): string;
 }
 
-/** The totals line and Sankey diagram for the paychecks in a range; shared by the dashboard widget and the Paychecks page. */
+/** The totals line and Sankey diagram for the paychecks in a period; shared by the dashboard widget and the Paychecks page. */
 export function PaycheckFlow({
   ledgers,
   paychecks,
-  range,
+  period,
   accountIds,
   ignoredCategories,
   colorOf,
 }: PaycheckFlowProps) {
   const flow = useMemo(() => {
-    const { from, to } = flowWindow(ledgers, paychecks, range, todayIso());
-    return buildMoneyFlow({ paychecks, ledgers, from, to, accountIds, ignoredCategories });
-  }, [accountIds, ledgers, paychecks, range, ignoredCategories]);
+    return buildMoneyFlow({
+      paychecks,
+      ledgers,
+      from: period.from,
+      to: period.to,
+      accountIds,
+      ignoredCategories,
+    });
+  }, [accountIds, ledgers, paychecks, period, ignoredCategories]);
 
   if (!flow) return <NoData>No paychecks entered for this period.</NoData>;
   return (

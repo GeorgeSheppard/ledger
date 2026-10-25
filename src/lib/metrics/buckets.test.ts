@@ -45,11 +45,10 @@ describe('bucketSpan', () => {
 });
 
 describe('granularityFor', () => {
-  it('stays on months until zoomed in, then goes to weeks and days', () => {
-    expect(granularityFor(90, 1)).toBe('month');
-    expect(granularityFor(181, 1.3)).toBe('month');
-    expect(granularityFor(90, 2)).toBe('week');
-    expect(granularityFor(45, 4)).toBe('day');
-    expect(granularityFor(400, 1)).toBe('month');
+  it('cuts a month into days, a few months into weeks and longer into months', () => {
+    expect(granularityFor(31)).toBe('day');
+    expect(granularityFor(90)).toBe('week');
+    expect(granularityFor(181)).toBe('month');
+    expect(granularityFor(400)).toBe('month');
   });
 });

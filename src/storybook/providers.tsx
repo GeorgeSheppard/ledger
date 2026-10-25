@@ -1,8 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
-import { serializeDashboard } from '../lib/dashboard/serialize';
-import type { DashboardConfig } from '../lib/dashboard/config';
-import type { JsonValue } from '../lib/store/ledgerData';
 import { AppShell } from '../app/AppShell';
 import { LedgerDataProvider, useRepository } from '../state/ledgerData';
 import { SessionProvider, useSession } from '../state/session';
@@ -27,31 +24,27 @@ export function AppProviders({ route = '/', children }: { route?: string; childr
 
 /** Seeds the store before showing `children`, so a story starts with the data it describes. */
 function Seed({
-  dashboard,
   creditCard,
   bigAccount,
   noPaychecks,
   children,
 }: {
-  dashboard?: DashboardConfig;
   creditCard?: boolean;
   bigAccount?: number;
   noPaychecks?: boolean;
   children: ReactNode;
 }) {
   const repository = useRepository();
-  const [ready, setReady] = useState(!dashboard && !creditCard && !bigAccount && !noPaychecks);
+  const [ready, setReady] = useState(!creditCard && !bigAccount && !noPaychecks);
   useEffect(() => {
-    if (!dashboard && !creditCard && !bigAccount && !noPaychecks) return;
+    if (!creditCard && !bigAccount && !noPaychecks) return;
     (async () => {
       if (noPaychecks) await repository.savePaychecks(null);
       if (bigAccount) await addBigAccount(repository, bigAccount);
-      if (dashboard)
-        await repository.saveDashboardConfig(serializeDashboard(dashboard) as unknown as JsonValue);
       if (creditCard) await addCreditCard(repository);
       setReady(true);
     })();
-  }, [repository, dashboard, creditCard, bigAccount, noPaychecks]);
+  }, [repository, creditCard, bigAccount, noPaychecks]);
   return ready ? children : null;
 }
 
@@ -92,8 +85,6 @@ async function addBigAccount(repository: ReturnType<typeof useRepository>, count
 
 interface ConnectedProps {
   route?: string;
-  /** Replaces the default dashboard layout. */
-  dashboard?: DashboardConfig;
   /** Adds an inverted "Credit card" account (purchases positive) to the demo spreadsheet. */
   creditCard?: boolean;
   /** Adds a "Big account" with this many transactions. */
@@ -108,7 +99,6 @@ interface ConnectedProps {
 /** A connected demo spreadsheet, with the data hooks available. Use for pages and dialogs. */
 export function Connected({
   route = '/',
-  dashboard,
   creditCard,
   bigAccount,
   noPaychecks,
@@ -118,12 +108,7 @@ export function Connected({
   return (
     <AppProviders route={route}>
       <LedgerDataProvider>
-        <Seed
-          dashboard={dashboard}
-          creditCard={creditCard}
-          bigAccount={bigAccount}
-          noPaychecks={noPaychecks}
-        >
+        <Seed creditCard={creditCard} bigAccount={bigAccount} noPaychecks={noPaychecks}>
           {shell ? <AppShell>{children}</AppShell> : children}
         </Seed>
       </LedgerDataProvider>

@@ -13,6 +13,7 @@ import {
   type PaycheckList,
   type Paycheck,
 } from '../../lib/paychecks/paychecks';
+import { allTime } from '../../lib/paychecks/flow';
 import { formatDay, todayIso } from '../../lib/transactions/dates';
 import { useShortcut } from '../../state/shortcuts';
 import { ActionButton } from '../../ui/ActionButton';
@@ -216,7 +217,7 @@ export function PaychecksPage() {
               <PaycheckFlow
                 ledgers={ledgers.data.ledgers}
                 paychecks={list.paychecks}
-                range="all"
+                period={allTime(ledgers.data.ledgers, list.paychecks, todayIso())}
                 ignoredCategories={ignored}
                 colorOf={colorOf}
               />

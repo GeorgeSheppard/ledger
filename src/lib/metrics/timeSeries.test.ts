@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildTimeSeries } from './timeSeries';
 import { makeTransactions } from './testing';
 
+const april2May = { from: '2026-04-01', to: '2026-05-31' };
 const ledgers = [
   {
     account: { id: 1, name: 'Current' },
@@ -16,7 +17,7 @@ const ledgers = [
 ];
 
 describe('buildTimeSeries', () => {
-  const series = buildTimeSeries(ledgers, [1], '2026-04', '2026-05');
+  const series = buildTimeSeries(ledgers, [1], april2May);
 
   it('covers whole months', () => {
     expect(new Date(series.startMs).toISOString()).toBe('2026-04-01T00:00:00.000Z');
@@ -39,22 +40,21 @@ describe('buildTimeSeries', () => {
   });
 
   it('leaves out accounts that were not asked for', () => {
-    const none = buildTimeSeries(ledgers, [], '2026-04', '2026-05');
+    const none = buildTimeSeries(ledgers, [], april2May);
     expect(none.netWorth('month').map((p) => p.total)).toEqual([0, 0]);
   });
-});
-
-describe('buildTimeSeries window', () => {
-  it('starts the window at the chosen month while still covering all the data', () => {
-    const series = buildTimeSeries(ledgers, [1], '2026-04', '2026-05', undefined, '2026-05');
-    expect(new Date(series.startMs).toISOString()).toBe('2026-04-01T00:00:00.000Z');
-    expect(new Date(series.windowStartMs).toISOString()).toBe('2026-05-01T00:00:00.000Z');
+  it('only counts transactions inside the period, and balances as of its end', () => {
+    const part = buildTimeSeries(ledgers, [1], { from: '2026-04-09', to: '2026-04-25' });
+    expect(part.cashFlow('month')[0]!.spending).toBe(15);
+    expect(part.netWorth('month')[0]!.total).toBe(945);
   });
 
-  it('shows everything when no window is given or it starts before the data', () => {
-    const all = buildTimeSeries(ledgers, [1], '2026-04', '2026-05');
-    expect(all.windowStartMs).toBe(all.startMs);
-    const early = buildTimeSeries(ledgers, [1], '2026-04', '2026-05', undefined, '2020-01');
-    expect(early.windowStartMs).toBe(early.startMs);
+  it('narrows income and spending to the chosen categories', () => {
+    const groceries = buildTimeSeries(ledgers, [1], april2May, undefined, ['Groceries']);
+    expect(groceries.cashFlow('month').map((f) => [f.income, f.spending])).toEqual([
+      [0, 50],
+      [0, 0],
+    ]);
+    expect(groceries.netWorth('month')[0]!.total).toBe(945);
   });
 });

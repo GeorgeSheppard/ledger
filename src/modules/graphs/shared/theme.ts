@@ -20,3 +20,19 @@ export const CHART_CLASSES = {
   /** Invisible hover targets, wider than the marks they cover. */
   hit: 'fill-transparent',
 } as const;
+
+/** One colour per account line, in the order the accounts appear; they repeat past the last. */
+const ACCOUNT_COLORS = [
+  '#3a5ccc',
+  '#e08a1e',
+  '#1f8a55',
+  '#8a5cc2',
+  '#15a0b8',
+  '#d1559a',
+  '#a8741a',
+  '#6b7280',
+];
+
+export function accountColor(index: number): string {
+  return ACCOUNT_COLORS[index % ACCOUNT_COLORS.length]!;
+}

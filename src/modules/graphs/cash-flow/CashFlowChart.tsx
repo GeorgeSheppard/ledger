@@ -1,17 +1,9 @@
 import type { ChartData, ChartOptions } from 'chart.js';
-import type { ReactNode } from 'react';
 import { Chart } from 'react-chartjs-2';
 import type { TimeSeries } from '../../../lib/metrics/timeSeries';
-import { useChartColors, useChartsReady } from '../shared/chartjs';
+import { useChartColors } from '../shared/chartjs';
 import { formatBucket, formatChange, formatCompact, formatMoney } from '../shared/format';
-import {
-  anchorTime,
-  timeScale,
-  useZoomView,
-  zoomPlugin,
-  ZoomControls,
-  type ZoomView,
-} from '../shared/zoom';
+import { anchorTime, timeScale, useTimeView } from '../shared/timeView';
 
 interface Point {
   x: number;
@@ -23,16 +15,9 @@ interface Point {
 }
 
 /** Income above the zero line, spending below it, and the net as a dot, on one axis. */
-export function CashFlowChart({
-  series,
-  toolbar,
-}: {
-  series: TimeSeries;
-  toolbar?: (view: ZoomView) => ReactNode;
-}) {
-  const view = useZoomView(series);
+export function CashFlowChart({ series }: { series: TimeSeries }) {
+  const view = useTimeView(series);
   const colors = useChartColors();
-  const ready = useChartsReady();
   const flows = series.cashFlow(view.granularity);
 
   const points = view.shown.map(({ bucket, index }) => {
@@ -88,8 +73,8 @@ export function CashFlowChart({
     },
     plugins: {
       legend: { display: false },
-      zoom: zoomPlugin(view),
       tooltip: {
+        position: 'besideBar',
         backgroundColor: colors.surface,
         titleColor: colors.fg,
         bodyColor: colors.fg,
@@ -111,19 +96,8 @@ export function CashFlowChart({
   };
 
   return (
-    <div>
-      <ZoomControls view={view}>{toolbar?.(view)}</ZoomControls>
-      <div className="relative h-60 w-full">
-        {ready && (
-          <Chart
-            type="bar"
-            data={data}
-            options={options}
-            aria-label="Income and spending"
-            role="img"
-          />
-        )}
-      </div>
+    <div className="relative h-60 w-full">
+      <Chart type="bar" data={data} options={options} aria-label="Income and spending" role="img" />
     </div>
   );
 }

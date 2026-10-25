@@ -59,7 +59,7 @@ src/
     files/                     ExcelJS loading shared by reading and writing .xlsx files
     metrics/                   net worth series, monthly spend by category
     csv/                       CSV text → rows (Papa Parse)
-    dashboard/                 dashboard layout (widgets) and how it is stored
+    dashboard/                 dashboard layout (widgets) as stored in the sheet; not editable for now
     paychecks/                 paychecks and the money-flow calculation
   modules/                     the pick-and-choose parts of the app, see "Modules" below
     ingest/                    getting a ledger in: Google, a file on this device
@@ -71,7 +71,7 @@ src/
     connect/                   Get started dialog (driven by the ingest options), switch spreadsheet
     accounts/                  accounts summary, account menu, transaction table, inline editing
     categories/                category management page
-    dashboard/                 the dashboard page: layout editing, widget frame
+    dashboard/                 the dashboard page: date range, shared filters, graph frame
     paychecks/                 paychecks page
     legal/                     privacy policy and terms
 ```
@@ -100,7 +100,7 @@ src/modules/
     ui/            Import data dialog (drop zone, paste box, mapping, preview)
   graphs/        Graph { kind, label, defaultWidth, title(), Options?, View }
     stat/ net-worth/ balances/ spending/ breakdown/ cash-flow/ sankey/
-    shared/        chart primitives (zoom, Chart.js setup, legend, theme, formatting)
+    shared/        chart primitives (time view, Chart.js setup, legend, theme, formatting)
 ```
 
 - **Ingest and save.** Whatever the source, `remoteOf(connection)` gives the store one `LedgerRemote`.
@@ -116,19 +116,22 @@ src/modules/
 - **Import.** Every importer returns the same `ParsedImport` (a table, the guessed column mapping,
   warnings and, for free-form dates, the day/month order), so the preview, mapping editor and
   import plan do not know which one ran. Register new importers in `import/index.ts`.
-- **Graphs.** The dashboard layout stores each widget's `kind` and settings. `WidgetView` looks the
-  kind up in `GRAPHS` and renders its `View` with the widget's accounts, range and data worked out.
-  A layout that mentions a removed graph shows "This graph is no longer available" and keeps the
-  widget so nothing is lost.
-- **Zoomable time graphs.** Net worth, spending and income/spending are drawn with Chart.js. They
-  start on the widget's whole range, cut into months. Drag to pan, pinch or Ctrl+scroll to zoom
-  (or use the buttons); zooming in re-cuts the data into weeks and then days
-  (`lib/metrics/buckets.ts`, `timeSeries.ts`; the choice is `granularityFor`). `shared/zoom.tsx`
-  owns the visible range and feeds it to Chart.js, whose zoom plugin is loaded on first use. Sankey
-  and the breakdown stay on d3 and plain markup. The graphs that show transactions (spending, income/spending, breakdown) have a "View transactions" button; net worth, a total, does not. The button
-  (`shared/ViewTransactions.tsx`) opens `/transactions` (`features/accounts/TransactionsPage.tsx`),
-  every account's transactions in one list with an Account column, with the graph's dates,
-  categories and accounts as URL filters (`lib/transactions/filterParams.ts`).
+- **Graphs.** The dashboard has a fixed layout: every graph in `GRAPHS` is drawn in order, each
+  given the same props (`modules/graphs/types.ts`): one date range (`Period`, `lib/metrics/period.ts`),
+  the accounts switched on and the categories picked. The page (`features/dashboard`) owns that
+  state. The range comes from the date picker, from dragging across the balances graph, or from
+  clicking a spending column; accounts are switched on and off in the balances legend and
+  categories in the spending legend or breakdown table, and every graph follows. Balances are not
+  narrowed by category, and the money-flow Sankey ignores the category filter. The `_Dashboard` tab
+  of the sheet (the old widget layout) is still read and written back untouched, but layout editing
+  is switched off for now.
+- **Time graphs.** Balances, spending and income/spending are drawn with Chart.js
+  (`lib/metrics/timeSeries.ts` cuts a period into months, weeks or days, `granularityFor`;
+  `shared/timeView.tsx` feeds the visible range to Chart.js). Sankey and the breakdown stay on d3
+  and plain markup. "View transactions" sits at the top of the page
+  (`features/dashboard/ViewTransactions.tsx`) and opens `/transactions`
+  (`features/accounts/TransactionsPage.tsx`), every account's transactions in one list, with the
+  view's dates, categories and accounts as URL filters (`lib/transactions/filterParams.ts`).
 
 ## Styling
 
