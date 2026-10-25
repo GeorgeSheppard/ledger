@@ -27,9 +27,11 @@ function describe(status: SyncStatus, isFile: boolean): string {
 export function SaveStatus({
   className,
   buttonClassName,
+  labelClassName,
 }: {
   className?: string;
   buttonClassName?: string;
+  labelClassName?: string;
 }) {
   const { status, isFile, save, download } = useSyncStatus();
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ export function SaveStatus({
     <div className={cn('flex flex-col gap-2 text-sm', className)}>
       <div className="flex items-center gap-2" aria-live="polite" title={error ?? undefined}>
         <span className={cn('size-2 shrink-0 rounded-full', dot)} aria-hidden="true" />
-        <span className={cn(error && 'text-negative')}>
+        <span className={cn(error && 'text-negative', labelClassName)}>
           {error && isFile ? 'Could not build the file' : describe(status, isFile)}
         </span>
       </div>

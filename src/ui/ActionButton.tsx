@@ -6,10 +6,10 @@ import { Kbd } from './Kbd';
 
 const VARIANTS = {
   primary:
-    'border-accent bg-accent font-medium text-accent-fg shadow-sm hover:enabled:bg-accent-hover',
-  secondary: 'border-line bg-surface text-fg shadow-sm hover:enabled:bg-surface-hover',
+    'border-accent bg-accent font-semibold text-accent-fg hover:enabled:border-accent-hover hover:enabled:bg-accent-hover',
+  secondary: 'border-rule bg-surface font-medium text-fg hover:enabled:bg-surface-hover',
   ghost: 'border-transparent bg-transparent text-fg hover:enabled:bg-surface-hover',
-  danger: 'border-line bg-surface text-negative hover:enabled:bg-surface-hover',
+  danger: 'border-negative bg-surface font-medium text-negative hover:enabled:bg-surface-hover',
 } as const;
 
 interface ActionButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'> {
@@ -43,7 +43,7 @@ export function ActionButton({
       {...rest}
       disabled={disabled}
       className={cn(
-        'inline-flex cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors max-md:gap-1 max-md:px-2 max-md:py-1',
+        'inline-flex cursor-pointer items-center gap-2 rounded-md border-2 px-2.5 py-1 text-sm transition-colors max-md:gap-1 max-md:px-2 max-md:py-1',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
         'disabled:cursor-not-allowed disabled:opacity-50',
         VARIANTS[variant],

@@ -7,7 +7,7 @@ export function CardTitle({ className, ...rest }: HTMLAttributes<HTMLHeadingElem
     <h2
       {...rest}
       className={cn(
-        'mb-3 flex items-center gap-2.5 text-lg font-semibold before:h-5 before:w-1 before:shrink-0 before:rounded-full before:bg-accent',
+        'mb-3 flex items-center justify-between gap-2 border-b-2 border-rule pb-2 text-sm font-bold tracking-wide uppercase',
         className
       )}
     />

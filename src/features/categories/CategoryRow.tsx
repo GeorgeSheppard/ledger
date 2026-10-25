@@ -22,7 +22,7 @@ export function CategoryRow({ category, usage, selected, onOpen }: CategoryRowPr
       className={selectableRow(selected, 'grid grid-cols-[14px_minmax(0,1fr)_auto] gap-3')}
       onClick={() => onOpen(category)}
     >
-      <span role="cell" className="size-3.5 rounded-full" style={{ background: category.color }} />
+      <span role="cell" className="size-4 rounded-sm" style={{ background: category.color }} />
       <span role="cell" className="flex min-w-0 items-center gap-2">
         <span className="truncate">{category.name}</span>
         {!isGlobal(category) && (

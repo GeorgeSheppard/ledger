@@ -3,37 +3,50 @@
 /*
   Design tokens. Components use these through Tailwind utilities (`bg-surface`, `text-muted`,
   `border-line`, `text-negative`, ...), never raw hex values, so light and dark mode stay
-  consistent everywhere. Surfaces step clearly away from the canvas and borders are strong enough to
-  see (src/styles/contrast.test.ts holds the ratios). Spacing, radii and type sizes use Tailwind's default scale.
+  consistent everywhere. Paper and ink: strong rules (`rule`) frame controls and cards, soft rules
+  (`line`) divide rows, and colour is kept for meaning (accent, income, spending, categories).
+  src/styles/contrast.test.ts holds the ratios. Spacing, radii and type sizes use Tailwind's default scale.
 */
 :root {
   color-scheme: light dark;
-  --ledger-canvas: #e8ecf6;
+  --ledger-canvas: #f4f4f1;
   --ledger-surface: #ffffff;
-  --ledger-surface-hover: #eef1fa;
-  --ledger-line: #aeb8d3;
-  --ledger-fg: #0b1226;
-  --ledger-muted: #4a5472;
-  --ledger-accent: #2848d0;
-  --ledger-accent-hover: #1e3bb5;
+  --ledger-surface-hover: #ebebe6;
+  --ledger-line: #cdcdc5;
+  --ledger-rule: #0b0b0c;
+  --ledger-fg: #0b0b0c;
+  --ledger-muted: #4a4a50;
+  --ledger-accent: #1d3ff2;
+  --ledger-accent-hover: #1531c4;
   --ledger-accent-fg: #ffffff;
-  --ledger-positive: #0d7a47;
-  --ledger-negative: #c42b2b;
+  --ledger-positive: #06764a;
+  --ledger-negative: #c01f1f;
+  --ledger-bar: #0b0b0c;
+  --ledger-bar-fg: #ffffff;
+  --ledger-tile-positive: #0a7d4e;
+  --ledger-tile-negative: #c42525;
+  --ledger-tile-fg: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ledger-canvas: #080c18;
-    --ledger-surface: #172038;
-    --ledger-surface-hover: #222d4b;
-    --ledger-line: #44537d;
-    --ledger-fg: #f5f7fc;
-    --ledger-muted: #aebad6;
-    --ledger-accent: #8aa6ff;
-    --ledger-accent-hover: #a5bbff;
+    --ledger-canvas: #0b0b0c;
+    --ledger-surface: #17171a;
+    --ledger-surface-hover: #252529;
+    --ledger-line: #3a3a42;
+    --ledger-rule: #a9a9b4;
+    --ledger-fg: #f4f4f1;
+    --ledger-muted: #b6b6be;
+    --ledger-accent: #8ea4ff;
+    --ledger-accent-hover: #adbcff;
     --ledger-accent-fg: #06091a;
-    --ledger-positive: #3fdc98;
-    --ledger-negative: #ff7b7b;
+    --ledger-positive: #4be3a0;
+    --ledger-negative: #ff8585;
+    --ledger-bar: #f4f4f1;
+    --ledger-bar-fg: #0b0b0c;
+    --ledger-tile-positive: #0a7d4e;
+    --ledger-tile-negative: #c42525;
+    --ledger-tile-fg: #ffffff;
   }
 }
 
@@ -52,6 +65,12 @@
   --color-surface: var(--ledger-surface);
   --color-surface-hover: var(--ledger-surface-hover);
   --color-line: var(--ledger-line);
+  --color-rule: var(--ledger-rule);
+  --color-bar: var(--ledger-bar);
+  --color-bar-fg: var(--ledger-bar-fg);
+  --color-tile-positive: var(--ledger-tile-positive);
+  --color-tile-negative: var(--ledger-tile-negative);
+  --color-tile-fg: var(--ledger-tile-fg);
   --color-fg: var(--ledger-fg);
   --color-muted: var(--ledger-muted);
   --color-accent: var(--ledger-accent);
@@ -129,5 +148,34 @@
   .ledger-write,
   .ledger-pulse {
     animation: none;
+  }
+}
+
+/*
+  The top bar is drawn in the inverse of the page (black on paper becomes paper on black), so
+  everything inside it keeps using the ordinary tokens, remapped here.
+*/
+.ledger-bar {
+  --ledger-canvas: var(--ledger-bar);
+  --ledger-surface: var(--ledger-bar);
+  --ledger-surface-hover: color-mix(in srgb, var(--ledger-bar-fg) 16%, var(--ledger-bar));
+  --ledger-line: color-mix(in srgb, var(--ledger-bar-fg) 35%, var(--ledger-bar));
+  --ledger-rule: var(--ledger-bar-fg);
+  --ledger-fg: var(--ledger-bar-fg);
+  --ledger-muted: color-mix(in srgb, var(--ledger-bar-fg) 72%, var(--ledger-bar));
+  --ledger-accent: #8ea4ff;
+  --ledger-accent-hover: #adbcff;
+  --ledger-accent-fg: #06091a;
+  --ledger-positive: #4be3a0;
+  --ledger-negative: #ff8585;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ledger-bar {
+    --ledger-accent: #1d3ff2;
+    --ledger-accent-hover: #1531c4;
+    --ledger-accent-fg: #ffffff;
+    --ledger-positive: #06764a;
+    --ledger-negative: #c01f1f;
   }
 }

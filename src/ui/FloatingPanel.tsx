@@ -134,7 +134,7 @@ export function FloatingPanel({
       ref={setPanel}
       data-floating=""
       className={cn(
-        'z-50 w-max max-w-[calc(100vw-1rem)] overflow-y-auto rounded-lg border border-line bg-surface shadow-lg',
+        'z-50 w-max max-w-[calc(100vw-1rem)] overflow-y-auto rounded-md border-2 border-rule bg-surface shadow-lg',
         className
       )}
       style={{
