@@ -11,5 +11,5 @@ import type { Connection } from '../types';
 export function exampleLedger(): Connection {
   const data = exampleData();
   const layout = { ...EMPTY_LAYOUT, sheetIds: data.accounts.map((account) => account.id) };
-  return fileConnection('Example ledger', { data, skippedTabs: [], layout }, null);
+  return fileConnection('Example ledger', { data, skippedTabs: [], tabReports: [], layout }, null);
 }
