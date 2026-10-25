@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router';
-import type { ShortcutId } from '../lib/shortcuts/bindings';
+import { getBinding, type ShortcutId } from '../lib/shortcuts/bindings';
 import { useLedger, useSyncStatus } from '../state/ledgerData';
 import { useHistory, useHistoryNotice, useHistoryState } from '../state/history';
 import { useSession } from '../state/session';
@@ -49,15 +49,15 @@ function SheetReportLink() {
   return (
     <NavLink
       to={paths.sheets}
+      title={getBinding('nav.sheets').description}
       className={({ isActive }) =>
         cn(
-          'flex items-center justify-between rounded-lg px-2 py-1 text-sm text-muted no-underline hover:bg-surface-hover',
-          isActive && 'bg-surface-hover font-semibold text-fg'
+          'rounded px-1 py-0.5 text-muted underline-offset-2 hover:text-fg hover:underline',
+          isActive && 'font-semibold text-fg'
         )
       }
     >
-      <span>{unread > 0 ? `Tabs · ${unread} not read` : 'How tabs were read'}</span>
-      <Kbd shortcut="nav.sheets" />
+      {unread > 0 ? `${unread} tab${unread === 1 ? '' : 's'} not read` : 'Tab report'}
     </NavLink>
   );
 }
@@ -106,8 +106,8 @@ function HistoryNotice() {
   );
 }
 
-/** The connected spreadsheet: its name, whether it is saved (with Save), and switching away. */
-function SpreadsheetPanel({ title, isFile }: { title: string; isFile: boolean }) {
+/** The connected spreadsheet: what it is, whether it is saved, and what you can do with it. */
+function SpreadsheetPanel({ title, id, isFile }: { title: string; id: string; isFile: boolean }) {
   const navigate = useNavigate();
   const { closeFile } = useSession();
   const { status } = useSyncStatus();
@@ -126,25 +126,44 @@ function SpreadsheetPanel({ title, isFile }: { title: string; isFile: boolean })
       document.title = 'Ledger';
     };
   }, [title]);
+  const openUrl = isFile || id === 'demo' ? null : `https://docs.google.com/spreadsheets/d/${id}`;
   return (
     <section
       aria-label="Spreadsheet"
-      className="flex flex-col gap-2 rounded-lg border border-line bg-canvas p-3"
+      className="flex flex-col gap-3 rounded-lg border border-line bg-canvas p-3"
     >
-      <div>
+      <div className="min-w-0">
         <div className="text-xs font-medium tracking-wide text-muted uppercase">
           {isFile ? 'File' : 'Spreadsheet'}
         </div>
-        <div className="truncate font-semibold" title={title}>
-          {title}
-        </div>
+        {openUrl ? (
+          <a
+            href={openUrl}
+            target="_blank"
+            rel="noreferrer"
+            title={`Open ${title} in Google Sheets`}
+            className="block truncate font-semibold text-fg no-underline hover:underline"
+          >
+            {title} <span aria-hidden="true">↗</span>
+          </a>
+        ) : (
+          <div className="truncate font-semibold" title={title}>
+            {title}
+          </div>
+        )}
       </div>
-      <SaveStatus buttonClassName="w-full justify-between" />
+      <SaveStatus buttonClassName="w-full justify-center" />
       <UndoRedo />
-      <SheetReportLink />
-      <ActionButton variant="ghost" className="w-full whitespace-nowrap" onAction={leave}>
-        {isFile ? 'Close file' : 'Switch spreadsheet'}
-      </ActionButton>
+      <div className="flex items-center justify-between gap-2 border-t border-line pt-2 text-xs">
+        <SheetReportLink />
+        <button
+          type="button"
+          className="cursor-pointer rounded px-1 py-0.5 text-muted underline-offset-2 hover:text-fg hover:underline"
+          onClick={leave}
+        >
+          {isFile ? 'Close file' : 'Switch'}
+        </button>
+      </div>
     </section>
   );
 }
@@ -174,7 +193,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           className={cn('flex-col gap-4 md:flex', menuOpen ? 'flex' : 'max-md:hidden')}
         >
           {session.status === 'connected' && (
-            <SpreadsheetPanel title={session.spreadsheet.title} isFile={session.file === true} />
+            <SpreadsheetPanel
+              title={session.spreadsheet.title}
+              id={session.spreadsheet.id}
+              isFile={session.file === true}
+            />
           )}
           <div className="flex flex-col gap-2 md:hidden">
             <DonateLink className="text-xs" />

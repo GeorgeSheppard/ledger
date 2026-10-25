@@ -154,15 +154,6 @@ export const SHORTCUTS = {
 
   // Categories (step 2)
   'categories.new': { keys: 'c', description: 'New category', scope: 'categories' },
-  'categories.down': { keys: 'j', description: 'Next category', scope: 'categories' },
-  'categories.up': { keys: 'k', description: 'Previous category', scope: 'categories' },
-  'categories.moveDown': {
-    keys: 'shift+j',
-    description: 'Move category down',
-    scope: 'categories',
-  },
-  'categories.moveUp': { keys: 'shift+k', description: 'Move category up', scope: 'categories' },
-  'categories.edit': { keys: 'enter', description: 'Edit category', scope: 'categories' },
   'categories.save': {
     keys: 'mod+enter',
     description: 'Save category',
@@ -174,12 +165,6 @@ export const SHORTCUTS = {
     description: 'Cancel editing',
     scope: 'categories',
     allowInInputs: true,
-  },
-  'categories.archive': { keys: 'a', description: 'Archive category', scope: 'categories' },
-  'categories.migrate': {
-    keys: 'm',
-    description: 'Move transactions to another category',
-    scope: 'categories',
   },
   'categories.delete': {
     keys: 'mod+backspace',

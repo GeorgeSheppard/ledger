@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import {
   addCategory,
-  moveCategory,
   recolorCategory,
   setCategoryAccounts,
   setCategoryArchived,
@@ -9,7 +8,6 @@ import {
   removeCategory,
   sameName,
 } from '../../lib/categories/categories';
-import { respreadColors } from '../../lib/categories/palette';
 import type { Category } from '../../lib/domain/types';
 import { countUsage } from '../../lib/categories/categories';
 import { useLedger, useLedgerMutation, type QueryState } from '../../state/ledgerData';
@@ -38,15 +36,12 @@ export function useCategoryActions() {
     return {
       add: (name: string, color: string, excluded = false, accounts?: readonly string[]) =>
         update((list) => addCategory(list, name, color, excluded, accounts)),
-      /** Gives every category a clearly different palette colour. */
-      spreadColors: () => update(respreadColors),
       remove: (name: string) => update((list) => removeCategory(list, name)),
       archive: (name: string) => update((list) => setCategoryArchived(list, name, true)),
       restore: (name: string) => update((list) => setCategoryArchived(list, name, false)),
       /** Moves every transaction in `from` to `to`; `archive` also archives `from`. One save. */
       migrate: (from: string, to: string, archive: boolean) =>
         mutate((r) => r.migrateCategory(from, to, archive)),
-      move: (name: string, delta: number) => update((list) => moveCategory(list, name, delta)),
       /** Renames (rewriting every transaction that used the old name) and/or recolours. */
       edit: (original: Category, next: Category) =>
         mutate(async (r) => {

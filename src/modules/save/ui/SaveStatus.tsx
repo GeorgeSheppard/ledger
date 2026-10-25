@@ -34,13 +34,24 @@ export function SaveStatus({
   const { status, isFile, save, download } = useSyncStatus();
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const error = status.state === 'error' ? status.message : downloadError;
+  const dot = error
+    ? 'bg-negative'
+    : status.state === 'unsaved'
+      ? 'bg-accent'
+      : status.state === 'saving'
+        ? 'animate-pulse bg-muted'
+        : 'bg-positive';
   return (
-    <div className={cn('flex flex-col gap-1 text-sm', className)} aria-live="polite">
-      <span className={cn(error ? 'text-negative' : 'text-muted')} title={error ?? undefined}>
-        {error && isFile ? 'Could not build the file' : describe(status, isFile)}
-      </span>
+    <div className={cn('flex flex-col gap-2 text-sm', className)}>
+      <div className="flex items-center gap-2" aria-live="polite" title={error ?? undefined}>
+        <span className={cn('size-2 shrink-0 rounded-full', dot)} aria-hidden="true" />
+        <span className={cn(error && 'text-negative')}>
+          {error && isFile ? 'Could not build the file' : describe(status, isFile)}
+        </span>
+      </div>
       <ActionButton
         shortcut="sync.save"
+        hideHint
         className={buttonClassName}
         variant={status.state === 'unsaved' || error ? 'primary' : 'secondary'}
         onAction={() => {
