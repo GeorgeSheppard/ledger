@@ -100,6 +100,8 @@ export interface FlowInput {
   accountIds?: readonly number[];
   /** Lower-cased names of categories to leave out of the spending side. */
   ignoredCategories?: ReadonlySet<string>;
+  /** Follow take-home pay on into spending and savings. On unless false: false stops at take-home pay. */
+  withSpending?: boolean;
 }
 
 /** Returns null when no paycheck falls in the window. */
@@ -110,8 +112,9 @@ export function buildMoneyFlow({
   to,
   accountIds,
   ignoredCategories,
+  withSpending = true,
 }: FlowInput): MoneyFlow | null {
-  if (ledgers.length === 0) return null;
+  if (withSpending && ledgers.length === 0) return null;
   const chosen = accountIds?.length
     ? ledgers.filter((l) => accountIds.includes(l.account.id))
     : ledgers;
@@ -142,7 +145,7 @@ export function buildMoneyFlow({
     ignoredCategories
   );
   const categoryTotals = new Map<string, number>();
-  for (const { transactions } of chosen)
+  for (const { transactions } of withSpending ? chosen : [])
     for (const flow of cashFlowByPeriod(
       transactions,
       ['period'],
@@ -153,8 +156,8 @@ export function buildMoneyFlow({
         categoryTotals.set(category, round((categoryTotals.get(category) ?? 0) + amount));
   const spending = round([...categoryTotals.values()].reduce((a, b) => a + b, 0));
 
-  const other = round(Math.max(0, spending - takeHome));
-  const saved = round(Math.max(0, takeHome - spending));
+  const other = withSpending ? round(Math.max(0, spending - takeHome)) : 0;
+  const saved = withSpending ? round(Math.max(0, takeHome - spending)) : 0;
 
   const links: FlowLink[] = [];
   for (const [key] of incomes) addLink(links, `income:${key}`, GROSS_ID, incomes.get(key)!.value);

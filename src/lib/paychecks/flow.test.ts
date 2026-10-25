@@ -155,6 +155,21 @@ describe('buildMoneyFlow', () => {
     expect(flow.totals.spending).toBe(20);
   });
 
+  it('stops at take-home pay without spending, and needs no accounts', () => {
+    const flow = buildMoneyFlow({
+      paychecks,
+      ledgers: [],
+      from: '2026-01-01',
+      to: '2026-02-28',
+      withSpending: false,
+    })!;
+    expect(flow.nodes.some((n) => n.kind === 'category' || n.kind === 'saved')).toBe(false);
+    expect(flow.nodes.some((n) => n.kind === 'other')).toBe(false);
+    expect(flow.totals.spending).toBe(0);
+    expect(value(flow, 'gross', 'takeHome')).toBe(flow.totals.takeHome);
+    balanced(flow);
+  });
+
   it('is null without a paycheck in the window or without accounts', () => {
     expect(
       buildMoneyFlow({ paychecks: [], ledgers, from: '2026-01-01', to: '2026-02-28' })

@@ -226,11 +226,11 @@ viewport. `pnpm screenshots <story-id>` runs the play functions and exits 1 when
   kind (a taxable benefit not paid in cash) counts towards gross pay but not take-home pay. A paycheck is one payslip
   typed in by hand: nothing repeats and there is no schedule, account or one-per-month rule; the
   date only decides which months of the dashboard count it (`src/lib/paychecks`). The paychecks page
-  adds, edits and deletes them and suggests names used before. The Sankey graph (a dashboard widget, and
-  shown on the paychecks page) follows
+  adds, edits and deletes them and suggests names used before. The Sankey graph (a dashboard widget) follows
   the money for the months shown: income lines → gross pay → deductions and take-home pay →
   spending categories, ending in "Saved" (extra) or "Other income" (deficit), with take-home as one
-  pool. Earlier layouts are still read: the one-cell JSON tab (header `Paychecks`, JSON in A2; the
+  pool. The paychecks page shows the same diagram for the salary alone (`withSpending: false`): it
+  stops at take-home pay and reads no transactions. Earlier layouts are still read: the one-cell JSON tab (header `Paychecks`, JSON in A2; the
   next change to the paychecks replaces it with the table) and, inside that JSON, a version 1
   schedule (one paycheck per payment made) or version 2 monthly payslips (dated on the month's last
   day) via `legacy.ts`.
