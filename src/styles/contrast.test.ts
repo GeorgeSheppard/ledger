@@ -9,11 +9,7 @@ function tokens(block: string): Record<string, string> {
   );
 }
 
-const darkStart = css.indexOf('prefers-color-scheme: dark');
-const themes = {
-  light: tokens(css.slice(0, darkStart)),
-  dark: tokens(css.slice(darkStart, css.indexOf('}', css.indexOf('}', darkStart) + 1))),
-};
+const themes = { light: tokens(css.slice(0, css.indexOf('}'))) };
 
 function luminance(hex: string): number {
   const [r, g, b] = [1, 3, 5].map((i) => {

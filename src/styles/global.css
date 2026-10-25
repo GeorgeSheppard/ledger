@@ -2,13 +2,13 @@
 
 /*
   Design tokens. Components use these through Tailwind utilities (`bg-surface`, `text-muted`,
-  `border-line`, `text-negative`, ...), never raw hex values, so light and dark mode stay
-  consistent everywhere. Paper and ink: strong rules (`rule`) frame controls and cards, soft rules
+  `border-line`, `text-negative`, ...), never raw hex values, so the look stays
+  consistent everywhere (the app is light only: white paper, black top bar). Paper and ink: strong rules (`rule`) frame controls and cards, soft rules
   (`line`) divide rows, and colour is kept for meaning (accent, income, spending, categories).
   src/styles/contrast.test.ts holds the ratios. Spacing, radii and type sizes use Tailwind's default scale.
 */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --ledger-canvas: #f4f4f1;
   --ledger-surface: #ffffff;
   --ledger-surface-hover: #ebebe6;
@@ -26,28 +26,6 @@
   --ledger-tile-positive: #0a7d4e;
   --ledger-tile-negative: #c42525;
   --ledger-tile-fg: #ffffff;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ledger-canvas: #0b0b0c;
-    --ledger-surface: #17171a;
-    --ledger-surface-hover: #252529;
-    --ledger-line: #3a3a42;
-    --ledger-rule: #a9a9b4;
-    --ledger-fg: #f4f4f1;
-    --ledger-muted: #b6b6be;
-    --ledger-accent: #8ea4ff;
-    --ledger-accent-hover: #adbcff;
-    --ledger-accent-fg: #06091a;
-    --ledger-positive: #4be3a0;
-    --ledger-negative: #ff8585;
-    --ledger-bar: #000000;
-    --ledger-bar-fg: #ffffff;
-    --ledger-tile-positive: #0a7d4e;
-    --ledger-tile-negative: #c42525;
-    --ledger-tile-fg: #ffffff;
-  }
 }
 
 /* Keyboard hints are for devices with a keyboard: hidden on touch screens and narrow windows. */
