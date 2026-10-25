@@ -21,7 +21,7 @@ a real `LedgerStore` filled from `src/lib/data/fixtures.ts`. To show a different
 fixtures, or seed the store before the story renders (as `Connected` does for a dashboard layout).
 
 - `Connected` is a connected demo spreadsheet. Use `shell` to put the page in the sidebar frame, and
-  `route` for pages that read the URL. Pass `dashboard` to choose the dashboard widgets.
+  `route` for pages that read the URL.
 - `SignedIn` is signed in but not connected (the connect page). `AppProviders` is just the router,
   session and shortcuts.
 - A story that needs user input uses a `play` function; see `Dialogs/Import → Preview`, which

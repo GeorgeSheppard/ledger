@@ -24,7 +24,7 @@ export const AccountSwitchedOff: Story = {
   render: Default.render,
   play: async ({ canvasElement }) => {
     const legend = await within(canvasElement).findAllByRole('button', { pressed: true });
-    const account = legend.find((b) => /savings/i.test(b.textContent ?? ''));
+    const account = legend.find((b) => b.textContent === 'Savings');
     if (account) await userEvent.click(account);
   },
 };
@@ -34,7 +34,7 @@ export const CategoryPicked: Story = {
   render: Default.render,
   play: async ({ canvasElement }) => {
     const rows = await within(canvasElement).findAllByRole('button', { pressed: true });
-    const category = rows.find((b) => /groceries|food|rent/i.test(b.textContent ?? ''));
+    const category = rows.find((b) => b.textContent === 'Groceries');
     if (category) await userEvent.click(category);
   },
 };

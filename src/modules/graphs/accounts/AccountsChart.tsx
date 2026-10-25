@@ -92,9 +92,12 @@ export function AccountsChart({
   };
 
   // The plugin outlives renders, so it reads what it needs from a ref.
+  const chart = useRef<Chart<'line', Point[]>>(null);
   const live = useRef({ period, onSelectPeriod, fill: colors.surfaceHover, stroke: colors.accent });
   useEffect(() => {
     live.current = { period, onSelectPeriod, fill: colors.surfaceHover, stroke: colors.accent };
+    // The marked period is drawn by the plugin, so a new one needs a repaint.
+    chart.current?.draw();
   });
   const select = useMemo<Plugin<'line'>>(() => {
     const state: { drag: { from: number; to: number; startPixel: number } | null } = { drag: null };
@@ -204,6 +207,7 @@ export function AccountsChart({
       </p>
       <div className="relative h-64 w-full cursor-crosshair">
         <Line
+          ref={chart}
           data={data}
           options={options}
           plugins={[select]}
