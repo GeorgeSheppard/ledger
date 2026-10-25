@@ -218,7 +218,6 @@ export function exampleData(now = new Date()): LedgerData {
     ],
     rows: { 1: byDate(current), 2: byDate(card), 3: byDate(savings) },
     categories: EXAMPLE_CATEGORIES,
-    dashboard: null,
     paychecks: { version: 3, paychecks },
   };
 }
