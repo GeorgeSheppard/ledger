@@ -1,5 +1,5 @@
-import { fixtureData } from '../../../lib/data/fixtures';
 import { EMPTY_LAYOUT } from '../../../lib/store/remote';
+import { exampleData } from './data';
 import { fileConnection } from '../shared/fileConnection';
 import type { Connection } from '../types';
 
@@ -9,7 +9,7 @@ import type { Connection } from '../types';
  * Download turns it into a spreadsheet that shows the layout Ledger expects.
  */
 export function exampleLedger(): Connection {
-  const data = fixtureData();
+  const data = exampleData();
   const layout = { ...EMPTY_LAYOUT, sheetIds: data.accounts.map((account) => account.id) };
   return fileConnection('Example ledger', { data, skippedTabs: [], layout }, null);
 }

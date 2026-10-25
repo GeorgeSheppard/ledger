@@ -7,9 +7,9 @@ function ExampleSetup({ onOpened }: IngestSetupProps) {
   return (
     <div className="flex flex-col items-start gap-4">
       <p className="text-sm text-muted">
-        Opens a made-up ledger with two accounts, categories and six months of paychecks, so you can
-        look around before preparing your own data. Nothing is signed in or saved. Use Download to
-        get it as a spreadsheet and see the layout Ledger reads.
+        Opens a made-up ledger with three accounts, a year of transactions, a full set of categories
+        and monthly paychecks, so you can look around before preparing your own data. Nothing is
+        signed in or saved. Use Download to get it as a spreadsheet and see the layout Ledger reads.
       </p>
       <ActionButton
         variant="primary"
