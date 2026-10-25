@@ -82,7 +82,6 @@ export function SpendingChart({ series, categories, colorOf, onSelectPeriod }: S
     },
     plugins: {
       legend: { display: false },
-      tooltip: { enabled: false },
     },
   };
 

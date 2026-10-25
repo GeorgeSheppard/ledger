@@ -5,7 +5,7 @@ import { dayStart, DAY_MS, isoDateOf } from '../../../lib/metrics/buckets';
 import type { Period } from '../../../lib/metrics/period';
 import type { TimeSeries } from '../../../lib/metrics/timeSeries';
 import { useChartColors } from '../shared/chartjs';
-import { formatBucket, formatCompact, formatMoney } from '../shared/format';
+import { formatBucket, formatCompact } from '../shared/format';
 import { anchorTime, timeScale, useTimeView } from '../shared/timeView';
 
 interface Point {
@@ -182,21 +182,6 @@ export function AccountsChart({
     },
     plugins: {
       legend: { display: false },
-      tooltip: {
-        backgroundColor: colors.surface,
-        titleColor: colors.fg,
-        bodyColor: colors.fg,
-        borderColor: colors.line,
-        borderWidth: 1,
-        padding: 10,
-        boxWidth: 8,
-        boxHeight: 8,
-        usePointStyle: true,
-        callbacks: {
-          title: (items) => (items[0]?.raw as Point | undefined)?.label ?? '',
-          label: (item) => `${item.dataset.label}  ${formatMoney((item.raw as Point).y)}`,
-        },
-      },
     },
   };
 

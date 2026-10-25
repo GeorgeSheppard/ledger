@@ -80,7 +80,7 @@ export function formatTick(time: number, granularity: Granularity): string {
   return String(date.getUTCDate());
 }
 
-/** Tooltip title for a bucket: `April 2026`, `Week of 6 Apr`, `Mon 6 Apr 2026`. */
+/** Label for a bucket: `April 2026`, `Week of 6 Apr`, `Mon 6 Apr 2026`. */
 export function formatBucket(bucket: Bucket, granularity: Granularity): string {
   if (granularity === 'month') return formatMonthLong(bucket.key);
   const start = new Date(`${bucket.start}T00:00:00Z`);
