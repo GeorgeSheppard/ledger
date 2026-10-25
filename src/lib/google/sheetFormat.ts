@@ -75,10 +75,18 @@ export function parseAccountTab(
   values: readonly (readonly unknown[])[]
 ): { rows: TransactionInput[] } | { error: string } {
   const header = values[0] ?? [];
+  if (values.every(isBlankRow)) return { error: 'The tab is empty' };
   const matches =
     ACCOUNT_COLUMNS.every((name, i) => textCell(header[i]) === name) &&
     header.slice(HEADER_WIDTH).every((cell) => textCell(cell) === '');
-  if (!matches) return { error: `Row 1 is not ${ACCOUNT_COLUMNS.join(' | ')}` };
+  if (!matches) {
+    const cells = header.map(textCell);
+    while (cells.length > 0 && cells[cells.length - 1] === '') cells.pop();
+    const found = cells.join(' | ');
+    return {
+      error: `Row 1 is not ${ACCOUNT_COLUMNS.join(' | ')}${found ? ` (it is ${found})` : ''}`,
+    };
+  }
   const rows: TransactionInput[] = [];
   for (let i = 1; i < values.length; i++) {
     const cells = values[i]!.slice(0, HEADER_WIDTH);
@@ -304,7 +312,7 @@ const DEDUCTION = 'Deduction';
  * `Paychecks` is a plain table with one row per payslip line, so Excel can pivot and chart it:
  * `Date | Paycheck | Type | Name | Amount`. `Paycheck` is a label shared by the lines of one payslip
  * (two payslips on one day need different labels), `Type` is Income, Benefit in kind or Deduction,
- * and `Amount` is always positive. Older files kept the paychecks as JSON text in cell A2, like `Ledger_Dashboard`; that
+ * and `Amount` is always positive. Older files kept the paychecks as JSON text in cell A2, in one cell; that
  * is still read, and the next change to the paychecks writes the table.
  */
 function hasHeader(values: readonly (readonly unknown[])[], columns: readonly string[]): boolean {

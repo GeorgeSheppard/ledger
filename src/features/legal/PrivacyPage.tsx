@@ -83,8 +83,10 @@ export function PrivacyPage() {
           <li>
             <strong>A few small settings.</strong> Ledger also keeps the Google access token for the
             current tab, which is cleared when you close the tab or exit, and the id and name of the
-            spreadsheet you connected, so it can offer to reopen it next time. You can remove
-            everything Ledger keeps in your browser at any time by clearing this site&rsquo;s data.
+            spreadsheet you connected, so it can offer to reopen it next time, and which way of
+            starting you used last (Google, a file, or a blank ledger), so the homepage can mark it
+            &ldquo;Last used&rdquo;. That choice is kept after you exit. You can remove everything
+            Ledger keeps in your browser at any time by clearing this site&rsquo;s data.
           </li>
           <li>
             <strong>Not on our side.</strong> Ledger does not copy your financial data to any server

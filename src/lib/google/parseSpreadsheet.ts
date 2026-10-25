@@ -8,7 +8,7 @@ import {
   isReservedTabName,
 } from '../domain/types';
 import type { Category } from '../domain/types';
-import type { LedgerData, SkippedTab } from '../store/ledgerData';
+import type { LedgerData, SkippedTab, TabReport } from '../store/ledgerData';
 import type { RemoteState, SheetLayout } from '../store/remote';
 import {
   parseAccountTab,
@@ -91,6 +91,10 @@ export function readRange(
   }
 }
 
+function plural(count: number, one: string, many = `${one}s`): string {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
 /** The loaded tabs as ledger data. Tabs that are not exactly in the account format are skipped. */
 export function parseSpreadsheet(
   tabs: readonly SheetProperties[],
@@ -103,9 +107,11 @@ export function parseSpreadsheet(
     paychecks: null,
   };
   const skippedTabs: SkippedTab[] = [];
+  const tabReports: TabReport[] = [];
   const layout: SheetLayout = { rowCounts: {}, sheetIds: [] };
   let metadata: ReturnType<typeof parseMetadata> | null = null;
   let legacyCategories: Category[] = [];
+  let legacyReport: TabReport | null = null;
   const { roles, renames } = tabRoles(tabs);
   if (Object.keys(renames).length > 0) layout.renames = renames;
   for (const tab of [...tabs].sort((a, b) => a.index - b.index)) {
@@ -116,26 +122,75 @@ export function parseSpreadsheet(
     if (role === 'metadata') {
       layout.metadataSheetId = tab.sheetId;
       metadata = parseMetadata(values.slice(1));
+      tabReports.push({
+        title: tab.title,
+        kind: 'settings',
+        imported: true,
+        reason: `Ledger settings: ${plural(metadata.categories.length, 'category', 'categories')}${
+          metadata.invertedAccounts.length > 0
+            ? ` and ${plural(metadata.invertedAccounts.length, 'inverted account')}`
+            : ''
+        }.`,
+      });
     } else if (role === 'categories') {
       layout.categoriesSheetId = tab.sheetId;
       legacyCategories = rowsToCategories(values.slice(1));
+      legacyReport = {
+        title: tab.title,
+        kind: 'categories',
+        imported: true,
+        reason: `Categories from an older version of Ledger (${plural(legacyCategories.length, 'category', 'categories')}).`,
+      };
+      tabReports.push(legacyReport);
     } else if (role === 'paychecks') {
       layout.paychecksSheetId = tab.sheetId;
       data.paychecks = parsePaychecksTab(values);
       if (isLegacyPaychecksTab(values)) layout.paychecksLegacy = true;
-    } else if (role === 'account') {
+      tabReports.push({
+        title: tab.title,
+        kind: 'paychecks',
+        imported: data.paychecks !== null,
+        reason:
+          data.paychecks !== null
+            ? 'Your paychecks.'
+            : `No paychecks found. Rows need a ${PAYCHECK_COLUMNS.join(' | ')} header, a valid date and a positive amount.`,
+      });
+    } else if (role === 'ignored') {
+      tabReports.push({
+        title: tab.title,
+        kind: 'reserved',
+        imported: false,
+        reason: `Tabs starting with _ or Ledger_ are kept for Ledger's own settings, so this one is not read as an account. Rename it to import it.`,
+      });
+    } else {
       const parsed = parseAccountTab(values);
       if ('error' in parsed) {
         skippedTabs.push({ title: tab.title, reason: parsed.error });
+        tabReports.push({
+          title: tab.title,
+          kind: 'account',
+          imported: false,
+          reason: parsed.error,
+        });
         continue;
       }
       data.accounts.push({ id: tab.sheetId, name: tab.title });
       data.rows[tab.sheetId] = parsed.rows;
+      tabReports.push({
+        title: tab.title,
+        kind: 'account',
+        imported: true,
+        reason: `Account with ${plural(parsed.rows.length, 'transaction')}.`,
+      });
     }
   }
-  // `Ledger_Metadata` replaces `_Categories`; the old tab is only read while there is no new one.
+  // `_Metadata` replaces `_Categories`; the old tab is only read while there is no new one.
   data.categories = metadata ? metadata.categories : legacyCategories;
+  if (metadata && legacyReport) {
+    legacyReport.imported = false;
+    legacyReport.reason = `Not read: the ${METADATA_TAB} tab holds the categories now, so this older tab is ignored.`;
+  }
   const inverted = new Set(metadata?.invertedAccounts);
   data.accounts = data.accounts.map((a) => (inverted.has(a.name) ? { ...a, inverted: true } : a));
-  return { data, skippedTabs, layout };
+  return { data, skippedTabs, tabReports, layout };
 }

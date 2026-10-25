@@ -103,7 +103,7 @@ export class LedgerStore implements LedgerRepository {
     this.now = now;
     this.saved = saved;
     this.current = current;
-    this.snapshot = toSnapshot(current, saved.skippedTabs);
+    this.snapshot = toSnapshot(current, saved.skippedTabs, saved.tabReports);
     this.status = this.computeStatus();
   }
 
@@ -262,7 +262,7 @@ export class LedgerStore implements LedgerRepository {
   private apply(next: LedgerData) {
     if (next === this.current) return;
     this.current = next;
-    this.snapshot = toSnapshot(next, this.saved.skippedTabs);
+    this.snapshot = toSnapshot(next, this.saved.skippedTabs, this.saved.tabReports);
     this.persist();
     this.emit();
   }

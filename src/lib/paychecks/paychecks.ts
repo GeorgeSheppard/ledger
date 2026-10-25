@@ -111,9 +111,18 @@ export function suggestedNames(list: PaycheckList, kind: LineKind): string[] {
     .map((s) => s.name);
 }
 
-/** What is wrong with a paycheck, in words, or null when it can be saved. */
-export function paycheckProblem(paycheck: Paycheck): string | null {
+/**
+ * What is wrong with a paycheck, in words, or null when it can be saved. `others` are the saved
+ * paychecks it must not share a date with: the sheet keeps one payslip per date, so two on the same
+ * day would be read back as one.
+ */
+export function paycheckProblem(
+  paycheck: Paycheck,
+  others: readonly Paycheck[] = []
+): string | null {
   if (!isIsoDate(paycheck.date)) return 'Pick a date.';
+  if (others.some((p) => p.id !== paycheck.id && p.date === paycheck.date))
+    return 'There is already a paycheck on that date. Edit that one, or pick another date.';
   const lines = [...paycheck.income, ...paycheck.benefits, ...paycheck.deductions];
   if (lines.some((l) => !(l.amount >= 0))) return 'Amounts cannot be negative.';
   if (lines.some((l) => l.amount > 0 && !l.name.trim())) return 'Name every line.';

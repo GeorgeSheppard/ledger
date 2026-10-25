@@ -37,9 +37,8 @@ export function PaycheckFlow({
       to: period.to,
       accountIds,
       ignoredCategories,
-      categories: chosen,
     });
-  }, [accountIds, ledgers, paychecks, period, ignoredCategories, chosen]);
+  }, [accountIds, ledgers, paychecks, period, ignoredCategories]);
 
   if (!flow) return <NoData>No paychecks entered for this period.</NoData>;
   return (

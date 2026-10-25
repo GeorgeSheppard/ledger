@@ -71,7 +71,10 @@ describe('parseAccountTab', () => {
   });
 
   it('rejects tabs that are not in the Ledger format', () => {
-    expect(parseAccountTab([])).toEqual({ error: expect.stringContaining('Row 1') });
+    expect(parseAccountTab([])).toEqual({ error: 'The tab is empty' });
+    expect(parseAccountTab([['Item', 'Planned', '']])).toEqual({
+      error: expect.stringContaining('(it is Item | Planned)'),
+    });
     expect(parseAccountTab([['Date', 'Description', 'Amount']])).toHaveProperty('error');
     expect(parseAccountTab([[...header, 'Balance']])).toHaveProperty('error');
     expect(parseAccountTab([header.map((h) => h.toLowerCase())])).toHaveProperty('error');

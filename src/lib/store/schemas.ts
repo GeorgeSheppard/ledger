@@ -22,6 +22,25 @@ export const ledgerDataSchema = z.object({
 /** A tab that is not an account because it does not match the sheet format. */
 export const skippedTabSchema = z.object({ title: z.string(), reason: z.string() });
 
+/** What kind of tab Ledger took a tab to be, for the sheet report. */
+export const tabKindSchema = z.enum([
+  'account',
+  'settings',
+  'categories',
+  'dashboard',
+  'paychecks',
+  'reserved',
+]);
+
+/** What loading did with one tab of the spreadsheet, and why. Shown on the sheet report page. */
+export const tabReportSchema = z.object({
+  title: z.string(),
+  kind: tabKindSchema,
+  /** Whether the tab's contents ended up in Ledger. */
+  imported: z.boolean(),
+  reason: z.string(),
+});
+
 export const sheetLayoutSchema = z.object({
   /** Row count of every tab's grid, by sheet id. Writing past it needs the grid to grow first. */
   rowCounts: z.record(z.coerce.number().int(), z.number()),
@@ -41,6 +60,8 @@ export const remoteStateSchema = z.object({
   /** The data as it is in the sheet. */
   data: ledgerDataSchema,
   skippedTabs: z.array(skippedTabSchema),
+  /** One entry per tab in tab order, as of the last load. Caches from older versions have none. */
+  tabReports: z.array(tabReportSchema).default([]),
   /** Remote bookkeeping (grid sizes, tab ids). Plain JSON so it can be cached; only the remote reads it. */
   layout: sheetLayoutSchema,
 });

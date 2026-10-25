@@ -72,6 +72,7 @@ src/
     categories/                category management page
     dashboard/                 the dashboard page: date range, shared filters, graph frame
     paychecks/                 paychecks page
+    sheets/                    sheet report: what became of each tab when the spreadsheet loaded
     legal/                     privacy policy and terms
 ```
 
@@ -110,7 +111,7 @@ src/modules/
   `Connection` with its own saver.
 - **Get started.** The homepage only explains Ledger; its Get started button opens a dialog listing
   `INGEST_OPTIONS` (`modules/ingest/index.ts`). Each `IngestOption` has a title, a description and a
-  `Setup` component that walks through that option. A new ingest module adds its option to the
+  `Setup` component that walks through that option. The homepage and dialog list the options with a "Last used" badge; the id of the last one used is kept in `localStorage` (`modules/ingest/lastUsed.ts`), and a `Setup` reports it through `onUsed`/`onOpened`. A new ingest module adds its option to the
   registry and appears in the dialog with no change to the landing or connect features.
 - **Import.** Every importer returns the same `ParsedImport` (a table, the guessed column mapping,
   warnings and, for free-form dates, the day/month order), so the preview, mapping editor and
@@ -121,7 +122,7 @@ src/modules/
   state. The range comes from the date picker, from dragging across the balances graph, or from
   clicking a spending column; accounts are switched on and off in the balances legend and
   categories in the spending legend or breakdown table, and every graph follows. Balances are not
-  narrowed by category, and the money-flow Sankey narrows to the picked categories (the rest and savings collapse into one "Everything else" node); clicking a spending node picks or clears it. Every Sankey column is sorted largest first. A sheet
+  narrowed by category, and the money-flow Sankey keeps every spending node but outlines the picked ones and dims the rest; clicking a spending node picks or clears it, and Back (`b`) undoes category picks along with date changes (`lib/metrics/viewHistory.ts`). Every Sankey column is sorted largest first. A sheet
   may still have a `_Dashboard` tab from the old widget layout; it is ignored and left untouched.
 - **Time graphs.** Balances, spending and income/spending are drawn with Chart.js
   (`lib/metrics/timeSeries.ts` cuts a period into months, weeks or days, `granularityFor`;
