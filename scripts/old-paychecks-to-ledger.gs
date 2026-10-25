@@ -35,8 +35,18 @@ var TARGET_SPREADSHEET_ID = '';
 
 var HEADER = ['Date', 'Paycheck', 'Type', 'Name', 'Amount'];
 var COLUMNS = [
-  'date', 'taxCode', 'taxYear', 'income', 'pensionSacrifice', 'pensionEmployer',
-  'benefits', 'incomeTax', 'ni', 'studentLoan', 'donations', 'takeHome',
+  'date',
+  'taxCode',
+  'taxYear',
+  'income',
+  'pensionSacrifice',
+  'pensionEmployer',
+  'benefits',
+  'incomeTax',
+  'ni',
+  'studentLoan',
+  'donations',
+  'takeHome',
 ];
 var HEADER_NAMES = {
   date: /^(date|paydate|paid)$/,
@@ -61,15 +71,19 @@ function convertOldPaychecks() {
 
   var result = convertRows_(sheet.getDataRange().getValues(), tz);
   if (result.paychecks.length === 0)
-    throw new Error('No paychecks could be read from "' + sheet.getName() + '".\n' + result.warnings.join('\n'));
+    throw new Error(
+      'No paychecks could be read from "' + sheet.getName() + '".\n' + result.warnings.join('\n')
+    );
 
   var target = TARGET_SPREADSHEET_ID ? SpreadsheetApp.openById(TARGET_SPREADSHEET_ID) : source;
   var tabName = TARGET_SPREADSHEET_ID ? '_Paychecks' : '_Paychecks (new)';
   var tab = target.getSheetByName(tabName);
-  if (tab && !TARGET_SPREADSHEET_ID) throw new Error('"' + tabName + '" already exists. Delete it and run again.');
+  if (tab && !TARGET_SPREADSHEET_ID)
+    throw new Error('"' + tabName + '" already exists. Delete it and run again.');
   if (!tab) tab = target.insertSheet(tabName);
 
-  var existing = tab.getLastRow() > 0 ? tab.getRange(1, 1, tab.getLastRow(), HEADER.length).getValues() : [];
+  var existing =
+    tab.getLastRow() > 0 ? tab.getRange(1, 1, tab.getLastRow(), HEADER.length).getValues() : [];
   var firstRow;
   var label;
   if (existing.length === 0) {
@@ -79,9 +93,14 @@ function convertOldPaychecks() {
   } else {
     var header = existing[0].map(String);
     if (header.join('|').toLowerCase() !== HEADER.join('|').toLowerCase())
-      throw new Error('The `_Paychecks` tab is not the Date | Paycheck | Type | Name | Amount table. Open Ledger, change a paycheck so it rewrites the tab, then run this again.');
+      throw new Error(
+        'The `_Paychecks` tab is not the Date | Paycheck | Type | Name | Amount table. Open Ledger, change a paycheck so it rewrites the tab, then run this again.'
+      );
     firstRow = existing.length + 1;
-    label = existing.slice(1).reduce(function (max, row) { return Math.max(max, Number(row[1]) || 0); }, 0) + 1;
+    label =
+      existing.slice(1).reduce(function (max, row) {
+        return Math.max(max, Number(row[1]) || 0);
+      }, 0) + 1;
   }
 
   var rows = [];
@@ -94,11 +113,27 @@ function convertOldPaychecks() {
   });
   tab.getRange(firstRow, 1, rows.length, HEADER.length).setValues(rows);
   tab.getRange(firstRow, 1, rows.length, 1).setNumberFormat('yyyy-mm-dd');
-  tab.getRange(firstRow, 2, rows.length, 1).setNumberFormat('@').setValues(rows.map(function (r) { return [r[1]]; }));
+  tab
+    .getRange(firstRow, 2, rows.length, 1)
+    .setNumberFormat('@')
+    .setValues(
+      rows.map(function (r) {
+        return [r[1]];
+      })
+    );
   tab.getRange(firstRow, 5, rows.length, 1).setNumberFormat('0.00');
 
-  var message = 'Wrote ' + result.paychecks.length + ' paychecks (' + rows.length + ' rows) to "' + tabName + '"' +
-    (TARGET_SPREADSHEET_ID ? ' in the Ledger spreadsheet.' : '. Copy them into your Ledger sheet\'s `_Paychecks` tab.') +
+  var message =
+    'Wrote ' +
+    result.paychecks.length +
+    ' paychecks (' +
+    rows.length +
+    ' rows) to "' +
+    tabName +
+    '"' +
+    (TARGET_SPREADSHEET_ID
+      ? ' in the Ledger spreadsheet.'
+      : ". Copy them into your Ledger sheet's `_Paychecks` tab.") +
     (result.warnings.length ? '\n\nCheck these:\n' + result.warnings.join('\n') : '');
   Logger.log(message);
   SpreadsheetApp.getUi().alert(message);
@@ -112,17 +147,29 @@ function convertRows_(grid, tz) {
 
   var index = {};
   grid[0].forEach(function (cell, i) {
-    var key = String(cell).toLowerCase().replace(/[^a-z0-9]/g, '');
+    var key = String(cell)
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
     for (var c = 0; c < COLUMNS.length; c++) {
-      if (index[COLUMNS[c]] === undefined && HEADER_NAMES[COLUMNS[c]].test(key)) { index[COLUMNS[c]] = i; break; }
+      if (index[COLUMNS[c]] === undefined && HEADER_NAMES[COLUMNS[c]].test(key)) {
+        index[COLUMNS[c]] = i;
+        break;
+      }
     }
   });
   var hasHeader = index.date !== undefined && index.income !== undefined;
-  if (!hasHeader) { index = {}; COLUMNS.forEach(function (c, i) { index[c] = i; }); }
+  if (!hasHeader) {
+    index = {};
+    COLUMNS.forEach(function (c, i) {
+      index[c] = i;
+    });
+  }
   var rows = hasHeader ? grid.slice(1) : grid;
 
   var dayFirst = !rows.some(function (r) {
-    var m = String(cellOf_(r, index.date)).trim().match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-]\d{2,4}$/);
+    var m = String(cellOf_(r, index.date))
+      .trim()
+      .match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-]\d{2,4}$/);
     return m && Number(m[1]) <= 12 && Number(m[2]) > 12 ? true : false;
   });
 
@@ -131,27 +178,54 @@ function convertRows_(grid, tz) {
     var label = 'Row ' + (n + (hasHeader ? 2 : 1));
     var date = parseDate_(cellOf_(row, index.date), dayFirst, tz);
     if (!date) {
-      if (row.some(function (c) { return String(c).trim() !== ''; })) warnings.push(label + ' skipped: no readable date.');
+      if (
+        row.some(function (c) {
+          return String(c).trim() !== '';
+        })
+      )
+        warnings.push(label + ' skipped: no readable date.');
       return;
     }
-    var amount = function (column) { return parseAmount_(cellOf_(row, index[column])); };
+    var amount = function (column) {
+      return parseAmount_(cellOf_(row, index[column]));
+    };
     var income = amount('income');
-    if (!(income > 0)) { warnings.push(label + ' (' + date + ') skipped: Total Income is missing or not positive.'); return; }
+    if (!(income > 0)) {
+      warnings.push(label + ' (' + date + ') skipped: Total Income is missing or not positive.');
+      return;
+    }
 
     var sacrifice = Math.abs(amount('pensionSacrifice') || 0);
-    var others = ['incomeTax', 'ni', 'studentLoan', 'donations'].reduce(function (t, c) { return t + Math.abs(amount(c) || 0); }, 0);
+    var others = ['incomeTax', 'ni', 'studentLoan', 'donations'].reduce(function (t, c) {
+      return t + Math.abs(amount(c) || 0);
+    }, 0);
     var takeHome = amount('takeHome');
     employer += Math.abs(amount('pensionEmployer') || 0);
 
-    var matches = function (expected) { return takeHome !== null && Math.abs(round_(expected) - takeHome) < 0.01; };
+    var matches = function (expected) {
+      return takeHome !== null && Math.abs(round_(expected) - takeHome) < 0.01;
+    };
     var deductSacrifice = true;
-    if (takeHome !== null && !matches(income - sacrifice - others) && sacrifice > 0 && matches(income - others)) {
+    if (
+      takeHome !== null &&
+      !matches(income - sacrifice - others) &&
+      sacrifice > 0 &&
+      matches(income - others)
+    ) {
       deductSacrifice = false;
-      warnings.push(label + ' (' + date + '): Take Home only adds up without the salary-sacrifice pension, so it is not listed as a deduction.');
+      warnings.push(
+        label +
+          ' (' +
+          date +
+          '): Take Home only adds up without the salary-sacrifice pension, so it is not listed as a deduction.'
+      );
     }
 
     var lines = [['Income', 'Salary', income]];
-    var add = function (type, name, value) { var v = Math.abs(value || 0); if (v > 0) lines.push([type, name, round_(v)]); };
+    var add = function (type, name, value) {
+      var v = Math.abs(value || 0);
+      if (v > 0) lines.push([type, name, round_(v)]);
+    };
     add('Benefit in kind', 'Taxable benefits', amount('benefits'));
     add('Deduction', 'Income tax', amount('incomeTax'));
     add('Deduction', 'National Insurance', amount('ni'));
@@ -159,38 +233,81 @@ function convertRows_(grid, tz) {
     if (deductSacrifice) add('Deduction', 'Pension (salary sacrifice)', sacrifice);
     add('Deduction', 'Donations', amount('donations'));
 
-    var net = lines.reduce(function (t, l) { return l[0] === 'Income' ? t + l[2] : l[0] === 'Deduction' ? t - l[2] : t; }, 0);
+    var net = lines.reduce(function (t, l) {
+      return l[0] === 'Income' ? t + l[2] : l[0] === 'Deduction' ? t - l[2] : t;
+    }, 0);
     if (takeHome !== null && Math.abs(round_(net) - takeHome) >= 0.01)
-      warnings.push(label + ' (' + date + '): worked-out take-home ' + round_(net).toFixed(2) + ' does not match the Take Home column ' + takeHome.toFixed(2) + '.');
+      warnings.push(
+        label +
+          ' (' +
+          date +
+          '): worked-out take-home ' +
+          round_(net).toFixed(2) +
+          ' does not match the Take Home column ' +
+          takeHome.toFixed(2) +
+          '.'
+      );
     paychecks.push({ date: date, lines: lines });
   });
 
   if (employer > 0)
-    warnings.push('Pension (Employer) totalling ' + round_(employer).toFixed(2) + ' was left out: it is paid by your employer, not part of take-home pay.');
-  paychecks.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    warnings.push(
+      'Pension (Employer) totalling ' +
+        round_(employer).toFixed(2) +
+        ' was left out: it is paid by your employer, not part of take-home pay.'
+    );
+  paychecks.sort(function (a, b) {
+    return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+  });
   return { paychecks: paychecks, warnings: warnings };
 }
 
-function cellOf_(row, i) { return i === undefined || row[i] === undefined ? '' : row[i]; }
-function round_(n) { return Math.round(n * 100) / 100; }
-function pad_(n) { return (n < 10 ? '0' : '') + n; }
+function cellOf_(row, i) {
+  return i === undefined || row[i] === undefined ? '' : row[i];
+}
+function round_(n) {
+  return Math.round(n * 100) / 100;
+}
+function pad_(n) {
+  return (n < 10 ? '0' : '') + n;
+}
 
 /** A Date cell, `2026-09-25`, `25/09/2026` (day first unless a date proves month first) or `25 Sep 2026` -> `yyyy-mm-dd`. */
 function parseDate_(value, dayFirst, tz) {
   if (Object.prototype.toString.call(value) === '[object Date]')
     return isNaN(value.getTime()) ? null : Utilities.formatDate(value, tz, 'yyyy-MM-dd');
-  var text = String(value).trim().split(/[T\s](?=\d{1,2}:)/)[0].trim();
+  var text = String(value)
+    .trim()
+    .split(/[T\s](?=\d{1,2}:)/)[0]
+    .trim();
   var y, m, d, found;
-  if ((found = text.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/))) { y = +found[1]; m = +found[2]; d = +found[3]; }
-  else if ((found = text.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2}|\d{4})$/))) {
-    y = +found[3]; d = dayFirst ? +found[1] : +found[2]; m = dayFirst ? +found[2] : +found[1];
-  } else if ((found = text.match(/^(\d{1,2})[\s\-\/.]+([a-z]{3,9})\.?[\s\-\/.,]+(\d{2}|\d{4})$/i))) {
-    d = +found[1]; y = +found[3];
-    m = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].indexOf(found[2].slice(0, 3).toLowerCase()) + 1;
+  if ((found = text.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/))) {
+    y = +found[1];
+    m = +found[2];
+    d = +found[3];
+  } else if ((found = text.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2}|\d{4})$/))) {
+    y = +found[3];
+    d = dayFirst ? +found[1] : +found[2];
+    m = dayFirst ? +found[2] : +found[1];
+  } else if (
+    (found = text.match(/^(\d{1,2})[\s\-\/.]+([a-z]{3,9})\.?[\s\-\/.,]+(\d{2}|\d{4})$/i))
+  ) {
+    d = +found[1];
+    y = +found[3];
+    m =
+      ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].indexOf(
+        found[2].slice(0, 3).toLowerCase()
+      ) + 1;
   } else return null;
   if (y < 100) y += 2000;
   var check = new Date(Date.UTC(y, m - 1, d));
-  if (!m || check.getUTCFullYear() !== y || check.getUTCMonth() !== m - 1 || check.getUTCDate() !== d) return null;
+  if (
+    !m ||
+    check.getUTCFullYear() !== y ||
+    check.getUTCMonth() !== m - 1 ||
+    check.getUTCDate() !== d
+  )
+    return null;
   return y + '-' + pad_(m) + '-' + pad_(d);
 }
 
