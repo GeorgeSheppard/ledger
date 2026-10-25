@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { paths } from '../../app/paths';
 import type { WidgetWidth } from '../../lib/dashboard/config';
 import { ignoredCategoryNames } from '../../lib/categories/categories';
-import { defaultPeriod, firstDate, type Period } from '../../lib/metrics/period';
+import { defaultPeriod, firstDate } from '../../lib/metrics/period';
 import { todayIso } from '../../lib/transactions/dates';
 import { filterParams, type LinkedFilters } from '../../lib/transactions/filterParams';
 import { GRAPHS } from '../../modules/graphs';
@@ -15,6 +15,7 @@ import { Page } from '../../ui/Page';
 import { PeriodPicker } from './PeriodPicker';
 import { describeView, ViewTransactions } from './ViewTransactions';
 import { useDashboardData } from './useDashboardData';
+import { usePeriodHistory } from './usePeriodHistory';
 
 /** Grid span per graph width: everything stacks on phones, at most 2 across on tablets. */
 const SPANS: Record<WidgetWidth, string> = {
@@ -37,16 +38,16 @@ function toggled<T>(list: readonly T[], value: T): T[] {
 export function DashboardPage() {
   const navigate = useNavigate();
   const { query, paychecks } = useDashboardData();
-  const [picked, setPicked] = useState<Period | null>(null);
   const [hiddenAccounts, setHiddenAccounts] = useState<number[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
 
   const ledgers = query.data?.ledgers;
   const [today] = useState(todayIso);
-  const period = useMemo(
-    () => picked ?? (ledgers ? defaultPeriod(ledgers, today) : null),
-    [picked, ledgers, today]
+  const initialPeriod = useMemo(
+    () => (ledgers ? defaultPeriod(ledgers, today) : null),
+    [ledgers, today]
   );
+  const { period, select: setPicked, back, canGoBack } = usePeriodHistory(initialPeriod);
   const ignored = useMemo(() => ignoredCategoryNames(query.data?.categories ?? []), [query.data]);
   const colorOf = useMemo(() => {
     const colors = new Map(query.data?.categories.map((c) => [c.name, c.color]));
@@ -108,6 +109,8 @@ export function DashboardPage() {
           today={today}
           first={firstDate(query.data.ledgers)}
           onChange={setPicked}
+          canGoBack={canGoBack}
+          onBack={back}
         />
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <p className="min-w-0 text-sm text-muted max-md:hidden">

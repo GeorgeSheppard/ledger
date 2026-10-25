@@ -52,6 +52,11 @@ export const SHORTCUTS = {
     description: 'Next period on the dashboard',
     scope: 'dashboard',
   },
+  'dashboard.backPeriod': {
+    keys: 'b',
+    description: 'Back to the dates you had before',
+    scope: 'dashboard',
+  },
   'dashboard.viewTransactions': {
     keys: 'v',
     description: 'View the transactions behind the dashboard',

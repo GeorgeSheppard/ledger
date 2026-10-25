@@ -49,6 +49,19 @@ export const DatePicker: Story = {
   },
 };
 
+/** After zooming from a month out to a year, "Back" returns to the month (filters untouched). */
+export const BackEnabled: Story = {
+  render: Default.render,
+  play: async ({ canvasElement }) => {
+    const screen = within(canvasElement);
+    await userEvent.click(await screen.findByRole('button', { name: /choose dates/i }));
+    await userEvent.click(
+      await within(document.body).findByRole('button', { name: 'Last 12 months' })
+    );
+    await userEvent.keyboard('{Escape}');
+  },
+};
+
 /** A spending node clicked in the Sankey: it is outlined and the other spending is dimmed. */
 export const SankeyCategoryClicked: Story = {
   render: Default.render,
