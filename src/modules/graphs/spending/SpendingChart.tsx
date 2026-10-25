@@ -1,18 +1,11 @@
-import {
-  Tooltip,
-  type ChartData,
-  type ChartOptions,
-  type ChartType,
-  type Plugin,
-  type TooltipPositionerFunction,
-} from 'chart.js';
+import type { ChartData, ChartOptions, Plugin } from 'chart.js';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { dayStart, DAY_MS } from '../../../lib/metrics/buckets';
 import { monthEnd, type MonthKey } from '../../../lib/metrics/months';
 import type { TimeSeries } from '../../../lib/metrics/timeSeries';
 import { useChartColors, useChartsReady } from '../shared/chartjs';
-import { formatBucket, formatCompact, formatMoney } from '../shared/format';
+import { formatBucket, formatCompact } from '../shared/format';
 import {
   anchorTime,
   timeScale,
@@ -21,20 +14,6 @@ import {
   ZoomControls,
   type ZoomView,
 } from '../shared/zoom';
-
-/** Beside the hovered column rather than on it, level with the pointer. */
-Tooltip.positioners.besideBar = function (items, eventPosition) {
-  const bar = items[0]?.element as { x: number; width?: number } | undefined;
-  if (!bar) return false;
-  const half = (bar.width ?? 0) / 2;
-  return { x: bar.x + ((eventPosition.x ?? bar.x) >= bar.x ? half : -half), y: eventPosition.y };
-};
-
-declare module 'chart.js' {
-  interface TooltipPositionerMap {
-    besideBar: TooltipPositionerFunction<ChartType>;
-  }
-}
 
 interface BarPoint {
   x: number;
@@ -140,28 +119,7 @@ export function SpendingChart({
     plugins: {
       legend: { display: false },
       zoom: zoomPlugin(view),
-      tooltip: {
-        position: 'besideBar',
-        yAlign: 'center',
-        caretPadding: 8,
-        itemSort: (a, b) => b.datasetIndex - a.datasetIndex,
-        filter: (item) => (item.raw as BarPoint).y > 0,
-        backgroundColor: colors.surface,
-        titleColor: colors.fg,
-        bodyColor: colors.fg,
-        footerColor: colors.fg,
-        borderColor: colors.line,
-        borderWidth: 1,
-        padding: 10,
-        boxWidth: 8,
-        boxHeight: 8,
-        callbacks: {
-          title: (items) => (items[0]?.raw as BarPoint | undefined)?.label ?? '',
-          label: (item) => `${item.dataset.label}  ${formatMoney((item.raw as BarPoint).y)}`,
-          footer: (items) =>
-            `Total spending  ${formatMoney(items.reduce((sum, i) => sum + (i.raw as BarPoint).y, 0))}`,
-        },
-      },
+      tooltip: { enabled: false },
     },
   };
 
