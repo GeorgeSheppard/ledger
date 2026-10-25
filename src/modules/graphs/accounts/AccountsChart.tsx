@@ -1,7 +1,7 @@
 import type { Chart, ChartData, ChartOptions, Plugin } from 'chart.js';
 import { useEffect, useMemo, useRef } from 'react';
 import { Line } from 'react-chartjs-2';
-import { dayStart, DAY_MS, isoDateOf } from '../../../lib/metrics/buckets';
+import { isoDateOf } from '../../../lib/metrics/buckets';
 import type { Period } from '../../../lib/metrics/period';
 import type { TimeSeries } from '../../../lib/metrics/timeSeries';
 import { useChartColors } from '../shared/chartjs';
@@ -21,10 +21,8 @@ export interface AccountLine {
 }
 
 interface AccountsChartProps {
-  /** Covers the period and the data around it. */
+  /** Covers the dashboard's period. */
   series: TimeSeries;
-  /** Marked on the chart. */
-  period: Period;
   /** The accounts switched on. */
   lines: AccountLine[];
   showNetWorth: boolean;
@@ -36,16 +34,10 @@ interface AccountsChartProps {
 const DRAG_THRESHOLD = 4;
 
 /**
- * Every account's balance over time with net worth as one more line. The graph's period is shaded;
- * drag across the chart to pick a new one.
+ * Every account's balance over time with net worth as one more line. Drag across the chart to make
+ * those dates the dashboard's, which zooms the chart (and the other graphs) in to them.
  */
-export function AccountsChart({
-  series,
-  period,
-  lines,
-  showNetWorth,
-  onSelectPeriod,
-}: AccountsChartProps) {
+export function AccountsChart({ series, lines, showNetWorth, onSelectPeriod }: AccountsChartProps) {
   const view = useTimeView(series);
   const colors = useChartColors();
   const worth = series.netWorth(view.granularity);
@@ -93,11 +85,9 @@ export function AccountsChart({
 
   // The plugin outlives renders, so it reads what it needs from a ref.
   const chart = useRef<Chart<'line', Point[]>>(null);
-  const live = useRef({ period, onSelectPeriod, fill: colors.surfaceHover, stroke: colors.accent });
+  const live = useRef({ onSelectPeriod, stroke: colors.accent });
   useEffect(() => {
-    live.current = { period, onSelectPeriod, fill: colors.surfaceHover, stroke: colors.accent };
-    // The marked period is drawn by the plugin, so a new one needs a repaint.
-    chart.current?.draw();
+    live.current = { onSelectPeriod, stroke: colors.accent };
   });
   const select = useMemo<Plugin<'line'>>(() => {
     const state: { drag: { from: number; to: number; startPixel: number } | null } = { drag: null };
@@ -121,17 +111,6 @@ export function AccountsChart({
     };
     return {
       id: 'selectPeriod',
-      beforeDatasetsDraw(chart) {
-        const { ctx } = chart;
-        const { period: p, fill, stroke } = live.current;
-        const b = band(chart, dayStart(p.from), dayStart(p.to) + DAY_MS);
-        ctx.save();
-        ctx.fillStyle = fill;
-        ctx.strokeStyle = stroke;
-        ctx.fillRect(b.left, b.top, b.width, b.height);
-        ctx.strokeRect(b.left, b.top, b.width, b.height);
-        ctx.restore();
-      },
       afterDatasetsDraw(chart) {
         const { drag } = state;
         if (!drag) return;
@@ -187,9 +166,7 @@ export function AccountsChart({
 
   return (
     <div>
-      <p className="mb-2 text-xs text-muted">
-        The shaded part is the dates shown. Drag across the graph to pick other dates.
-      </p>
+      <p className="mb-2 text-xs text-muted">Drag across the graph to zoom in to those dates.</p>
       <div className="relative h-64 w-full cursor-crosshair">
         <Line
           ref={chart}

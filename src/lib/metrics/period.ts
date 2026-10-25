@@ -95,24 +95,3 @@ export function firstDate(ledgers: readonly AccountLedger[]): IsoDate | undefine
       if (isIsoDate(t.date) && (!first || t.date < first)) first = t.date;
   return first;
 }
-
-/**
- * Everything worth showing around `period`: from the first transaction to the later of the
- * period's end and the last transaction (not counting any dated after `today`). The balances graph
- * draws this, with the period marked on it, so a new period can be picked by dragging across it.
- */
-export function surroundingPeriod(
-  ledgers: readonly AccountLedger[],
-  period: Period,
-  today: IsoDate
-): Period {
-  let last: IsoDate | undefined;
-  for (const l of ledgers)
-    for (const t of l.transactions)
-      if (isIsoDate(t.date) && t.date <= today && (!last || t.date > last)) last = t.date;
-  const first = firstDate(ledgers);
-  return {
-    from: first && first < period.from ? first : period.from,
-    to: last && last > period.to ? last : period.to,
-  };
-}

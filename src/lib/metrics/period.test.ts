@@ -6,7 +6,6 @@ import {
   monthPeriod,
   periodDays,
   periodPresets,
-  surroundingPeriod,
   previousPeriod,
   shiftPeriod,
 } from './period';
@@ -46,14 +45,5 @@ describe('period', () => {
     expect(periodPresets('2026-10-25').map((p) => p.id)).not.toContain('all');
     const all = periodPresets('2026-10-25', firstDate(ledgers)).at(-1)!;
     expect(all.period).toEqual({ from: '2026-03-10', to: '2026-10-25' });
-  });
-
-  it('surrounds a period with the rest of the data, but not rows dated after today', () => {
-    expect(surroundingPeriod(ledgers, monthPeriod('2026-05'), '2026-10-25')).toEqual({
-      from: '2026-03-10',
-      to: '2026-09-20',
-    });
-    expect(surroundingPeriod(ledgers, monthPeriod('2026-05'), '2026-06-01').to).toBe('2026-05-31');
-    expect(surroundingPeriod(ledgers, monthPeriod('2026-12'), '2026-10-25').to).toBe('2026-12-31');
   });
 });
