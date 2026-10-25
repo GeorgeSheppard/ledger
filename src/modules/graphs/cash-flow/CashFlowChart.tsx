@@ -3,6 +3,7 @@ import { Chart } from 'react-chartjs-2';
 import type { Period } from '../../../lib/metrics/period';
 import type { TimeSeries } from '../../../lib/metrics/timeSeries';
 import { useChartColors } from '../shared/chartjs';
+import { DRAG_EVENTS, useDragSelect } from '../shared/dragSelect';
 import { formatBucket, formatCompact } from '../shared/format';
 import { anchorTime, timeScale, useTimeView } from '../shared/timeView';
 
@@ -25,8 +26,8 @@ interface CashFlowChartProps {
 }
 
 /**
- * Income above the zero line, spending below it, and the net as a dot, on one axis. Click a column
- * to make its dates the dashboard's.
+ * Income above the zero line, spending below it, and the net as a dot, on one axis. Drag across it
+ * or click a column to make those dates the dashboard's.
  */
 export function CashFlowChart({ series, onSelectPeriod }: CashFlowChartProps) {
   const view = useTimeView(series);
@@ -72,12 +73,16 @@ export function CashFlowChart({ series, onSelectPeriod }: CashFlowChartProps) {
     ],
   } as ChartData<'bar', Point[]>;
 
+  const { plugin, wasDrag } = useDragSelect(colors, onSelectPeriod);
+
   const options: ChartOptions<'bar'> = {
     responsive: true,
+    events: [...DRAG_EVENTS],
     maintainAspectRatio: false,
     layout: { padding: { top: 8 } },
     interaction: { mode: 'index', axis: 'x', intersect: false },
     onClick: (_event, elements, chart) => {
+      if (wasDrag()) return;
       const first = elements[0];
       const raw = first && (chart.data.datasets[first.datasetIndex]?.data[first.index] as Point);
       if (raw) onSelectPeriod({ from: raw.start, to: raw.end });
@@ -97,8 +102,20 @@ export function CashFlowChart({ series, onSelectPeriod }: CashFlowChartProps) {
   };
 
   return (
-    <div className="relative h-60 w-full cursor-pointer">
-      <Chart type="bar" data={data} options={options} aria-label="Income and spending" role="img" />
+    <div>
+      <p className="mb-2 text-xs text-muted">
+        Drag across the graph to pick other dates, or click a column to pick that one.
+      </p>
+      <div className="relative h-60 w-full cursor-crosshair">
+        <Chart
+          type="bar"
+          data={data}
+          options={options}
+          aria-label="Income and spending"
+          role="img"
+          plugins={[plugin]}
+        />
+      </div>
     </div>
   );
 }
