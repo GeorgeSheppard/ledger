@@ -57,3 +57,11 @@ pnpm dev:google                            # vite with the dev values injected
 
 Commit the generated `.infisical.json`: it only holds the project ID. `pnpm dev` keeps working
 without Infisical and uses demo data.
+
+## Builds without the keys (previews)
+
+A build made without `VITE_GOOGLE_CLIENT_ID` and `VITE_GOOGLE_API_KEY` still works: the Google
+option is shown disabled ("Google sign-in isn't configured in this build") and uploading a file or
+exploring the example work as normal. To get Google on Cloudflare preview builds, set
+`INFISICAL_ENV=dev` as a preview-only build variable, and add each preview origin to the dev OAuth
+client (Google does not allow wildcard origins, so previews usually stay without Google).

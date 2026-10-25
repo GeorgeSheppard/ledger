@@ -4,6 +4,7 @@ import { useSession } from '../../../state/session';
 import { ActionButton } from '../../../ui/ActionButton';
 import { useAsyncAction } from '../../../features/connect/useAsyncAction';
 import type { IngestOption, IngestSetupProps } from '../types';
+import { googleConfigFromEnv } from './googleServices';
 import { GoogleSpreadsheetStep } from './GoogleSpreadsheetStep';
 
 /** Step 1 signs in with Google; once signed in, step 2 picks or creates the spreadsheet. */
@@ -55,4 +56,7 @@ export const googleOption: IngestOption = {
   title: 'Google Sheets',
   description: 'Keep your ledger in a Google Sheet in your own Drive, saved as you go.',
   Setup: GoogleSetup,
+  ...(!googleConfigFromEnv(import.meta.env) && {
+    unavailable: "Google sign-in isn't configured in this build.",
+  }),
 };

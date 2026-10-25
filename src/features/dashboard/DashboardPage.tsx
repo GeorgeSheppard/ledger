@@ -28,10 +28,6 @@ const SPANS: Record<WidgetWidth, string> = {
 };
 
 /** Adds `value` to `list`, or takes it out when it is already there. */
-function toggled<T>(list: readonly T[], value: T): T[] {
-  return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
-}
-
 /**
  * The signed-in homepage: every graph drawn for one date range (a month to begin with), with
  * filters they all share. Switch accounts off in the balances legend, or click a category in the
@@ -40,7 +36,6 @@ function toggled<T>(list: readonly T[], value: T): T[] {
 export function DashboardPage() {
   const navigate = useNavigate();
   const { query, paychecks } = useDashboardData();
-  const [hiddenAccounts, setHiddenAccounts] = useState<number[]>([]);
 
   const ledgers = query.data?.ledgers;
   const [today] = useState(todayIso);
@@ -51,11 +46,12 @@ export function DashboardPage() {
   const {
     period,
     categories,
+    hiddenAccounts,
     select: setPicked,
     toggleCategory,
-    clearCategories,
-    back,
-    canGoBack,
+    toggleAccount,
+    setAccounts: setShownAccounts,
+    clearFilters,
   } = useViewHistory(initialPeriod);
   const ignored = useMemo(() => ignoredCategoryNames(query.data?.categories ?? []), [query.data]);
   const colorOf = useMemo(() => {
@@ -71,13 +67,9 @@ export function DashboardPage() {
     (id: number) => accountColor(Math.max(0, allIds.indexOf(id))),
     [allIds]
   );
-  const toggleAccount = useCallback(
-    (id: number) => setHiddenAccounts((hidden) => toggled(hidden, id)),
-    []
-  );
   const setAccounts = useCallback(
-    (on: number[]) => setHiddenAccounts(allIds.filter((id) => !on.includes(id))),
-    [allIds]
+    (on: number[]) => setShownAccounts(allIds, on),
+    [allIds, setShownAccounts]
   );
 
   if (query.status === 'loading') return <Page title="Dashboard" description="Loading…" />;
@@ -118,21 +110,13 @@ export function DashboardPage() {
           today={today}
           first={firstDate(query.data.ledgers)}
           onChange={setPicked}
-          canGoBack={canGoBack}
-          onBack={back}
         />
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <p className="min-w-0 text-sm text-muted max-md:hidden">
             {describeView(period, allIds.length, accountIds.length, categories)}
           </p>
           {filtered && (
-            <ActionButton
-              variant="ghost"
-              onAction={() => {
-                setHiddenAccounts([]);
-                clearCategories();
-              }}
-            >
+            <ActionButton variant="ghost" onAction={clearFilters}>
               Clear filters
             </ActionButton>
           )}

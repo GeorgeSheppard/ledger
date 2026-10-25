@@ -1,6 +1,6 @@
 #!/bin/sh
 # Production build with the Google settings (VITE_*) pulled from Infisical. This is the Cloudflare
-# build command; see docs/SECRETS.md. Plain `pnpm build` still works without Infisical (demo data).
+# build command; see docs/SECRETS.md. Plain `pnpm build` still works without Infisical; Google is then shown as unavailable.
 set -eu
 
 INFISICAL_CLI="@infisical/cli@0.43.138"
