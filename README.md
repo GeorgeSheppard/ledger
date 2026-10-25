@@ -12,7 +12,7 @@ for the structure and conventions.
 
 ```sh
 pnpm install
-pnpm dev          # http://localhost:5173, uses demo data
+pnpm dev          # http://localhost:5173, uses demo data (built apps, previews too, use Google)
 pnpm test         # unit tests
 pnpm lint         # typecheck + eslint
 pnpm format       # prettier

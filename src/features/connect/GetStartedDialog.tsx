@@ -29,7 +29,7 @@ export function GetStartedDialog({
       description={chosen ? undefined : 'Pick where your ledger will live. You can switch later.'}
       onClose={onClose}
     >
-      {chosen ? (
+      {chosen && 'Setup' in chosen ? (
         <div className="flex flex-col gap-4">
           <div>
             <ActionButton variant="ghost" onAction={() => setChosen(null)}>
@@ -46,7 +46,7 @@ export function GetStartedDialog({
           />
         </div>
       ) : (
-        <IngestOptionList lastUsed={lastUsed} onChoose={setChosen} />
+        <IngestOptionList lastUsed={lastUsed} onChoose={setChosen} onOpened={onClose} />
       )}
     </Dialog>
   );

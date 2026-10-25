@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import type { LedgerRemote, LoadProgress, RemoteState } from '../../lib/store/remote';
+import type { SessionApi } from '../../state/session';
 import type { Saver } from '../save';
 
 /**
@@ -44,10 +45,13 @@ export interface IngestSetupProps {
  * One choice in the "Get started" dialog: a way of bringing a ledger in, and the steps that walk
  * the user through it. Adding an ingest module means adding its option to `INGEST_OPTIONS`.
  */
-export interface IngestOption {
+export type IngestOption = {
   readonly id: string;
   readonly title: string;
   /** One or two plain sentences shown on the choice card. */
   readonly description: string;
-  readonly Setup: ComponentType<IngestSetupProps>;
-}
+} & (
+  | { readonly Setup: ComponentType<IngestSetupProps> }
+  /** For an option with nothing to ask: choosing the card opens the ledger, with no steps after it. */
+  | { readonly openDirectly: (session: SessionApi) => void }
+);
