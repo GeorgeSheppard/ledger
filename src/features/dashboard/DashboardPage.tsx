@@ -66,6 +66,10 @@ export function DashboardPage() {
     (id: number) => setHiddenAccounts((hidden) => toggled(hidden, id)),
     []
   );
+  const setAccounts = useCallback(
+    (on: number[]) => setHiddenAccounts(allIds.filter((id) => !on.includes(id))),
+    [allIds]
+  );
   const toggleCategory = useCallback(
     (category: string) => setCategories((chosen) => toggled(chosen, category)),
     []
@@ -151,6 +155,7 @@ export function DashboardPage() {
               colorOf={colorOf}
               accountColorOf={accountColorOf}
               toggleAccount={toggleAccount}
+              setAccounts={setAccounts}
               toggleCategory={toggleCategory}
               selectPeriod={setPicked}
             />

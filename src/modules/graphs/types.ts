@@ -23,6 +23,8 @@ export interface GraphViewProps {
   colorOf(category: string): string;
   accountColorOf(accountId: number): string;
   toggleAccount(accountId: number): void;
+  /** Switches on exactly these accounts and off all the others. */
+  setAccounts(accountIds: number[]): void;
   toggleCategory(category: string): void;
   /** Sets the dashboard's date range, e.g. from dragging across a graph. */
   selectPeriod(period: Period): void;
