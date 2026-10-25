@@ -50,6 +50,8 @@ export type IngestOption = {
   readonly title: string;
   /** One or two plain sentences shown on the choice card. */
   readonly description: string;
+  /** Set when this build cannot offer the option (such as Google without keys): shown disabled with this note. */
+  readonly unavailable?: string;
 } & (
   | { readonly Setup: ComponentType<IngestSetupProps> }
   /** For an option with nothing to ask: choosing the card opens the ledger, with no steps after it. */

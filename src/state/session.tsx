@@ -236,21 +236,45 @@ function MemorySessionProvider({ children }: { children: ReactNode }) {
   return <SessionContext.Provider value={api}>{children}</SessionContext.Provider>;
 }
 
+/**
+ * A build made without Google keys (such as a preview) still runs: files and the example work, and
+ * Google is shown as unavailable on the choice list.
+ */
+function useNoGoogleSession(): BaseSessionApi {
+  return useMemo(
+    () => ({
+      session: { status: 'signed-out' },
+      signIn: async () => {
+        throw new Error("Google sign-in isn't configured in this build.");
+      },
+      exit: async () => {},
+      connect: async () => {},
+      disconnect: () => {},
+      spreadsheets: {
+        pick: async () => {
+          throw new Error("Google isn't configured in this build.");
+        },
+        create: async () => {
+          throw new Error("Google isn't configured in this build.");
+        },
+      },
+      rememberedSpreadsheet: null,
+    }),
+    []
+  );
+}
+
+function NoGoogleSessionProvider({ children }: { children: ReactNode }) {
+  const api = useFileOverlay(useNoGoogleSession());
+  return <SessionContext.Provider value={api}>{children}</SessionContext.Provider>;
+}
+
 function GoogleSessionProvider({ children }: { children: ReactNode }) {
   const [google] = useState(() => {
-    try {
-      return createGoogleServices(googleConfigFromEnv(import.meta.env), browserStore('session'));
-    } catch (error) {
-      return error instanceof Error ? error : new Error(String(error));
-    }
+    const config = googleConfigFromEnv(import.meta.env);
+    return config && createGoogleServices(config, browserStore('session'));
   });
-  if (google instanceof Error)
-    return (
-      <div className="placeholder">
-        <h1>Ledger is not configured</h1>
-        <p>{google.message}</p>
-      </div>
-    );
+  if (!google) return <NoGoogleSessionProvider>{children}</NoGoogleSessionProvider>;
   return <GoogleSessionContext google={google}>{children}</GoogleSessionContext>;
 }
 

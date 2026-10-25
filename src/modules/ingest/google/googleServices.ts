@@ -25,18 +25,14 @@ export interface GoogleServices {
   remote(spreadsheet: SpreadsheetRef): LedgerRemote;
 }
 
-/** Reads the Google settings from the build environment, with a clear error when they are missing. */
+/** The Google settings from the build environment, or null when this build was made without them. */
 export function googleConfigFromEnv(env: {
   VITE_GOOGLE_CLIENT_ID?: string;
   VITE_GOOGLE_API_KEY?: string;
-}): GoogleConfig {
+}): GoogleConfig | null {
   const clientId = env.VITE_GOOGLE_CLIENT_ID?.trim();
   const apiKey = env.VITE_GOOGLE_API_KEY?.trim();
-  if (!clientId || !apiKey)
-    throw new Error(
-      'VITE_DATA_SOURCE=google needs VITE_GOOGLE_CLIENT_ID and VITE_GOOGLE_API_KEY. See docs/GOOGLE_SETUP.md.'
-    );
-  return { clientId, apiKey };
+  return clientId && apiKey ? { clientId, apiKey } : null;
 }
 
 export function createGoogleServices(

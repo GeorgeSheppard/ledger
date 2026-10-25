@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FakeClient, HEADER, fakeSheet, tab } from '../../../lib/google/testing';
 
 import { googleConnection } from '.';
+import { googleConfigFromEnv } from './googleServices';
 
 const open = (client: FakeClient) => googleConnection(client, { id: 'sheet', title: 'Ledger' });
 
@@ -86,5 +87,20 @@ describe('google ingest', () => {
     expect(layout.paychecksSheetId).toBe(30);
     expect(layout.renames).toBeUndefined();
     expect(client.valueReads[0]!.map((r) => r.sheetId)).toEqual([10, 30]);
+  });
+});
+
+describe('googleConfigFromEnv', () => {
+  it('returns null instead of throwing when the keys are missing', () => {
+    expect(googleConfigFromEnv({})).toBeNull();
+    expect(
+      googleConfigFromEnv({ VITE_GOOGLE_CLIENT_ID: 'id', VITE_GOOGLE_API_KEY: ' ' })
+    ).toBeNull();
+    expect(
+      googleConfigFromEnv({ VITE_GOOGLE_CLIENT_ID: 'id', VITE_GOOGLE_API_KEY: 'key' })
+    ).toEqual({
+      clientId: 'id',
+      apiKey: 'key',
+    });
   });
 });
