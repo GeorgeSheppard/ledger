@@ -10,7 +10,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** The latest month, every account, every category. */
+/** The last six months, every account, every category. */
 export const Default: Story = {
   render: () => (
     <Connected shell>

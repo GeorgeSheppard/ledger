@@ -22,13 +22,20 @@ export function periodDays(period: Period): number {
   return Math.round((dayStart(period.to) - dayStart(period.from)) / DAY_MS) + 1;
 }
 
-/** The latest month with data (never one after `today`), as a whole-month period. */
+/** How many whole months the dashboard opens on, ending at the latest month with data. */
+export const DEFAULT_PERIOD_MONTHS = 6;
+
+/** The last six months up to the latest one with data (never after `today`), as whole months. */
 export function defaultPeriod(ledgers: readonly AccountLedger[], today: IsoDate): Period {
   const dated = ledgers.map((l) => ({
     account: l.account,
     transactions: l.transactions.filter((t) => isIsoDate(t.date)),
   }));
-  return monthPeriod(dataMonthRange(dated, today)?.last ?? monthOf(today));
+  const last = dataMonthRange(dated, today)?.last ?? monthOf(today);
+  return {
+    from: `${addMonths(last, 1 - DEFAULT_PERIOD_MONTHS)}-01`,
+    to: monthEnd(last),
+  };
 }
 
 /**
