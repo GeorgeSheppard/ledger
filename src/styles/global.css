@@ -3,36 +3,37 @@
 /*
   Design tokens. Components use these through Tailwind utilities (`bg-surface`, `text-muted`,
   `border-line`, `text-negative`, ...), never raw hex values, so light and dark mode stay
-  consistent everywhere. Spacing, radii and type sizes use Tailwind's default scale.
+  consistent everywhere. Surfaces step clearly away from the canvas and borders are strong enough to
+  see (src/styles/contrast.test.ts holds the ratios). Spacing, radii and type sizes use Tailwind's default scale.
 */
 :root {
   color-scheme: light dark;
-  --ledger-canvas: #f7f8fa;
+  --ledger-canvas: #e8ecf6;
   --ledger-surface: #ffffff;
-  --ledger-surface-hover: #f0f1f4;
-  --ledger-line: #e0e2e7;
-  --ledger-fg: #1c2024;
-  --ledger-muted: #60646c;
-  --ledger-accent: #3a5ccc;
-  --ledger-accent-hover: #3253bb;
+  --ledger-surface-hover: #eef1fa;
+  --ledger-line: #aeb8d3;
+  --ledger-fg: #0b1226;
+  --ledger-muted: #4a5472;
+  --ledger-accent: #2848d0;
+  --ledger-accent-hover: #1e3bb5;
   --ledger-accent-fg: #ffffff;
-  --ledger-positive: #1f8a55;
-  --ledger-negative: #c93b3b;
+  --ledger-positive: #0d7a47;
+  --ledger-negative: #c42b2b;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ledger-canvas: #111113;
-    --ledger-surface: #18191b;
-    --ledger-surface-hover: #212225;
-    --ledger-line: #2e3035;
-    --ledger-fg: #edeef0;
-    --ledger-muted: #b0b4ba;
-    --ledger-accent: #6e8cf0;
-    --ledger-accent-hover: #8099f3;
-    --ledger-accent-fg: #0b0d12;
-    --ledger-positive: #4cc38a;
-    --ledger-negative: #ff6b6b;
+    --ledger-canvas: #080c18;
+    --ledger-surface: #172038;
+    --ledger-surface-hover: #222d4b;
+    --ledger-line: #44537d;
+    --ledger-fg: #f5f7fc;
+    --ledger-muted: #aebad6;
+    --ledger-accent: #8aa6ff;
+    --ledger-accent-hover: #a5bbff;
+    --ledger-accent-fg: #06091a;
+    --ledger-positive: #3fdc98;
+    --ledger-negative: #ff7b7b;
   }
 }
 
