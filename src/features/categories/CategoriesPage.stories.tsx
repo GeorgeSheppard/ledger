@@ -40,13 +40,12 @@ export const TransactionsLink: Story = {
   },
 };
 
-/** Archiving hides a category from the list; it reappears under "Archived" with a Restore button. */
+/** Archive lives in a category's editor; archiving hides a category from the list; it reappears under "Archived" with a Restore button. */
 export const Archived: Story = {
   render: Default.render,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(await canvas.findByText('Transport'));
-    await userEvent.keyboard('{Escape}');
     await userEvent.click(await canvas.findByRole('button', { name: /^Archive/ }));
     const summary = await canvas.findByText('Archived (1)');
     await userEvent.click(summary);
@@ -57,13 +56,12 @@ export const Archived: Story = {
   },
 };
 
-/** Migrate asks where the transactions go and says how many will change before anything happens. */
+/** Migrate (in the editor) asks where the transactions go and says how many will change before anything happens. */
 export const Migrate: Story = {
   render: Default.render,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(await canvas.findByText('Eating out'));
-    await userEvent.keyboard('{Escape}');
     await userEvent.click(await canvas.findByRole('button', { name: /^Migrate/ }));
     const picker = await canvas.findByRole('combobox', { name: 'Move to category' });
     await userEvent.click(picker);

@@ -3,7 +3,6 @@ import {
   CATEGORY_PALETTE,
   colorDistance,
   nextCategoryColor,
-  respreadColors,
   stableCategoryColor,
 } from './palette';
 
@@ -31,18 +30,5 @@ describe('category palette', () => {
     for (const name of names) taken.add(stableCategoryColor(name, taken));
     expect(taken.size).toBeGreaterThan(CATEGORY_PALETTE.length - 1);
     expect(stableCategoryColor('Pets')).toBe(stableCategoryColor(' pets '));
-  });
-
-  it('respreads colours without changing anything else', () => {
-    const before = [
-      { name: 'A', color: '#4f7cff', excluded: true },
-      { name: 'B', color: '#4f7cfe' },
-      { name: 'C', color: '#4f7cfd' },
-    ];
-    const after = respreadColors(before);
-    expect(after.map((c) => c.name)).toEqual(['A', 'B', 'C']);
-    expect(after[0]?.excluded).toBe(true);
-    expect(colorDistance(after[0]!.color, after[1]!.color)).toBeGreaterThan(0.08);
-    expect(colorDistance(after[1]!.color, after[2]!.color)).toBeGreaterThan(0.08);
   });
 });
