@@ -1,5 +1,6 @@
 import type { ChartData, ChartOptions } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
+import type { Period } from '../../../lib/metrics/period';
 import type { TimeSeries } from '../../../lib/metrics/timeSeries';
 import { useChartColors } from '../shared/chartjs';
 import { formatBucket, formatCompact } from '../shared/format';
@@ -12,10 +13,22 @@ interface Point {
   income: number;
   spending: number;
   net: number;
+  /** First and last day of the column, to pick as the dashboard's dates when it is clicked. */
+  start: string;
+  end: string;
 }
 
-/** Income above the zero line, spending below it, and the net as a dot, on one axis. */
-export function CashFlowChart({ series }: { series: TimeSeries }) {
+interface CashFlowChartProps {
+  series: TimeSeries;
+  /** Called with the dates of the column clicked. */
+  onSelectPeriod(period: Period): void;
+}
+
+/**
+ * Income above the zero line, spending below it, and the net as a dot, on one axis. Click a column
+ * to make its dates the dashboard's.
+ */
+export function CashFlowChart({ series, onSelectPeriod }: CashFlowChartProps) {
   const view = useTimeView(series);
   const colors = useChartColors();
   const flows = series.cashFlow(view.granularity);
@@ -28,6 +41,8 @@ export function CashFlowChart({ series }: { series: TimeSeries }) {
       income: flow.income,
       spending: flow.spending,
       net: flow.net,
+      start: bucket.start,
+      end: bucket.end,
     };
   });
   const bar = (key: 'income' | 'spending', color: string, sign: 1 | -1) => ({
@@ -62,6 +77,11 @@ export function CashFlowChart({ series }: { series: TimeSeries }) {
     maintainAspectRatio: false,
     layout: { padding: { top: 8 } },
     interaction: { mode: 'index', axis: 'x', intersect: false },
+    onClick: (_event, elements, chart) => {
+      const first = elements[0];
+      const raw = first && (chart.data.datasets[first.datasetIndex]?.data[first.index] as Point);
+      if (raw) onSelectPeriod({ from: raw.start, to: raw.end });
+    },
     scales: {
       x: { ...timeScale(view, 'middle', colors.muted), stacked: true },
       y: {
@@ -77,7 +97,7 @@ export function CashFlowChart({ series }: { series: TimeSeries }) {
   };
 
   return (
-    <div className="relative h-60 w-full">
+    <div className="relative h-60 w-full cursor-pointer">
       <Chart type="bar" data={data} options={options} aria-label="Income and spending" role="img" />
     </div>
   );
