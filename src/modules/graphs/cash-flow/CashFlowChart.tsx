@@ -4,7 +4,7 @@ import { Chart } from 'react-chartjs-2';
 import type { Period } from '../../../lib/metrics/period';
 import type { TimeSeries } from '../../../lib/metrics/timeSeries';
 import { useChartColors } from '../shared/chartjs';
-import { formatBucket, formatChange, formatCompact, formatMoney } from '../shared/format';
+import { formatBucket, formatCompact } from '../shared/format';
 import { DragHint } from '../shared/DragHint';
 import { SELECT_EVENTS, useSelectPeriod } from '../shared/selectPeriod';
 import { anchorTime, timeScale, useTimeView } from '../shared/timeView';
@@ -93,25 +93,6 @@ export function CashFlowChart({
     },
     plugins: {
       legend: { display: false },
-      tooltip: {
-        position: 'besideBar',
-        backgroundColor: colors.surface,
-        titleColor: colors.fg,
-        bodyColor: colors.fg,
-        borderColor: colors.line,
-        borderWidth: 1,
-        padding: 10,
-        boxWidth: 8,
-        boxHeight: 8,
-        callbacks: {
-          title: (items) => (items[0]?.raw as Point | undefined)?.label ?? '',
-          label: (item) => {
-            const p = item.raw as Point;
-            if (item.dataset.label === 'Net') return `Net  ${formatChange(p.net)}`;
-            return `${item.dataset.label}  ${formatMoney(Math.abs(p.y))}`;
-          },
-        },
-      },
     },
   };
 

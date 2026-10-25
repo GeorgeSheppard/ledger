@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { FlowKind, FlowNode, MoneyFlow } from '../../../lib/paychecks/flow';
 import { layoutSankey, linkPath } from './layout';
-import { formatMoney, formatPercent } from '../shared/format';
-import { ChartTooltip } from '../shared/ChartTooltip';
+import { formatMoney } from '../shared/format';
 import { useElementWidth } from '../shared/useElementWidth';
 import { FALLBACK_COLOR, INCOME_COLOR, SPENDING_COLOR } from '../shared/theme';
 
@@ -24,8 +23,6 @@ const KIND_COLORS: Record<Exclude<FlowKind, 'category'>, string> = {
 interface Hover {
   /** `node:<id>` or `link:<index>`. */
   key: string;
-  x: number;
-  y: number;
 }
 
 interface SankeyChartProps {
@@ -62,10 +59,7 @@ export function SankeyChart({ flow, colorOf }: SankeyChartProps) {
     node.kind === 'category' ? colorOf(node.category ?? node.label) : KIND_COLORS[node.kind];
   const labelOf = (id: string) => nodeById.get(id)?.label ?? id;
 
-  const track = (key: string) => (event: React.MouseEvent) => {
-    const box = frame.current?.getBoundingClientRect();
-    if (box) setHover({ key, x: event.clientX - box.left, y: event.clientY - box.top });
-  };
+  const track = (key: string) => () => setHover({ key });
   const clear = () => setHover(null);
 
   const hoveredLink = hover?.key.startsWith('link:')
@@ -90,35 +84,6 @@ export function SankeyChart({ flow, colorOf }: SankeyChartProps) {
       return link.source === hoveredNode.id || link.target === hoveredNode.id ? 0.65 : 0.12;
     return MIN_LINK_OPACITY;
   };
-
-  const tooltip = (() => {
-    if (!hover) return null;
-    if (hoveredLink) {
-      const sourceTotal = layout.nodes.find((n) => n.id === hoveredLink.source)?.value ?? 0;
-      return {
-        title: `${labelOf(hoveredLink.source)} → ${labelOf(hoveredLink.target)}`,
-        rows: [
-          { label: 'Amount', value: formatMoney(hoveredLink.value), emphasis: true },
-          ...(sourceTotal > 0
-            ? [
-                {
-                  label: `Of ${labelOf(hoveredLink.source)}`,
-                  value: formatPercent(hoveredLink.value / sourceTotal),
-                },
-              ]
-            : []),
-        ],
-      };
-    }
-    if (hoveredNode) {
-      const node = nodeById.get(hoveredNode.id)!;
-      return {
-        title: node.label,
-        rows: [{ label: 'Amount', value: formatMoney(hoveredNode.value), emphasis: true }],
-      };
-    }
-    return null;
-  })();
 
   return (
     <div ref={frame} className="relative w-full" onMouseLeave={clear}>
@@ -187,15 +152,6 @@ export function SankeyChart({ flow, colorOf }: SankeyChartProps) {
           );
         })}
       </svg>
-      {tooltip && hover && (
-        <ChartTooltip
-          title={tooltip.title}
-          rows={tooltip.rows}
-          x={hover.x}
-          y={hover.y}
-          chartWidth={width}
-        />
-      )}
       <ul className="sr-only">
         {flow.links.map((link) => (
           <li key={`${link.source}>${link.target}`}>

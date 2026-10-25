@@ -7,9 +7,6 @@ import {
   LineController,
   LineElement,
   PointElement,
-  Tooltip,
-  type ChartType,
-  type TooltipPositionerFunction,
 } from 'chart.js';
 import { useEffect, useState } from 'react';
 
@@ -21,29 +18,8 @@ Chart.register(
   LineElement,
   PointElement,
   LinearScale,
-  Tooltip,
   Filler
 );
-declare module 'chart.js' {
-  interface TooltipPositionerMap {
-    besideBar: TooltipPositionerFunction<ChartType>;
-  }
-}
-
-/**
- * Puts a tooltip next to the bar under the pointer rather than on top of it, level with the
- * pointer, so the bar it describes stays in view. It opens to the left of bars in the right half.
- */
-Tooltip.positioners.besideBar = function (items, eventPosition) {
-  const element = items[0]?.element as { x: number; width?: number } | undefined;
-  if (!element) return false;
-  const { left, right } = this.chart.chartArea;
-  const half = (element.width ?? 0) / 2;
-  return element.x > (left + right) / 2
-    ? { x: element.x - half - 6, y: eventPosition.y, xAlign: 'right', yAlign: 'center' }
-    : { x: element.x + half + 6, y: eventPosition.y, xAlign: 'left', yAlign: 'center' };
-};
-
 Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 Chart.defaults.font.size = 12;
 Chart.defaults.animation = false;
