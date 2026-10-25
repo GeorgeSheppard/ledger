@@ -7,7 +7,13 @@ import {
   PAYCHECKS_TAB,
 } from '../../../lib/domain/types';
 import { loadWorkbook, newWorkbook } from '../../../lib/files/xlsx';
-import { DATE_FORMAT, METADATA_COLUMNS, metadataEntries } from '../../../lib/google/sheetFormat';
+import {
+  DATE_FORMAT,
+  METADATA_COLUMNS,
+  metadataEntries,
+  PAYCHECK_COLUMNS,
+  paycheckValues,
+} from '../../../lib/google/sheetFormat';
 import type { LedgerData } from '../../../lib/store/ledgerData';
 import { runningTotals } from '../../../lib/transactions/runningTotal';
 
@@ -120,7 +126,33 @@ export async function writeWorkbook(
     sheet.getCell(2, 1).value = value === null ? null : JSON.stringify(value);
   };
   writeJsonTab(DASHBOARD_TAB, 'Config', data.dashboard);
-  writeJsonTab(PAYCHECKS_TAB, 'Paychecks', data.paychecks);
+
+  // `_Paychecks` is a table, one row per payslip line. A file from before that held JSON in A2;
+  // its header and cell are replaced here.
+  const lines = paycheckValues(data.paychecks);
+  const existingPaychecks = workbook.getWorksheet(PAYCHECKS_TAB);
+  if (existingPaychecks || lines.length > 0) {
+    const sheet =
+      existingPaychecks ??
+      sheetFor(workbook, PAYCHECKS_TAB, PAYCHECK_COLUMNS, [12, 10, 12, 24, 12]);
+    PAYCHECK_COLUMNS.forEach((name, i) => {
+      const cell = sheet.getCell(1, i + 1);
+      cell.value = name;
+      cell.font = { bold: true };
+    });
+    writeRows(sheet, lines.length, PAYCHECK_COLUMNS.length, (row, cell) => {
+      const line = lines[row - 2];
+      if (!line) return false;
+      const date = cell(1);
+      date.value = isoToUtcDate(line[0]);
+      date.numFmt = DATE_FORMAT;
+      cell(2).value = line[1];
+      cell(3).value = line[2];
+      cell(4).value = line[3];
+      cell(5).value = line[4];
+      return true;
+    });
+  }
 
   return new Uint8Array(await workbook.xlsx.writeBuffer());
 }

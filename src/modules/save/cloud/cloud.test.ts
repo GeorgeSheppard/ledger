@@ -99,36 +99,94 @@ describe('saveRequests', () => {
     expect(layout.sheetIds).toContain(555);
   });
 
-  it('reads and writes the _Paychecks tab', async () => {
+  const PAYCHECK_HEADER = ['Date', 'Paycheck', 'Type', 'Name', 'Amount'];
+  const PAY = {
+    version: 3,
+    paychecks: [
+      {
+        id: 'p1',
+        date: '2026-01-25',
+        income: [{ id: 'l1', name: 'Salary', amount: 3000 }],
+        deductions: [{ id: 'l1', name: 'Tax', amount: 600 }],
+      },
+    ],
+  };
+
+  it('reads the _Paychecks table and rewrites it whole when the paychecks change', async () => {
     const client = new FakeClient([tab(10, 'Current', 0), tab(30, '_Paychecks', 1)], {
       10: [HEADER],
-      30: [['Paychecks'], ['{"paychecks":[]}']],
+      30: [
+        PAYCHECK_HEADER,
+        ['2026-01-25', '1', 'Income', 'Salary', 3000],
+        ['2026-01-25', '1', 'Deduction', 'Tax', 600],
+      ],
     });
     const base = await googleConnection(client, { id: 'sheet', title: 'Ledger' }).load();
-    expect(base.data.paychecks).toEqual({ paychecks: [] });
+    expect(base.data.paychecks).toEqual(PAY);
     expect(base.layout.paychecksSheetId).toBe(30);
-    expect(base.data.accounts.map((a) => a.name)).toEqual(['Current']);
+    expect(base.layout.paychecksLegacy).toBeUndefined();
+    expect(saveRequests(base, base.data).requests).toEqual([]);
 
-    const next: LedgerData = { ...base.data, paychecks: { paychecks: [{ id: 'a' }] } };
+    const next: LedgerData = {
+      ...base.data,
+      paychecks: { ...PAY, paychecks: [{ ...PAY.paychecks[0]!, deductions: [] }] },
+    };
     const { requests } = saveRequests(base, next);
     expect(requests).toHaveLength(1);
     const write = requests[0] as Extract<SheetsRequest, { updateCells: unknown }>;
-    expect(write.updateCells.range?.sheetId).toBe(30);
-    expect(write.updateCells.rows[0]!.values[0]?.userEnteredValue).toEqual({
-      stringValue: '{"paychecks":[{"id":"a"}]}',
+    expect(write.updateCells.range).toMatchObject({
+      sheetId: 30,
+      startRowIndex: 0,
+      endColumnIndex: 5,
     });
+    expect(write.updateCells.range?.endRowIndex).toBeUndefined();
+    // Header and the one income line; the old deduction row below is cleared by the open range.
+    expect(write.updateCells.rows).toHaveLength(2);
+    expect(write.updateCells.rows[1]!.values.map((v) => v.userEnteredValue)).toEqual([
+      expect.objectContaining({ numberValue: expect.any(Number) }),
+      { stringValue: '1' },
+      { stringValue: 'Income' },
+      { stringValue: 'Salary' },
+      { numberValue: 3000 },
+    ]);
   });
 
-  it('adds the _Paychecks tab the first time paychecks are saved', async () => {
+  it('reads the old JSON _Paychecks tab, and replaces it with the table on the next change', async () => {
+    const client = new FakeClient([tab(10, 'Current', 0), tab(30, '_Paychecks', 1)], {
+      10: [HEADER],
+      30: [['Paychecks'], [JSON.stringify(PAY)]],
+    });
+    const base = await googleConnection(client, { id: 'sheet', title: 'Ledger' }).load();
+    expect(base.data.paychecks).toEqual(PAY);
+    expect(base.layout.paychecksLegacy).toBe(true);
+    expect(saveRequests(base, base.data).requests).toEqual([]);
+
+    const next: LedgerData = {
+      ...base.data,
+      paychecks: { ...PAY, paychecks: [{ ...PAY.paychecks[0]!, id: 'p9', date: '2026-02-25' }] },
+    };
+    const { requests, layout } = saveRequests(base, next);
+    expect(requests[0]).toEqual({
+      appendDimension: { sheetId: 30, dimension: 'COLUMNS', length: 4 },
+    });
+    const write = requests.at(-1) as Extract<SheetsRequest, { updateCells: unknown }>;
+    expect(write.updateCells.range).toMatchObject({ sheetId: 30, startRowIndex: 0 });
+    expect(write.updateCells.rows[0]!.values.map((v) => v.userEnteredValue)).toEqual(
+      PAYCHECK_HEADER.map((stringValue) => ({ stringValue }))
+    );
+    expect(layout.paychecksLegacy).toBeUndefined();
+  });
+
+  it('adds the _Paychecks tab, header first, the first time paychecks are saved', async () => {
     const base = await loaded();
-    const { requests, layout } = saveRequests(base, { ...base.data, paychecks: { paychecks: [] } });
-    expect(requests.map((r) => Object.keys(r)[0])).toEqual([
-      'addSheet',
-      'updateCells',
-      'updateCells',
-    ]);
+    const { requests, layout } = saveRequests(base, { ...base.data, paychecks: PAY });
     expect(requests[0]).toMatchObject({ addSheet: { properties: { title: '_Paychecks' } } });
+    expect(requests[0]).toMatchObject({
+      addSheet: { properties: { gridProperties: { columnCount: 5 } } },
+    });
     expect(layout.paychecksSheetId).toBeDefined();
+    const write = requests.at(-1) as Extract<SheetsRequest, { updateCells: unknown }>;
+    expect(write.updateCells.rows).toHaveLength(3);
   });
 
   it('moves an old _Categories tab to _Metadata on the next save, in one batch', async () => {

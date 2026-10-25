@@ -17,7 +17,7 @@ export const ledgerDataSchema = z.object({
   categories: z.array(categorySchema),
   /** Contents of the `_Dashboard` tab, or `null` when there is none yet. */
   dashboard: jsonSchema.nullable(),
-  /** Contents of the `_Paychecks` tab, or `null` when there is none yet. */
+  /** Contents of the `_Paychecks` tab in the app's JSON shape, or `null` when there is none yet. */
   paychecks: jsonSchema.nullable(),
 });
 
@@ -34,6 +34,8 @@ export const sheetLayoutSchema = z.object({
   metadataSheetId: z.number().int().optional(),
   dashboardSheetId: z.number().int().optional(),
   paychecksSheetId: z.number().int().optional(),
+  /** The `_Paychecks` tab still has the old one-cell JSON layout; the next write replaces it with the table. */
+  paychecksLegacy: z.boolean().optional(),
 });
 
 export const remoteStateSchema = z.object({

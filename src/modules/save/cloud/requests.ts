@@ -11,7 +11,8 @@ import {
   METADATA_COLUMNS,
   metadataEntries,
   metadataRow,
-  paychecksRow,
+  PAYCHECK_COLUMNS,
+  paycheckRows,
   transactionRow,
 } from '../../../lib/google/sheetFormat';
 import type { GridRange, SheetsRequest } from '../../../lib/google/sheetsTypes';
@@ -19,7 +20,6 @@ import { sameData, sameJson, sameRows, type LedgerData } from '../../../lib/stor
 import { newSheetId, type RemoteState, type SheetLayout } from '../../../lib/store/remote';
 
 const DASHBOARD_COLUMNS = ['Config'] as const;
-const PAYCHECKS_COLUMNS = ['Paychecks'] as const;
 /** Fields written for transaction rows: values plus the date format, never the user's styling. */
 const TRANSACTION_FIELDS = 'userEnteredValue,userEnteredFormat.numberFormat';
 const NEW_TAB_ROWS = 1000;
@@ -118,17 +118,34 @@ export function saveRequests(
     });
   }
 
+  // `_Paychecks` is a table with a row per payslip line, rewritten whole from its header down (the
+  // open-ended range clears whatever is left below). A tab still in the old one-cell JSON layout
+  // needs its grid widened first.
   if (!sameJson(base.data.paychecks, next.paychecks)) {
+    const rows = paycheckRows(next.paychecks);
     let sheetId = layout.paychecksSheetId;
     if (sheetId === undefined) {
       sheetId = layout.paychecksSheetId = newSheetId(takenIds(layout, next));
-      addTab(sheetId, PAYCHECKS_TAB, PAYCHECKS_COLUMNS, 1);
+      addTab(sheetId, PAYCHECKS_TAB, PAYCHECK_COLUMNS, rows.length);
+    } else {
+      if (layout.paychecksLegacy) {
+        requests.push({
+          appendDimension: { sheetId, dimension: 'COLUMNS', length: PAYCHECK_COLUMNS.length - 1 },
+        });
+        delete layout.paychecksLegacy;
+      }
+      fit(sheetId, rows.length - 1);
     }
     requests.push({
       updateCells: {
-        range: { ...dataRange(sheetId, 1), endRowIndex: 2 },
-        rows: [paychecksRow(next.paychecks)],
-        fields: 'userEnteredValue',
+        range: {
+          sheetId,
+          startRowIndex: 0,
+          startColumnIndex: 0,
+          endColumnIndex: PAYCHECK_COLUMNS.length,
+        },
+        rows,
+        fields: 'userEnteredValue,userEnteredFormat.numberFormat,userEnteredFormat.textFormat',
       },
     });
   }
