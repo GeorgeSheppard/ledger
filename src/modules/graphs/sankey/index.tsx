@@ -1,12 +1,7 @@
-import { useMemo } from 'react';
 import { Link } from 'react-router';
 import { paths } from '../../../app/paths';
-import { buildMoneyFlow, flowWindow } from '../../../lib/paychecks/flow';
-import { todayIso } from '../../../lib/transactions/dates';
 import type { Graph } from '../types';
-import { formatMoney } from '../shared/format';
-import { NoData } from '../shared/NoData';
-import { SankeyChart } from './SankeyChart';
+import { PaycheckFlow } from './PaycheckFlow';
 
 export const sankeyGraph: Graph = {
   kind: 'sankey',
@@ -14,18 +9,6 @@ export const sankeyGraph: Graph = {
   defaultWidth: 4,
   title: () => 'Where your money goes',
   View({ widget, ledgers, paychecks, range, ignoredCategories, colorOf }) {
-    const flow = useMemo(() => {
-      const { from, to } = flowWindow(ledgers, paychecks, range, todayIso());
-      return buildMoneyFlow({
-        paychecks,
-        ledgers,
-        from,
-        to,
-        accountIds: widget.accounts,
-        ignoredCategories,
-      });
-    }, [widget.accounts, ledgers, paychecks, range, ignoredCategories]);
-
     if (paychecks.length === 0)
       return (
         <p className="text-sm text-muted">
@@ -35,16 +18,15 @@ export const sankeyGraph: Graph = {
           </Link>
         </p>
       );
-    if (!flow) return <NoData>No paychecks entered for this period.</NoData>;
     return (
-      <>
-        <p className="mb-3 text-sm text-muted tabular-nums">
-          Gross {formatMoney(flow.totals.gross)} · Deductions {formatMoney(flow.totals.deductions)}{' '}
-          · Take-home {formatMoney(flow.totals.takeHome)} · Spent{' '}
-          {formatMoney(flow.totals.spending)}
-        </p>
-        <SankeyChart flow={flow} colorOf={colorOf} />
-      </>
+      <PaycheckFlow
+        ledgers={ledgers}
+        paychecks={paychecks}
+        range={range}
+        accountIds={widget.accounts}
+        ignoredCategories={ignoredCategories}
+        colorOf={colorOf}
+      />
     );
   },
 };

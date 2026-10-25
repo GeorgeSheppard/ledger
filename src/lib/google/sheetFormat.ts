@@ -283,13 +283,14 @@ export function dashboardRow(config: JsonValue | null): RowData {
 export const PAYCHECK_COLUMNS = ['Date', 'Paycheck', 'Type', 'Name', 'Amount'] as const;
 
 const INCOME = 'Income';
+const BENEFIT = 'Benefit in kind';
 const DEDUCTION = 'Deduction';
 
 /**
  * `_Paychecks` is a plain table with one row per payslip line, so Excel can pivot and chart it:
  * `Date | Paycheck | Type | Name | Amount`. `Paycheck` is a label shared by the lines of one payslip
- * (two payslips on one day need different labels), `Type` is Income or Deduction, and `Amount` is
- * always positive. Older files kept the paychecks as JSON text in cell A2, like `_Dashboard`; that
+ * (two payslips on one day need different labels), `Type` is Income, Benefit in kind or Deduction,
+ * and `Amount` is always positive. Older files kept the paychecks as JSON text in cell A2, like `_Dashboard`; that
  * is still read, and the next change to the paychecks writes the table.
  */
 function isPaycheckTable(values: readonly (readonly unknown[])[]): boolean {
@@ -322,14 +323,19 @@ export function parsePaychecksTab(values: readonly (readonly unknown[])[]): Json
     const type = textCell(cells[2]).toLowerCase();
     const amount = parseNumberCell(cells[4]);
     if (!date || amount === null || !(amount > 0)) continue;
-    if (type !== 'income' && type !== 'deduction') continue;
+    if (type !== 'income' && type !== 'deduction' && type !== BENEFIT.toLowerCase()) continue;
     const key = `${date}|${label}`;
     let paycheck = byLabel.get(key);
     if (!paycheck) {
-      paycheck = { id: `p${byLabel.size + 1}`, date, income: [], deductions: [] };
+      paycheck = { id: `p${byLabel.size + 1}`, date, income: [], benefits: [], deductions: [] };
       byLabel.set(key, paycheck);
     }
-    const list = type === 'income' ? paycheck.income : paycheck.deductions;
+    const list =
+      type === 'income'
+        ? paycheck.income
+        : type === 'deduction'
+          ? paycheck.deductions
+          : paycheck.benefits;
     list.push({ id: `l${list.length + 1}`, name: textCell(cells[3]), amount });
   }
   return byLabel.size === 0
@@ -352,6 +358,7 @@ export function paycheckRows(config: JsonValue | null): RowData[] {
       ],
     });
     rows.push(...paycheck.income.map((l) => line(INCOME, l)));
+    rows.push(...paycheck.benefits.map((l) => line(BENEFIT, l)));
     rows.push(...paycheck.deductions.map((l) => line(DEDUCTION, l)));
   }
   return rows;
@@ -365,6 +372,7 @@ export function paycheckValues(
   for (const [i, paycheck] of parsePaychecks(config).paychecks.entries()) {
     const label = String(i + 1);
     for (const l of paycheck.income) out.push([paycheck.date, label, INCOME, l.name, l.amount]);
+    for (const l of paycheck.benefits) out.push([paycheck.date, label, BENEFIT, l.name, l.amount]);
     for (const l of paycheck.deductions)
       out.push([paycheck.date, label, DEDUCTION, l.name, l.amount]);
   }

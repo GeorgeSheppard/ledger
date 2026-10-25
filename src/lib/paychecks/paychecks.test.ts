@@ -21,6 +21,7 @@ const payslip = (id: string, date = '2026-01-25', over: Partial<Paycheck> = {}):
     { id: 'l1', name: 'Salary', amount: 3000 },
     { id: 'l2', name: 'Allowance', amount: 200 },
   ],
+  benefits: [],
   deductions: [
     { id: 'l1', name: 'Income tax', amount: 500 },
     { id: 'l2', name: 'Pension', amount: 150.1 },
@@ -63,6 +64,7 @@ describe('the list', () => {
       id: 'p3',
       date: '2026-10-18',
       income: [],
+      benefits: [],
       deductions: [],
     });
   });

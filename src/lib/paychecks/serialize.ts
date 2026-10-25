@@ -46,6 +46,7 @@ const storedPaycheckSchema = z.object({
   id: z.string().optional().catch(undefined),
   date: isoDateSchema,
   income: z.unknown().optional().transform(parseLines),
+  benefits: z.unknown().optional().transform(parseLines),
   deductions: z.unknown().optional().transform(parseLines),
 });
 
@@ -95,6 +96,7 @@ export function serializePaychecks(list: PaycheckList): StoredPaychecks {
       id: p.id,
       date: p.date,
       income: p.income.map(line),
+      benefits: p.benefits.map(line),
       deductions: p.deductions.map(line),
     })),
   };

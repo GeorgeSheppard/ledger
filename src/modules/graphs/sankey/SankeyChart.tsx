@@ -15,6 +15,8 @@ const KIND_COLORS: Record<Exclude<FlowKind, 'category'>, string> = {
   deduction: SPENDING_COLOR,
   takeHome: 'var(--color-accent)',
   gross: 'var(--color-accent)',
+  benefit: 'var(--color-accent)',
+  benefitValue: FALLBACK_COLOR,
   saved: INCOME_COLOR,
   other: FALLBACK_COLOR,
 };

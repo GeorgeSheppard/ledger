@@ -18,7 +18,15 @@ import { round, type Paycheck } from './paychecks';
  */
 
 export type FlowKind =
-  'income' | 'gross' | 'deduction' | 'takeHome' | 'category' | 'saved' | 'other';
+  | 'income'
+  | 'benefit'
+  | 'benefitValue'
+  | 'gross'
+  | 'deduction'
+  | 'takeHome'
+  | 'category'
+  | 'saved'
+  | 'other';
 
 export interface FlowNode {
   id: string;
@@ -48,6 +56,7 @@ export interface MoneyFlow {
 
 export const OTHER_INCOME_ID = 'other';
 export const GROSS_ID = 'gross';
+export const BENEFITS_ID = 'benefits';
 export const TAKE_HOME_ID = 'takeHome';
 export const SAVED_ID = 'saved';
 
@@ -115,20 +124,25 @@ export function buildMoneyFlow({
     : ledgers;
 
   const incomes = new Map<string, Tally>();
+  const benefits = new Map<string, Tally>();
   const deductions = new Map<string, Tally>();
   for (const paycheck of paychecks) {
     const month = monthOf(paycheck.date);
     if (month < from || month > to) continue;
     for (const line of paycheck.income) if (line.amount > 0) add(incomes, line.name, line.amount);
+    for (const line of paycheck.benefits)
+      if (line.amount > 0) add(benefits, line.name, line.amount);
     for (const line of paycheck.deductions)
       if (line.amount > 0) add(deductions, line.name, line.amount);
   }
   if (incomes.size === 0) return null;
   const sumOf = (map: Map<string, Tally>) =>
     round([...map.values()].reduce((total, t) => total + t.value, 0));
-  const gross = sumOf(incomes);
+  const cash = sumOf(incomes);
+  const benefit = sumOf(benefits);
+  const gross = round(cash + benefit);
   const deducted = sumOf(deductions);
-  const takeHome = round(gross - deducted);
+  const takeHome = round(cash - deducted);
 
   // Spending per category, netted per month like the dashboard.
   const excluded = excludedFromCashFlow(
@@ -149,6 +163,8 @@ export function buildMoneyFlow({
   const links: FlowLink[] = [];
   for (const [key] of incomes) addLink(links, `income:${key}`, GROSS_ID, incomes.get(key)!.value);
   for (const [key, d] of deductions) addLink(links, GROSS_ID, `deduction:${key}`, d.value);
+  for (const [key, b] of benefits) addLink(links, `benefit:${key}`, GROSS_ID, b.value);
+  addLink(links, GROSS_ID, BENEFITS_ID, benefit);
   addLink(links, GROSS_ID, TAKE_HOME_ID, takeHome);
   addLink(links, OTHER_INCOME_ID, TAKE_HOME_ID, other);
   for (const [category, amount] of categoryTotals)
@@ -158,6 +174,9 @@ export function buildMoneyFlow({
   const incomeNodes: FlowNode[] = [...incomes]
     .sort((a, b) => b[1].value - a[1].value)
     .map(([key, t]) => ({ id: `income:${key}`, label: t.label, kind: 'income', column: 0 }));
+  const benefitNodes: FlowNode[] = [...benefits]
+    .sort((a, b) => b[1].value - a[1].value)
+    .map(([key, t]) => ({ id: `benefit:${key}`, label: t.label, kind: 'benefit', column: 0 }));
   if (other > 0)
     incomeNodes.push({ id: OTHER_INCOME_ID, label: 'Other income', kind: 'other', column: 0 });
   const deductionNodes: FlowNode[] = [...deductions]
@@ -177,8 +196,12 @@ export function buildMoneyFlow({
   return {
     nodes: [
       ...incomeNodes,
+      ...benefitNodes,
       { id: GROSS_ID, label: 'Gross pay', kind: 'gross', column: 1 },
       ...deductionNodes,
+      ...(benefit > 0
+        ? [{ id: BENEFITS_ID, label: 'Benefits in kind', kind: 'benefitValue' as const, column: 2 }]
+        : []),
       { id: TAKE_HOME_ID, label: 'Take-home pay', kind: 'takeHome', column: 2 },
       ...categoryNodes,
     ],

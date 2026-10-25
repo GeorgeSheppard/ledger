@@ -5,6 +5,7 @@ import {
   paycheckProblem,
   suggestedNames,
   tidyPaycheck,
+  totalBenefits,
   totalDeductions,
   totalIncome,
   type LineKind,
@@ -25,6 +26,7 @@ interface DraftLine {
 interface Draft {
   date: string;
   income: DraftLine[];
+  benefits: DraftLine[];
   deductions: DraftLine[];
 }
 
@@ -36,6 +38,7 @@ function toDraft(paycheck: Paycheck): Draft {
   return {
     date: paycheck.date,
     income: lines(paycheck.income),
+    benefits: lines(paycheck.benefits),
     deductions: lines(paycheck.deductions),
   };
 }
@@ -52,6 +55,7 @@ function fromDraft(draft: Draft, id: string): Paycheck {
     id,
     date: draft.date,
     income: lines(draft.income),
+    benefits: lines(draft.benefits),
     deductions: lines(draft.deductions),
   };
 }
@@ -69,7 +73,7 @@ interface LinesProps {
   placeholder: string;
   suggestions: string[];
   addLabel: string;
-  addShortcut: 'paychecks.addIncome' | 'paychecks.addDeduction';
+  addShortcut: 'paychecks.addIncome' | 'paychecks.addBenefit' | 'paychecks.addDeduction';
   total: number;
   onAdd(): void;
   /** Use a suggested name: fills an empty line, else adds one. */
@@ -240,6 +244,7 @@ export function PaycheckEditor({ paycheck, isNew, list, onSave, onCancel }: Payc
   };
 
   useShortcut('paychecks.addIncome', () => addLine('income'));
+  useShortcut('paychecks.addBenefit', () => addLine('benefits'));
   useShortcut('paychecks.addDeduction', () => addLine('deductions'));
   useShortcut('paychecks.removeLine', removeFocused, !!focus);
 
@@ -293,6 +298,16 @@ export function PaycheckEditor({ paycheck, isNew, list, onSave, onCancel }: Payc
           addLabel="Add income"
           addShortcut="paychecks.addIncome"
           total={finite(totalIncome(current))}
+        />
+
+        <Lines
+          {...common('benefits')}
+          legend="Benefit in kind"
+          hint="Taxable benefits you receive but are not paid in cash, such as a company car or health insurance. They count towards gross pay and tax, not take-home pay."
+          placeholder="Health insurance"
+          addLabel="Add benefit in kind"
+          addShortcut="paychecks.addBenefit"
+          total={finite(totalBenefits(current))}
         />
 
         <Lines

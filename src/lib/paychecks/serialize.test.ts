@@ -11,6 +11,7 @@ describe('parsePaychecks (version 3)', () => {
           id: 'p1',
           date: '2026-01-25',
           income: [{ id: 'l1', name: 'Salary', amount: 3000 }],
+          benefits: [{ id: 'l1', name: 'Health insurance', amount: 80 }],
           deductions: [{ id: 'l1', name: 'Tax', amount: 600 }],
         },
       ],
@@ -70,6 +71,7 @@ describe('migrating version 2 (one payslip per month)', () => {
     );
     expect(paychecks).toHaveLength(1);
     expect(paychecks[0]).toMatchObject({
+      benefits: [],
       date: '2026-02-28',
       income: [{ name: 'Salary', amount: 3000 }],
       deductions: [{ name: 'Tax', amount: 600 }],
@@ -103,6 +105,7 @@ describe('migrating version 1 (a schedule)', () => {
         id: 'p1',
         date: '2026-01-25',
         income: [{ id: 'l1', name: 'Acme', amount: 3000 }],
+        benefits: [],
         deductions: [
           { id: 'l1', name: 'Income tax', amount: 500 },
           { id: 'l2', name: 'Pension', amount: 100 },

@@ -66,6 +66,7 @@ function fixturePaychecks() {
         { id: 'l2', name: 'Allowance', amount: 150 },
         ...(bonus ? [{ id: 'l3', name: 'Bonus', amount: 400 }] : []),
       ],
+      benefits: [{ id: 'l1', name: 'Health insurance', amount: 80 }],
       deductions: [
         { id: 'l1', name: 'Income tax', amount: bonus ? 520 : 390 },
         { id: 'l2', name: 'National insurance', amount: bonus ? 190 : 150 },

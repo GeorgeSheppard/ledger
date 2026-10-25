@@ -218,11 +218,13 @@ viewport. `pnpm screenshots <story-id>` runs the play functions and exits 1 when
 - `_Dashboard` tab: header `Config`, the dashboard layout as JSON in cell A2.
 - `_Paychecks` tab: a plain table, one row per payslip line, so Excel can pivot and chart it:
   `Date | Paycheck | Type | Name | Amount`. `Paycheck` is a label shared by the lines of one payslip
-  (two payslips on the same day need different labels), `Type` is `Income` or `Deduction`, and
-  `Amount` is always positive. Take-home pay is income less deductions. A paycheck is one payslip
+  (two payslips on the same day need different labels), `Type` is `Income`, `Benefit in kind` or
+  `Deduction`, and `Amount` is always positive. Take-home pay is income less deductions; a benefit in
+  kind (a taxable benefit not paid in cash) counts towards gross pay but not take-home pay. A paycheck is one payslip
   typed in by hand: nothing repeats and there is no schedule, account or one-per-month rule; the
   date only decides which months of the dashboard count it (`src/lib/paychecks`). The paychecks page
-  adds, edits and deletes them and suggests names used before. The dashboard's Sankey graph follows
+  adds, edits and deletes them and suggests names used before. The Sankey graph (a dashboard widget, and
+  shown on the paychecks page) follows
   the money for the months shown: income lines → gross pay → deductions and take-home pay →
   spending categories, ending in "Saved" (extra) or "Other income" (deficit), with take-home as one
   pool. Earlier layouts are still read: the one-cell JSON tab (header `Paychecks`, JSON in A2; the

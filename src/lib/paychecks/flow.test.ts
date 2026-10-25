@@ -10,6 +10,7 @@ const payslip = (month: string, over: Partial<Paycheck> = {}): Paycheck => ({
     { id: 'l1', name: 'Salary', amount: 2800 },
     { id: 'l2', name: 'Allowance', amount: 200 },
   ],
+  benefits: [],
   deductions: [
     { id: 'l1', name: 'Income tax', amount: 500 },
     { id: 'l2', name: 'Student loan', amount: 100 },
@@ -62,6 +63,22 @@ describe('buildMoneyFlow', () => {
       'Food',
       'Saved',
     ]);
+    balanced(flow);
+  });
+
+  it('adds a benefit in kind to gross pay and tax but not to take-home pay', () => {
+    const flow = buildMoneyFlow({
+      paychecks: [
+        payslip('2026-01', { benefits: [{ id: 'b', name: 'Health insurance', amount: 100 }] }),
+      ],
+      ledgers,
+      from: '2026-01',
+      to: '2026-01',
+    })!;
+    expect(flow.totals).toMatchObject({ gross: 3100, deductions: 600, takeHome: 2400 });
+    expect(value(flow, 'benefit:health insurance', 'gross')).toBe(100);
+    expect(value(flow, 'gross', 'benefits')).toBe(100);
+    expect(value(flow, 'gross', 'takeHome')).toBe(2400);
     balanced(flow);
   });
 

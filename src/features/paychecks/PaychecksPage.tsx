@@ -6,6 +6,7 @@ import {
   newPaycheck,
   removePaycheck,
   replacePaycheck,
+  totalBenefits,
   totalDeductions,
   totalIncome,
   type PayLine,
@@ -20,6 +21,10 @@ import { Page } from '../../ui/Page';
 import { cn } from '../../ui/cn';
 import { DeleteConfirm } from '../accounts/DeleteConfirm';
 import { formatMoney } from '../../modules/graphs/shared/format';
+import { FALLBACK_COLOR } from '../../modules/graphs/shared/theme';
+import { PaycheckFlow } from '../../modules/graphs';
+import { ignoredCategoryNames } from '../../lib/categories/categories';
+import { useLedgers } from '../dashboard/loadLedgers';
 import { PaycheckEditor } from './PaycheckEditor';
 import { usePaychecks } from './usePaychecks';
 
@@ -47,6 +52,7 @@ function PaycheckCard({
   onSelect(): void;
   onEdit(): void;
 }) {
+  const hasBenefits = paycheck.benefits.length > 0;
   return (
     <Card
       data-row-id={paycheck.id}
@@ -56,11 +62,17 @@ function PaycheckCard({
       onDoubleClick={onEdit}
     >
       <h2 className="font-semibold">{formatDay(paycheck.date)}</h2>
-      <dl className="mt-3 grid grid-cols-3 gap-3 text-sm">
+      <dl className={cn('mt-3 grid gap-3 text-sm', hasBenefits ? 'grid-cols-4' : 'grid-cols-3')}>
         <div>
           <dt className="text-muted">Income</dt>
           <dd className="font-semibold tabular-nums">{formatMoney(totalIncome(paycheck))}</dd>
         </div>
+        {hasBenefits && (
+          <div>
+            <dt className="text-muted">Benefit in kind</dt>
+            <dd className="font-semibold tabular-nums">{formatMoney(totalBenefits(paycheck))}</dd>
+          </div>
+        )}
         <div>
           <dt className="text-muted">Deductions</dt>
           <dd className="font-semibold tabular-nums">{formatMoney(totalDeductions(paycheck))}</dd>
@@ -72,6 +84,7 @@ function PaycheckCard({
       </dl>
       <div className="mt-3 flex flex-col gap-1.5">
         <LineChips lines={paycheck.income} />
+        <LineChips lines={paycheck.benefits} />
         <LineChips lines={paycheck.deductions} />
       </div>
     </Card>
@@ -90,6 +103,15 @@ export function PaychecksPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const ledgers = useLedgers();
+  const ignored = useMemo(
+    () => ignoredCategoryNames(ledgers.data?.categories ?? []),
+    [ledgers.data]
+  );
+  const colorOf = useMemo(() => {
+    const colors = new Map(ledgers.data?.categories.map((c) => [c.name, c.color]));
+    return (category: string) => colors.get(category) ?? FALLBACK_COLOR;
+  }, [ledgers.data]);
 
   // Newest first, like a statement.
   const paychecks = useMemo(() => [...list.paychecks].reverse(), [list]);
@@ -187,27 +209,41 @@ export function PaychecksPage() {
           </p>
         </Card>
       ) : (
-        <div ref={listRef} className="flex flex-col gap-3" aria-label="Paychecks">
-          {paychecks.map((paycheck) => (
-            <div key={paycheck.id}>
-              <PaycheckCard
-                paycheck={paycheck}
-                selected={paycheck.id === selected}
-                onSelect={() => browsing && setSelected(paycheck.id)}
-                onEdit={() => browsing && edit(paycheck)}
+        <>
+          {ledgers.data && (
+            <Card className="p-4">
+              <h2 className="mb-3 font-semibold">Where your pay goes</h2>
+              <PaycheckFlow
+                ledgers={ledgers.data.ledgers}
+                paychecks={list.paychecks}
+                range="all"
+                ignoredCategories={ignored}
+                colorOf={colorOf}
               />
-              {confirmDelete && paycheck.id === selected && (
-                <DeleteConfirm
-                  message={`Delete the paycheck from ${formatDay(paycheck.date)}? The dashboard will no longer count it.`}
-                  deleteShortcut="paychecks.delete"
-                  cancelShortcut="paychecks.cancel"
-                  onConfirm={onDelete}
-                  onCancel={() => setConfirmDelete(false)}
+            </Card>
+          )}
+          <div ref={listRef} className="flex flex-col gap-3" aria-label="Paychecks">
+            {paychecks.map((paycheck) => (
+              <div key={paycheck.id}>
+                <PaycheckCard
+                  paycheck={paycheck}
+                  selected={paycheck.id === selected}
+                  onSelect={() => browsing && setSelected(paycheck.id)}
+                  onEdit={() => browsing && edit(paycheck)}
                 />
-              )}
-            </div>
-          ))}
-        </div>
+                {confirmDelete && paycheck.id === selected && (
+                  <DeleteConfirm
+                    message={`Delete the paycheck from ${formatDay(paycheck.date)}? The dashboard will no longer count it.`}
+                    deleteShortcut="paychecks.delete"
+                    cancelShortcut="paychecks.cancel"
+                    onConfirm={onDelete}
+                    onCancel={() => setConfirmDelete(false)}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
       {editor && (
         <PaycheckEditor

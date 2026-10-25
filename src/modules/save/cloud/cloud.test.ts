@@ -107,6 +107,7 @@ describe('saveRequests', () => {
         id: 'p1',
         date: '2026-01-25',
         income: [{ id: 'l1', name: 'Salary', amount: 3000 }],
+        benefits: [],
         deductions: [{ id: 'l1', name: 'Tax', amount: 600 }],
       },
     ],
