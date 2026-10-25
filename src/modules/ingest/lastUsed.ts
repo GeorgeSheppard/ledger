@@ -2,7 +2,7 @@ import type { IngestOption } from './types';
 
 /**
  * Remembers which way of getting a ledger in the user last chose, so the homepage can mark it
- * "Last used". Only the option's id is stored, never any data, and it survives Exit on purpose.
+ * "Used last time". Only the option's id is stored, never any data, and it survives Exit on purpose.
  */
 
 const KEY = 'ledger.lastIngest';
