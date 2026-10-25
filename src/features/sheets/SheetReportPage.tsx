@@ -11,7 +11,6 @@ const KIND_LABELS: Record<TabReport['kind'], string> = {
   account: 'Account',
   settings: 'Settings',
   categories: 'Categories',
-  dashboard: 'Dashboard',
   paychecks: 'Paychecks',
   reserved: 'Reserved',
 };

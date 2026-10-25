@@ -27,7 +27,6 @@ export const tabKindSchema = z.enum([
   'account',
   'settings',
   'categories',
-  'dashboard',
   'paychecks',
   'reserved',
 ]);
