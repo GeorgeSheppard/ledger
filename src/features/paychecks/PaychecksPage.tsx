@@ -48,14 +48,25 @@ function PaycheckCard({
   onSelect(): void;
   onEdit(): void;
 }) {
+  const label = `${formatDay(paycheck.date)} ${yearOf(paycheck.date)}`;
   const hasBenefits = paycheck.benefits.length > 0;
   return (
     <Card
       data-row-id={paycheck.id}
       aria-current={selected || undefined}
-      className={cn('cursor-pointer p-4', selected && 'outline-2 outline-offset-2 outline-accent')}
-      onClick={onSelect}
-      onDoubleClick={onEdit}
+      tabIndex={0}
+      role="button"
+      aria-label={`Edit paycheck from ${label}`}
+      className={cn(
+        'cursor-pointer p-4 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+        selected && 'outline-2 outline-offset-2 outline-accent'
+      )}
+      // Focusing selects, so Enter (the paychecks.edit shortcut) edits the focused card.
+      onFocus={onSelect}
+      onClick={() => {
+        onSelect();
+        onEdit();
+      }}
     >
       <div className="flex items-start justify-between gap-2">
         <h2 className="font-semibold">
@@ -64,13 +75,6 @@ function PaycheckCard({
             <span className="ml-2 text-xs font-normal text-muted">{paycheck.taxCode}</span>
           )}
         </h2>
-        <ActionButton
-          variant="ghost"
-          aria-label={`Edit paycheck from ${formatDay(paycheck.date)} ${yearOf(paycheck.date)}`}
-          onAction={onEdit}
-        >
-          Edit
-        </ActionButton>
       </div>
       <dl className={cn('mt-3 grid gap-3 text-sm', hasBenefits ? 'grid-cols-4' : 'grid-cols-3')}>
         <div>
