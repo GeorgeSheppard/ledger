@@ -2,9 +2,11 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import { getBinding, type ShortcutId } from '../lib/shortcuts/bindings';
 import { useLedger, useSyncStatus } from '../state/ledgerData';
+import { useHistory, useHistoryNotice, useHistoryState } from '../state/history';
 import { useSession } from '../state/session';
 import { ExitButton } from './ExitButton';
 import { useShortcut } from '../state/shortcuts';
+import { ActionButton } from '../ui/ActionButton';
 import { DonateLink } from '../ui/DonateLink';
 import { Kbd } from '../ui/Kbd';
 import { cn } from '../ui/cn';
@@ -60,6 +62,50 @@ function SheetReportLink() {
   );
 }
 
+/** Undo and redo, which work on every page: Ctrl+Z and Ctrl+Shift+Z. */
+function UndoRedo() {
+  const history = useHistory();
+  const { undoLabel, redoLabel } = useHistoryState();
+  return (
+    <div className="flex gap-1">
+      <ActionButton
+        shortcut="history.undo"
+        variant="ghost"
+        className="flex-1 justify-between"
+        disabled={!undoLabel}
+        title={undoLabel ? `Undo: ${undoLabel}` : 'Nothing to undo'}
+        onAction={() => history.undo()}
+      >
+        Undo
+      </ActionButton>
+      <ActionButton
+        shortcut="history.redo"
+        variant="ghost"
+        className="flex-1 justify-between"
+        disabled={!redoLabel}
+        title={redoLabel ? `Redo: ${redoLabel}` : 'Nothing to redo'}
+        onAction={() => history.redo()}
+      >
+        Redo
+      </ActionButton>
+    </div>
+  );
+}
+
+/** Says what the last undo or redo did, for a moment, wherever the user is on the page. */
+function HistoryNotice() {
+  const notice = useHistoryNotice();
+  return (
+    <div role="status" aria-live="polite" className="contents">
+      {notice && (
+        <p className="fixed bottom-4 left-1/2 z-50 max-w-[90vw] -translate-x-1/2 truncate rounded-lg border border-line bg-surface px-3 py-2 text-sm shadow-lg">
+          {notice}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** The connected spreadsheet: what it is, whether it is saved, and what you can do with it. */
 function SpreadsheetPanel({ title, id, isFile }: { title: string; id: string; isFile: boolean }) {
   const navigate = useNavigate();
@@ -107,6 +153,7 @@ function SpreadsheetPanel({ title, id, isFile }: { title: string; id: string; is
         )}
       </div>
       <SaveStatus buttonClassName="w-full justify-center" />
+      <UndoRedo />
       <div className="flex items-center justify-between gap-2 border-t border-line pt-2 text-xs">
         <SheetReportLink />
         <button
@@ -168,6 +215,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
       <main className="min-w-0">{children}</main>
+      {session.status === 'connected' && <HistoryNotice />}
     </div>
   );
 }

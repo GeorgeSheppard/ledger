@@ -1,3 +1,4 @@
+import { CommandStack } from '../commands/commandStack';
 import type { LedgerRepository } from '../data/repository';
 import type { Account, Category, Transaction, TransactionInput } from '../domain/types';
 import { noCache, type LedgerCache } from './cache';
@@ -63,6 +64,12 @@ export class LedgerStore implements LedgerRepository {
   private savedAt: number | null = null;
   private cacheWrite: Promise<void> = Promise.resolve();
   private readonly listeners = new Set<() => void>();
+
+  /**
+   * Everything the user can undo, edits to this spreadsheet and view changes alike. Every edit
+   * below records itself here; undoing one is saved like any other change.
+   */
+  readonly history = new CommandStack();
 
   /** Loads the spreadsheet (one read) and replays any unsaved edits left in the cache. */
   static async open({
@@ -191,17 +198,20 @@ export class LedgerStore implements LedgerRepository {
       ...this.current.accounts.map((a) => a.id),
     ]);
     const account = { id, name: title };
-    this.apply(edit.createAccount(this.current, account));
+    this.apply(edit.createAccount(this.current, account), `Add account “${title}”`);
     return { ...account };
   }
 
   async renameAccount(accountId: number, name: string): Promise<void> {
     const title = edit.checkAccountName(this.current, name, this.takenNames(), accountId);
-    this.apply(edit.renameAccount(this.current, accountId, title));
+    this.apply(edit.renameAccount(this.current, accountId, title), `Rename account to “${title}”`);
   }
 
   async setAccountInverted(accountId: number, inverted: boolean): Promise<void> {
-    this.apply(edit.setAccountInverted(this.current, accountId, inverted));
+    this.apply(
+      edit.setAccountInverted(this.current, accountId, inverted),
+      inverted ? 'Flip amount signs' : 'Stop flipping amount signs'
+    );
   }
 
   async listTransactions(accountId: number): Promise<Transaction[]> {
@@ -211,21 +221,24 @@ export class LedgerStore implements LedgerRepository {
   async addTransactions(accountId: number, inputs: TransactionInput[]): Promise<Transaction[]> {
     if (inputs.length === 0) return [];
     const { data, rows } = edit.addTransactions(this.current, accountId, inputs);
-    this.apply(data);
+    this.apply(data, `Add ${count(inputs.length, 'transaction')}`);
     const all = this.snapshot.transactionsByAccount[accountId] ?? [];
     return rows.map((row) => structuredClone(all[row - 2]!));
   }
 
   async updateTransaction(accountId: number, row: number, input: TransactionInput): Promise<void> {
-    this.apply(edit.updateTransaction(this.current, accountId, row, input));
+    this.apply(edit.updateTransaction(this.current, accountId, row, input), 'Edit transaction');
   }
 
   async deleteTransaction(accountId: number, row: number): Promise<void> {
-    this.apply(edit.deleteTransaction(this.current, accountId, row));
+    this.apply(edit.deleteTransaction(this.current, accountId, row), 'Delete transaction');
   }
 
   async deleteTransactions(accountId: number, rows: number[]): Promise<void> {
-    this.apply(edit.deleteTransactions(this.current, accountId, rows));
+    this.apply(
+      edit.deleteTransactions(this.current, accountId, rows),
+      `Delete ${count(rows.length, 'transaction')}`
+    );
   }
 
   async listCategories(): Promise<Category[]> {
@@ -233,15 +246,21 @@ export class LedgerStore implements LedgerRepository {
   }
 
   async saveCategories(categories: Category[]): Promise<void> {
-    this.apply(edit.saveCategories(this.current, categories));
+    this.apply(
+      edit.saveCategories(this.current, categories),
+      describeCategoryChange(this.current.categories, categories)
+    );
   }
 
   async renameCategory(from: string, to: string): Promise<void> {
-    this.apply(edit.renameCategory(this.current, from, to));
+    this.apply(edit.renameCategory(this.current, from, to), `Rename category “${from}” to “${to}”`);
   }
 
   async migrateCategory(from: string, to: string, archive = false): Promise<void> {
-    this.apply(edit.migrateCategory(this.current, from, to, archive));
+    this.apply(
+      edit.migrateCategory(this.current, from, to, archive),
+      `${archive ? 'Archive' : 'Move'} “${from}” into “${to}”`
+    );
   }
 
   async getPaychecks(): Promise<JsonValue | null> {
@@ -249,7 +268,7 @@ export class LedgerStore implements LedgerRepository {
   }
 
   async savePaychecks(config: JsonValue | null): Promise<void> {
-    this.apply(edit.setPaychecks(this.current, config));
+    this.apply(edit.setPaychecks(this.current, config), 'Edit paychecks');
   }
 
   // --- Internals ---
@@ -259,8 +278,20 @@ export class LedgerStore implements LedgerRepository {
     return this.saved.skippedTabs.map((t) => t.title);
   }
 
-  private apply(next: LedgerData) {
-    if (next === this.current) return;
+  /** Makes `next` the working copy and records `label` so the edit can be undone. */
+  private apply(next: LedgerData, label: string) {
+    const before = this.current;
+    if (next === before) return;
+    this.restore(next);
+    this.history.record({
+      label,
+      undo: () => this.restore(before),
+      redo: () => this.restore(next),
+    });
+  }
+
+  /** Swaps the working copy without recording anything; saving then writes whatever differs. */
+  private restore(next: LedgerData) {
     this.current = next;
     this.snapshot = toSnapshot(next, this.saved.skippedTabs, this.saved.tabReports);
     this.persist();
@@ -288,4 +319,20 @@ export class LedgerStore implements LedgerRepository {
     if (JSON.stringify(status) !== JSON.stringify(this.status)) this.status = status;
     for (const listener of this.listeners) listener();
   }
+}
+
+function count(n: number, noun: string): string {
+  return `${n} ${noun}${n === 1 ? '' : 's'}`;
+}
+
+/** "Add category “Food”" and the like, for the undo notice. */
+function describeCategoryChange(before: Category[], after: Category[]): string {
+  const names = new Set(before.map((c) => c.name));
+  const added = after.filter((c) => !names.has(c.name));
+  if (after.length > before.length && added.length === 1) return `Add category “${added[0]!.name}”`;
+  const kept = new Set(after.map((c) => c.name));
+  const removed = before.filter((c) => !kept.has(c.name));
+  if (after.length < before.length && removed.length === 1)
+    return `Delete category “${removed[0]!.name}”`;
+  return 'Edit categories';
 }
