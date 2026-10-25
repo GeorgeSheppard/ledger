@@ -49,7 +49,14 @@ describe('buildMoneyFlow', () => {
 
   it('follows each income line through gross pay, deductions and take-home into spending', () => {
     const flow = buildMoneyFlow({ paychecks, ledgers, from: '2026-01-01', to: '2026-02-28' })!;
-    expect(flow.totals).toEqual({ gross: 6000, deductions: 1200, takeHome: 4800, spending: 2000 });
+    expect(flow.totals).toEqual({
+      gross: 6000,
+      deductions: 1200,
+      takeHome: 4800,
+      spending: 2000,
+      saved: 2800,
+      overspent: 0,
+    });
     expect(value(flow, 'income:salary', 'gross')).toBe(5600);
     expect(value(flow, 'income:allowance', 'gross')).toBe(400);
     expect(value(flow, 'gross', 'deduction:income tax')).toBe(1000);
@@ -111,6 +118,24 @@ describe('buildMoneyFlow', () => {
       accountIds: [2],
     })!;
     expect(flow.totals.spending).toBe(70);
+  });
+
+  it('measures Saved from the spending that has ribbons, not from refunds netted below zero', () => {
+    const refunded = [
+      current([
+        ['2026-01-26', -500, 'Rent'],
+        ['2026-01-27', 200, 'Shopping'],
+      ]),
+    ];
+    const flow = buildMoneyFlow({
+      paychecks,
+      ledgers: refunded,
+      from: '2026-01-01',
+      to: '2026-01-31',
+    })!;
+    expect(flow.totals.spending).toBe(500);
+    expect(flow.totals.saved).toBe(flow.totals.takeHome - 500);
+    balanced(flow);
   });
 
   it('shows spending beyond take-home as other income', () => {

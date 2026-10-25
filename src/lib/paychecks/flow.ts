@@ -50,8 +50,18 @@ export interface MoneyFlow {
   /** First and last day covered. */
   from: IsoDate;
   to: IsoDate;
-  /** Gross pay, deductions, take-home pay and spending over the whole window. */
-  totals: { gross: number; deductions: number; takeHome: number; spending: number };
+  /**
+   * Gross pay, deductions, take-home pay and spending over the whole window, and what take-home
+   * pay left unspent (`saved`) or what spending went beyond it (`overspent`); at most one is above 0.
+   */
+  totals: {
+    gross: number;
+    deductions: number;
+    takeHome: number;
+    spending: number;
+    saved: number;
+    overspent: number;
+  };
 }
 
 export const OTHER_INCOME_ID = 'other';
@@ -154,6 +164,9 @@ export function buildMoneyFlow({
     ))
       for (const [category, amount] of Object.entries(flow.spendingByCategory))
         categoryTotals.set(category, round((categoryTotals.get(category) ?? 0) + amount));
+  // Refunds can net a category below zero; it has no ribbon, so it is not spending here either,
+  // which keeps the ribbons out of take-home adding up to the spending that Saved is measured from.
+  for (const [category, amount] of categoryTotals) if (amount <= 0) categoryTotals.delete(category);
   const spending = round([...categoryTotals.values()].reduce((a, b) => a + b, 0));
 
   const other = withSpending ? round(Math.max(0, spending - takeHome)) : 0;
@@ -207,6 +220,6 @@ export function buildMoneyFlow({
     links,
     from,
     to,
-    totals: { gross, deductions: deducted, takeHome, spending },
+    totals: { gross, deductions: deducted, takeHome, spending, saved, overspent: other },
   };
 }
