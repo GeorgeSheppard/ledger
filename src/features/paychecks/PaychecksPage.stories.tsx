@@ -36,3 +36,22 @@ export const AddPaycheck: Story = {
     await within(canvasElement).findByRole('dialog');
   },
 };
+
+const OLD_SHEET = [
+  'Date\tTax Code\tTax Year\tTotal Income\tPension (Salary Sacrifice)\tPension (Employer)\tTaxable Benefits\tIncome Tax\tNI\tStudent Loan\tDonations\tTake Home',
+  '25/08/2026\t1257L\t2026/27\t5,000.00\t250\t400\t120\t700\t300\t150\t50\t3,550.00',
+  '25/09/2026\t1257L\t2026/27\t5,000.00\t250\t400\t120\t700\t300\t150\t50\t3,550.00',
+].join('\n');
+
+/** Rows pasted from the old sheet, read and ready to add. */
+export const ImportOldSheet: Story = {
+  ...Empty,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      await within(canvasElement).findByRole('button', { name: /^import old sheet/i })
+    );
+    const dialog = await within(canvasElement).findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('textbox'));
+    await userEvent.paste(OLD_SHEET);
+  },
+};
