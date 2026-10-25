@@ -195,4 +195,49 @@ describe('LedgerStore', () => {
     await store.save();
     expect(remote.data.paychecks).toEqual({ paychecks: [{ id: 'p1' }] });
   });
+
+  describe('undo and redo', () => {
+    it('undoes and redoes an edit, and saves the result', async () => {
+      const { store, remote } = await open();
+      const before = (await store.listTransactions(1)).length;
+      await store.addTransactions(1, [input('2026-02-01', -5), input('2026-02-02', -6)]);
+      expect(store.history.getState().undoLabel).toBe('Add 2 transactions');
+
+      store.history.undo();
+      expect(await store.listTransactions(1)).toHaveLength(before);
+      expect(store.hasUnsavedChanges).toBe(false);
+
+      store.history.redo();
+      expect(await store.listTransactions(1)).toHaveLength(before + 2);
+      await store.save();
+      expect(remote.data.rows[1]).toHaveLength(before + 2);
+
+      store.history.undo();
+      expect(store.hasUnsavedChanges).toBe(true);
+      await store.save();
+      expect(remote.data.rows[1]).toHaveLength(before);
+    });
+
+    it('undoes edits one at a time, newest first, and drops redo after a new edit', async () => {
+      const { store } = await open();
+      await store.setAccountInverted(2, true);
+      await store.renameAccount(2, 'Renamed');
+      store.history.undo();
+      expect(store.getSnapshot().accounts[1]).toMatchObject({ inverted: true });
+      expect(store.getSnapshot().accounts[1]?.name).not.toBe('Renamed');
+      store.history.undo();
+      expect(store.getSnapshot().accounts[1]?.inverted).toBeFalsy();
+      await store.setAccountInverted(2, true);
+      expect(store.history.getState().redoLabel).toBeNull();
+    });
+
+    it('tells subscribers when an undo changes the snapshot', async () => {
+      const { store } = await open();
+      await store.deleteTransaction(1, 2);
+      const listener = vi.fn();
+      store.subscribe(listener);
+      store.history.undo();
+      expect(listener).toHaveBeenCalled();
+    });
+  });
 });

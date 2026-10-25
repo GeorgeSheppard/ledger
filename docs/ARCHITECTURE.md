@@ -122,7 +122,7 @@ src/modules/
   state. The range comes from the date picker, from dragging across the balances graph, or from
   clicking a spending column; accounts are switched on and off in the balances legend and
   categories in the spending legend or breakdown table, and every graph follows. Balances are not
-  narrowed by category, and the money-flow Sankey keeps every spending node but outlines the picked ones and dims the rest; clicking a spending node picks or clears it, and Back (`b`) undoes category picks along with date changes (`lib/metrics/viewHistory.ts`). Every Sankey column is sorted largest first. A sheet
+  narrowed by category, and the money-flow Sankey keeps every spending node but outlines the picked ones and dims the rest; clicking a spending node picks or clears it, and Ctrl+Z undoes category picks along with date changes (see Undo and redo). Every Sankey column is sorted largest first. A sheet
   may still have a `_Dashboard` tab from the old widget layout; it is ignored and left untouched.
 - **Time graphs.** Balances, spending and income/spending are drawn with Chart.js
   (`lib/metrics/timeSeries.ts` cuts a period into months, weeks or days, `granularityFor`;
@@ -299,3 +299,11 @@ pnpm screenshots <id>  # PNG screenshots of stories, for PRs
 Stories (`*.stories.tsx`, next to the component they show) render pages and dialogs through the
 real `SessionProvider` and `LedgerDataProvider` on the demo data, so what you see is what the app
 shows. See [STORYBOOK.md](STORYBOOK.md), including how to put before/after images on a PR.
+
+## Undo and redo
+
+Ctrl/⌘+Z undoes and Ctrl/⌘+Shift+Z redoes anything the user did, on every page. Inside a text field they are left to the browser's own text undo. One `CommandStack` (`lib/commands/commandStack.ts`) per open ledger lives on the store as `store.history`.
+
+- **Spreadsheet edits record themselves.** Every `LedgerStore` write goes through `apply(next, label)`, which records a command that restores the whole previous (or next) `LedgerData`. A new store method only has to pass a label. Undo swaps the working copy, so the usual save, autosave and browser cache write the undone state like any other change.
+- **View state** (dashboard dates, category picks, hidden accounts) uses `useUndoableState(initial, scope)` from `state/history.tsx`. Its commands are dropped when that screen unmounts. Use `history.batch(label, …)` to make several changes one step.
+- Commands must not depend on what ran between them (absolute values, not deltas), so any can be dropped from the middle. `AppShell` shows the Undo/Redo buttons and a short "Undid: …" notice.

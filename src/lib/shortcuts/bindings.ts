@@ -29,7 +29,7 @@ export interface ShortcutBinding {
 
 export const SHORTCUTS = {
   // Global navigation (scaffold). Ctrl/⌘ chords so they never fire while typing a letter. Avoid
-  // mod+N/T/W (the browser keeps them) and mod+C/V/X/Z/F/R/L/P (copy, find, reload and friends).
+  // mod+N/T/W (the browser keeps them) and mod+C/V/X/F/R/L/P (copy, find, reload and friends).
   'nav.dashboard': { keys: 'mod+d', description: 'Go to dashboard', scope: 'global' },
   'nav.accounts': { keys: 'mod+a', description: 'Go to accounts', scope: 'global' },
   'nav.categories': { keys: 'mod+k', description: 'Go to categories', scope: 'global' },
@@ -42,6 +42,11 @@ export const SHORTCUTS = {
     allowInInputs: true,
   },
 
+  // Undo and redo cover everything the user does, so they work on every page. They stay out of text
+  // fields, where Ctrl+Z undoes the typing instead.
+  'history.undo': { keys: 'mod+z', description: 'Undo', scope: 'global' },
+  'history.redo': { keys: 'mod+shift+z', description: 'Redo', scope: 'global' },
+
   // Dashboard (step 3)
   'dashboard.previousPeriod': {
     keys: '[',
@@ -51,11 +56,6 @@ export const SHORTCUTS = {
   'dashboard.nextPeriod': {
     keys: ']',
     description: 'Next period on the dashboard',
-    scope: 'dashboard',
-  },
-  'dashboard.backPeriod': {
-    keys: 'b',
-    description: 'Back to the dates and categories you had before',
     scope: 'dashboard',
   },
   'dashboard.viewTransactions': {

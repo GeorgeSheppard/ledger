@@ -67,7 +67,7 @@ describe('SHORTCUTS', () => {
   });
 
   it('avoids chords the browser keeps or that break copy, find and reload', () => {
-    const reserved = ['n', 't', 'w', 'c', 'v', 'x', 'z', 'f', 'r', 'l', 'p', 'q', 'tab'];
+    const reserved = ['n', 't', 'w', 'c', 'v', 'x', 'f', 'r', 'l', 'p', 'q', 'tab'];
     for (const [id, { keys }] of entries) {
       const chord = normalizeChord(keys);
       if (!chord.startsWith('mod+')) continue;
