@@ -42,8 +42,8 @@
     --ledger-accent-fg: #06091a;
     --ledger-positive: #4be3a0;
     --ledger-negative: #ff8585;
-    --ledger-bar: #f4f4f1;
-    --ledger-bar-fg: #0b0b0c;
+    --ledger-bar: #000000;
+    --ledger-bar-fg: #ffffff;
     --ledger-tile-positive: #0a7d4e;
     --ledger-tile-negative: #c42525;
     --ledger-tile-fg: #ffffff;
@@ -152,8 +152,8 @@
 }
 
 /*
-  The top bar is drawn in the inverse of the page (black on paper becomes paper on black), so
-  everything inside it keeps using the ordinary tokens, remapped here.
+  The top bar is black in both light and dark mode, so everything inside it keeps using the
+  ordinary tokens, remapped here to white-on-black.
 */
 .ledger-bar {
   --ledger-canvas: var(--ledger-bar);
@@ -168,14 +168,4 @@
   --ledger-accent-fg: #06091a;
   --ledger-positive: #4be3a0;
   --ledger-negative: #ff8585;
-}
-
-@media (prefers-color-scheme: dark) {
-  .ledger-bar {
-    --ledger-accent: #1d3ff2;
-    --ledger-accent-hover: #1531c4;
-    --ledger-accent-fg: #ffffff;
-    --ledger-positive: #06764a;
-    --ledger-negative: #c01f1f;
-  }
 }

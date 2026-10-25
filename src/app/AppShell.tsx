@@ -146,7 +146,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="ledger-bar sticky top-0 z-30 bg-bar text-fg">
+      <header className="ledger-bar sticky top-0 z-30 border-b border-line bg-bar text-fg">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-0 px-4 pt-2 md:flex-nowrap md:px-8 md:pt-0">
           <div className="text-lg font-bold tracking-tight">Ledger</div>
           <nav
