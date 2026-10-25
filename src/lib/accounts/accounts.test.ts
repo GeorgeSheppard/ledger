@@ -12,6 +12,8 @@ describe('accounts', () => {
   it('validates tab names', () => {
     expect(validateAccountName(accounts, '')).toBe('Enter a name');
     expect(validateAccountName(accounts, '_Hidden')).toMatch(/reserved/);
+    expect(validateAccountName(accounts, 'Paychecks')).toMatch(/reserved/);
+    expect(validateAccountName(accounts, 'Ledger_x')).toMatch(/reserved/);
     expect(validateAccountName(accounts, 'A/B')).toMatch(/cannot contain/);
     expect(validateAccountName(accounts, 'savings')).toMatch(/already exists/);
     expect(validateAccountName(accounts, 'savings', 2)).toBeNull();

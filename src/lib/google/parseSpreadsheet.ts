@@ -2,17 +2,16 @@ import type { SheetProperties, GridRange } from './sheetsTypes';
 import {
   ACCOUNT_COLUMNS,
   CATEGORIES_TAB,
-  DASHBOARD_TAB,
+  LEGACY_TAB_NAMES,
   METADATA_TAB,
   PAYCHECKS_TAB,
-  RESERVED_TAB_PREFIX,
+  isReservedTabName,
 } from '../domain/types';
 import type { Category } from '../domain/types';
 import type { LedgerData, SkippedTab, TabReport } from '../store/ledgerData';
 import type { RemoteState, SheetLayout } from '../store/remote';
 import {
   parseAccountTab,
-  parseDashboardCell,
   parseMetadata,
   isLegacyPaychecksTab,
   PAYCHECK_COLUMNS,
@@ -28,8 +27,49 @@ import {
 
 const CATEGORY_COLUMNS = ['Name', 'Color'] as const;
 
-/** What to read from a tab, from row 1. Account tabs read one column past Total to spot extra columns. */
-export function readRange(tab: SheetProperties): GridRange | null {
+type TabRole = 'metadata' | 'categories' | 'paychecks' | 'ignored' | 'account';
+
+const NEW_TAB_ROLES: Readonly<Partial<Record<string, TabRole>>> = {
+  [METADATA_TAB]: 'metadata',
+  [PAYCHECKS_TAB]: 'paychecks',
+};
+
+/**
+ * What each tab is for. The app's own tabs are found by their current name, or by the name they had
+ * before the rename when there is no tab with the new one (`renames` then says what to call them on
+ * the next save). Any other reserved name is left alone.
+ */
+function tabRoles(tabs: readonly SheetProperties[]): {
+  roles: Map<number, TabRole>;
+  renames: Record<number, string>;
+} {
+  const titles = new Set(tabs.map((tab) => tab.title));
+  const roles = new Map<number, TabRole>();
+  const renames: Record<number, string> = {};
+  for (const tab of tabs) {
+    const legacyOf = Object.entries(LEGACY_TAB_NAMES).find(([, old]) => old === tab.title)?.[0];
+    let role: TabRole;
+    const current = NEW_TAB_ROLES[tab.title];
+    const migrated = legacyOf && !titles.has(legacyOf) ? NEW_TAB_ROLES[legacyOf] : undefined;
+    if (current) role = current;
+    else if (migrated && legacyOf) {
+      role = migrated;
+      renames[tab.sheetId] = legacyOf;
+    } else if (tab.title === CATEGORIES_TAB) role = 'categories';
+    else role = isReservedTabName(tab.title) ? 'ignored' : 'account';
+    roles.set(tab.sheetId, role);
+  }
+  return { roles, renames };
+}
+
+/**
+ * What to read from a tab, from row 1. Account tabs read one column past Total to spot extra columns.
+ * `tabs` is the whole tab list, needed to tell a tab with an old app name from a clashing one.
+ */
+export function readRange(
+  tab: SheetProperties,
+  tabs: readonly SheetProperties[] = [tab]
+): GridRange | null {
   const range = (columns: number, rows?: number): GridRange => ({
     sheetId: tab.sheetId,
     startRowIndex: 0,
@@ -37,12 +77,18 @@ export function readRange(tab: SheetProperties): GridRange | null {
     startColumnIndex: 0,
     endColumnIndex: columns,
   });
-  if (tab.title === METADATA_TAB) return range(METADATA_COLUMNS.length);
-  if (tab.title === CATEGORIES_TAB) return range(CATEGORY_COLUMNS.length);
-  if (tab.title === DASHBOARD_TAB) return range(1, 2);
-  if (tab.title === PAYCHECKS_TAB) return range(PAYCHECK_COLUMNS.length);
-  if (tab.title.startsWith(RESERVED_TAB_PREFIX)) return null;
-  return range(ACCOUNT_COLUMNS.length + 1);
+  switch (tabRoles(tabs).roles.get(tab.sheetId)) {
+    case 'metadata':
+      return range(METADATA_COLUMNS.length);
+    case 'categories':
+      return range(CATEGORY_COLUMNS.length);
+    case 'paychecks':
+      return range(PAYCHECK_COLUMNS.length);
+    case 'account':
+      return range(ACCOUNT_COLUMNS.length + 1);
+    default:
+      return null;
+  }
 }
 
 function plural(count: number, one: string, many = `${one}s`): string {
@@ -58,7 +104,6 @@ export function parseSpreadsheet(
     accounts: [],
     rows: {},
     categories: [],
-    dashboard: null,
     paychecks: null,
   };
   const skippedTabs: SkippedTab[] = [];
@@ -67,11 +112,14 @@ export function parseSpreadsheet(
   let metadata: ReturnType<typeof parseMetadata> | null = null;
   let legacyCategories: Category[] = [];
   let legacyReport: TabReport | null = null;
+  const { roles, renames } = tabRoles(tabs);
+  if (Object.keys(renames).length > 0) layout.renames = renames;
   for (const tab of [...tabs].sort((a, b) => a.index - b.index)) {
     layout.sheetIds.push(tab.sheetId);
     layout.rowCounts[tab.sheetId] = tab.gridProperties?.rowCount ?? 0;
     const values = valuesById.get(tab.sheetId) ?? [];
-    if (tab.title === METADATA_TAB) {
+    const role = roles.get(tab.sheetId);
+    if (role === 'metadata') {
       layout.metadataSheetId = tab.sheetId;
       metadata = parseMetadata(values.slice(1));
       tabReports.push({
@@ -84,7 +132,7 @@ export function parseSpreadsheet(
             : ''
         }.`,
       });
-    } else if (tab.title === CATEGORIES_TAB) {
+    } else if (role === 'categories') {
       layout.categoriesSheetId = tab.sheetId;
       legacyCategories = rowsToCategories(values.slice(1));
       legacyReport = {
@@ -94,19 +142,7 @@ export function parseSpreadsheet(
         reason: `Categories from an older version of Ledger (${plural(legacyCategories.length, 'category', 'categories')}).`,
       };
       tabReports.push(legacyReport);
-    } else if (tab.title === DASHBOARD_TAB) {
-      layout.dashboardSheetId = tab.sheetId;
-      data.dashboard = parseDashboardCell(values[1]?.[0]);
-      tabReports.push({
-        title: tab.title,
-        kind: 'dashboard',
-        imported: data.dashboard !== null,
-        reason:
-          data.dashboard !== null
-            ? 'Your dashboard layout.'
-            : 'No readable dashboard layout in cell A2, so the default dashboard is shown.',
-      });
-    } else if (tab.title === PAYCHECKS_TAB) {
+    } else if (role === 'paychecks') {
       layout.paychecksSheetId = tab.sheetId;
       data.paychecks = parsePaychecksTab(values);
       if (isLegacyPaychecksTab(values)) layout.paychecksLegacy = true;
@@ -119,12 +155,12 @@ export function parseSpreadsheet(
             ? 'Your paychecks.'
             : `No paychecks found. Rows need a ${PAYCHECK_COLUMNS.join(' | ')} header, a valid date and a positive amount.`,
       });
-    } else if (tab.title.startsWith(RESERVED_TAB_PREFIX)) {
+    } else if (role === 'ignored') {
       tabReports.push({
         title: tab.title,
         kind: 'reserved',
         imported: false,
-        reason: `Tabs starting with ${RESERVED_TAB_PREFIX} are kept for Ledger's own settings, so this one is not read as an account. Rename it to import it.`,
+        reason: `Tabs starting with _ or Ledger_ are kept for Ledger's own settings, so this one is not read as an account. Rename it to import it.`,
       });
     } else {
       const parsed = parseAccountTab(values);

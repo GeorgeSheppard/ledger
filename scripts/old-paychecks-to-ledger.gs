@@ -1,5 +1,5 @@
 /**
- * One-time converter: your old paycheck sheet -> Ledger's `_Paychecks` table.
+ * One-time converter: your old paycheck sheet -> Ledger's `Paychecks` table.
  *
  * Use it once, then delete it:
  *  1. Open the OLD paycheck spreadsheet, then Extensions > Apps Script.
@@ -15,10 +15,10 @@
  *   Date | Tax code | Type | Name | Amount     (Type: Income / Benefit in kind / Deduction)
  * One payslip per date; the tax code is repeated on each of its rows (the app keeps it but never uses it).
  *
- * By default it writes a new tab called "_Paychecks (new)" in the old spreadsheet; copy its rows
- * into the `_Paychecks` tab of your Ledger sheet. To skip the copying, put your Ledger
+ * By default it writes a new tab called "Paychecks (new)" in the old spreadsheet; copy its rows
+ * into the `Paychecks` tab of your Ledger sheet. To skip the copying, put your Ledger
  * spreadsheet's id (the long part of its URL) in TARGET_SPREADSHEET_ID: the rows are then added
- * to its `_Paychecks` tab (below any paychecks already there), and nothing is written to the old sheet.
+ * to its `Paychecks` tab (below any paychecks already there), and nothing is written to the old sheet.
  *
  * Mapping:
  *  - Total Income -> Income "Salary"; Taxable Benefits -> Benefit in kind "Taxable benefits".
@@ -31,7 +31,7 @@
 
 /** The old tab's name; leave empty to use the tab that is open. */
 var SOURCE_SHEET = '';
-/** Optional: the Ledger spreadsheet's id, to write straight into its `_Paychecks` tab. */
+/** Optional: the Ledger spreadsheet's id, to write straight into its `Paychecks` tab. */
 var TARGET_SPREADSHEET_ID = '';
 
 var HEADER = ['Date', 'Tax code', 'Type', 'Name', 'Amount'];
@@ -78,7 +78,7 @@ function convertOldPaychecks() {
     );
 
   var target = TARGET_SPREADSHEET_ID ? SpreadsheetApp.openById(TARGET_SPREADSHEET_ID) : source;
-  var tabName = TARGET_SPREADSHEET_ID ? '_Paychecks' : '_Paychecks (new)';
+  var tabName = TARGET_SPREADSHEET_ID ? 'Paychecks' : 'Paychecks (new)';
   var tab = target.getSheetByName(tabName);
   if (tab && !TARGET_SPREADSHEET_ID)
     throw new Error('"' + tabName + '" already exists. Delete it and run again.');
@@ -94,7 +94,7 @@ function convertOldPaychecks() {
     var header = existing[0].map(String);
     if (header.join('|').toLowerCase() !== HEADER.join('|').toLowerCase())
       throw new Error(
-        'The `_Paychecks` tab is not the Date | Tax code | Type | Name | Amount table. Open Ledger, change a paycheck so it rewrites the tab, then run this again.'
+        'The `Paychecks` tab is not the Date | Tax code | Type | Name | Amount table. Open Ledger, change a paycheck so it rewrites the tab, then run this again.'
       );
     firstRow = existing.length + 1;
   }
@@ -129,7 +129,7 @@ function convertOldPaychecks() {
     '"' +
     (TARGET_SPREADSHEET_ID
       ? ' in the Ledger spreadsheet.'
-      : ". Copy them into your Ledger sheet's `_Paychecks` tab.") +
+      : ". Copy them into your Ledger sheet's `Paychecks` tab.") +
     (result.warnings.length ? '\n\nCheck these:\n' + result.warnings.join('\n') : '');
   Logger.log(message);
   SpreadsheetApp.getUi().alert(message);

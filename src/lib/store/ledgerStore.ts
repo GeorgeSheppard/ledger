@@ -244,14 +244,6 @@ export class LedgerStore implements LedgerRepository {
     this.apply(edit.migrateCategory(this.current, from, to, archive));
   }
 
-  async getDashboardConfig(): Promise<JsonValue | null> {
-    return structuredClone(this.snapshot.dashboard);
-  }
-
-  async saveDashboardConfig(config: JsonValue | null): Promise<void> {
-    this.apply(edit.setDashboard(this.current, config));
-  }
-
   async getPaychecks(): Promise<JsonValue | null> {
     return structuredClone(this.snapshot.paychecks);
   }

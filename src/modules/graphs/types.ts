@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react';
-import type { WidgetWidth } from '../../lib/dashboard/config';
 import type { Period } from '../../lib/metrics/period';
 import type { AccountLedger } from '../../lib/metrics/netWorth';
 import type { Paycheck } from '../../lib/paychecks/paychecks';
@@ -8,6 +7,9 @@ import type { Paycheck } from '../../lib/paychecks/paychecks';
  * What every graph is given to draw. The dashboard page works all of this out once: the one date
  * range, and the account and category filters that every graph shares.
  */
+/** Columns of the 4-column dashboard grid a graph spans on wide screens. */
+export type WidgetWidth = 1 | 2 | 3 | 4;
+
 export interface GraphViewProps {
   /** The date range every graph is drawn for. */
   period: Period;

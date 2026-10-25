@@ -1,4 +1,4 @@
-import { RESERVED_TAB_PREFIX, type Account } from '../domain/types';
+import { isReservedTabName, type Account } from '../domain/types';
 
 /** Account (sheet tab) helpers: name rules, lookup from the URL, and cycling through accounts. */
 
@@ -13,8 +13,8 @@ export function validateAccountName(
 ): string | null {
   const trimmed = name.trim();
   if (!trimmed) return 'Enter a name';
-  if (trimmed.startsWith(RESERVED_TAB_PREFIX))
-    return `Names starting with "${RESERVED_TAB_PREFIX}" are reserved`;
+  if (isReservedTabName(trimmed))
+    return 'Names starting with "_" or "Ledger_", and "Paychecks", are reserved';
   if (FORBIDDEN_TAB_CHARS.test(trimmed)) return 'Names cannot contain [ ] * ? / \\ or :';
   if (trimmed.length > 100) return 'Keep names under 100 characters';
   const clash = accounts.find(

@@ -5,7 +5,7 @@ import { migrateMonthlyPaychecks, migrateScheduledPaychecks } from './legacy';
 import { newId, type PayLine, type Paycheck, type PaycheckList } from './paychecks';
 
 /**
- * Paychecks as stored in the spreadsheet (the store keeps them as JSON in the `_Paychecks` tab).
+ * Paychecks as stored in the spreadsheet (the store keeps them as JSON in the `Paychecks` tab).
  * Reading is forgiving because the sheet can be edited by hand: anything that cannot be understood
  * is dropped or repaired instead of failing the page. Versions 1 (a schedule per paycheck) and 2
  * (one payslip per month) are converted to dated paychecks on read and written back as version 3

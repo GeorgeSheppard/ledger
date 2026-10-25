@@ -185,17 +185,6 @@ describe('LedgerStore', () => {
     await expect(store.renameAccount(1, 'Current account')).resolves.toBeUndefined();
   });
 
-  it('stores the dashboard config', async () => {
-    const { store, remote } = await open();
-    expect(await store.getDashboardConfig()).toBeNull();
-    await store.saveDashboardConfig({ widgets: [{ kind: 'netWorth', accounts: [1] }] });
-    expect(store.getSnapshot().dashboard).toEqual({
-      widgets: [{ kind: 'netWorth', accounts: [1] }],
-    });
-    await store.save();
-    expect(remote.data.dashboard).toEqual({ widgets: [{ kind: 'netWorth', accounts: [1] }] });
-  });
-
   it('stores the paychecks', async () => {
     const { store, remote } = await open();
     await store.savePaychecks(null);
