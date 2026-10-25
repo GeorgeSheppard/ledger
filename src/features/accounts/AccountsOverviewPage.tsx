@@ -47,7 +47,7 @@ export function AccountsOverviewPage() {
   const actions = useAccountActions();
   const [adding, setAdding] = useState(false);
   /** The account whose settings are open in place of its row. */
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   /** `null` is the sheet's own tab order. */
   const [sort, setSort] = useState<AccountSort | null>(null);
 

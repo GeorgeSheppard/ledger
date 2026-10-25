@@ -337,6 +337,6 @@ export const Settings: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click((await canvas.findAllByRole('row'))[1]);
+    await userEvent.click((await canvas.findAllByRole('row'))[1]!);
   },
 };
