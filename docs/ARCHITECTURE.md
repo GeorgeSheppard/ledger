@@ -122,7 +122,7 @@ src/modules/
   state. The range comes from the date picker, from dragging across the balances graph, or from
   clicking a spending column; accounts are switched on and off in the balances legend and
   categories in the spending legend or breakdown table, and every graph follows. Balances are not
-  narrowed by category, and the money-flow Sankey ignores the category filter. The `_Dashboard` tab
+  narrowed by category, and the money-flow Sankey keeps every spending node but dims those outside the category filter; clicking a spending node picks or clears it. The `_Dashboard` tab
   of the sheet (the old widget layout) is still read and written back untouched, but layout editing
   is switched off for now.
 - **Time graphs.** Balances, spending and income/spending are drawn with Chart.js

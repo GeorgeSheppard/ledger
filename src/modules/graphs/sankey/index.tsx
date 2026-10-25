@@ -8,7 +8,16 @@ export const sankeyGraph: Graph = {
   kind: 'sankey',
   title: 'Where your money goes',
   width: 4,
-  View({ period, ledgers, paychecks, accountIds, ignoredCategories, colorOf }) {
+  View({
+    period,
+    ledgers,
+    paychecks,
+    accountIds,
+    categories,
+    ignoredCategories,
+    colorOf,
+    toggleCategory,
+  }) {
     if (paychecks.length === 0)
       return (
         <p className="text-sm text-muted">
@@ -27,6 +36,8 @@ export const sankeyGraph: Graph = {
         accountIds={accountIds}
         ignoredCategories={ignoredCategories}
         colorOf={colorOf}
+        chosen={categories}
+        onToggleCategory={toggleCategory}
       />
     );
   },
