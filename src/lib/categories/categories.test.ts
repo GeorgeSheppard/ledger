@@ -5,6 +5,8 @@ import {
   categoriesForAccount,
   categoryColor,
   isGlobal,
+  activeCategories,
+  setCategoryArchived,
   setCategoryAccounts,
   completeCategories,
   ignoredCategoryNames,
@@ -159,5 +161,20 @@ describe('excluded categories', () => {
       new Set(['eating out'])
     );
     expect(addCategory(list, 'Transfer', '#abcdef', true).at(-1)?.excluded).toBe(true);
+  });
+});
+
+describe('archived categories', () => {
+  const archived = setCategoryArchived(list, 'rent', true);
+
+  it('hides the category from active lists and account pickers but keeps it in the list', () => {
+    expect(archived.find((c) => c.name === 'Rent')!.archived).toBe(true);
+    expect(activeCategories(archived).map((c) => c.name)).not.toContain('Rent');
+    expect(categoriesForAccount(archived, 'Current').map((c) => c.name)).not.toContain('Rent');
+    expect(archived).toHaveLength(list.length);
+  });
+
+  it('restores by dropping the flag', () => {
+    expect(setCategoryArchived(archived, 'Rent', false)).toEqual(list);
   });
 });

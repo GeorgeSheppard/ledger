@@ -55,6 +55,11 @@ export const categorySchema = z.object({
    * account offers it. Transactions may still use the name in any account; only the picker is limited.
    */
   accounts: z.array(z.string()).optional().catch(undefined),
+  /**
+   * Hidden from category lists and pickers. Transactions keep the name, so history and graphs are
+   * unchanged; the category can be restored from the Archived section of the categories page.
+   */
+  archived: z.boolean().optional().catch(undefined),
 });
 
 /** The spreadsheet the user has connected. */

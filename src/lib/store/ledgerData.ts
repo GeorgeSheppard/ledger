@@ -1,7 +1,7 @@
 import type { z } from 'zod';
 import type { Account, Category, Transaction, TransactionInput } from '../domain/types';
 import { RESERVED_TAB_PREFIX } from '../domain/types';
-import { completeCategories } from '../categories/categories';
+import { addCategory, completeCategories, sameName } from '../categories/categories';
 import { runningTotals } from '../transactions/runningTotal';
 import type { jsonSchema, ledgerDataSchema, skippedTabSchema } from './schemas';
 
@@ -267,6 +267,39 @@ export function renameCategory(data: LedgerData, from: string, to: string): Ledg
   };
 }
 
+/** Every transaction (any account) in `name`, matched ignoring case like the category list. */
+export function countCategoryUse(data: LedgerData, name: string): number {
+  let count = 0;
+  for (const list of Object.values(data.rows))
+    for (const r of list) if (sameName(r.category, name)) count++;
+  return count;
+}
+
+/**
+ * Moves every transaction in `from` to `to` (in all accounts) and returns how many changed. `to`
+ * is added to the list if it is new. With `archive`, `from` is archived afterwards; otherwise it
+ * stays as an unused category.
+ */
+export function migrateCategory(
+  data: LedgerData,
+  from: string,
+  to: string,
+  archive = false
+): LedgerData {
+  const known = data.categories.find((c) => sameName(c.name, to));
+  const target = known?.name ?? to.trim();
+  if (!target || sameName(from, target)) return data;
+  const rows: Record<number, TransactionInput[]> = {};
+  for (const [id, list] of Object.entries(data.rows))
+    rows[Number(id)] = list.some((r) => sameName(r.category, from))
+      ? list.map((r) => (sameName(r.category, from) ? { ...r, category: target } : r))
+      : list;
+  const categories = (known ? data.categories : addCategory(data.categories, target)).map((c) =>
+    archive && sameName(c.name, from) ? { ...c, archived: true } : c
+  );
+  return { ...data, rows, categories };
+}
+
 /** Adds the categories the transactions use but the list lacks, and colours any that have none. */
 export function withUsedCategories(data: LedgerData): LedgerData {
   const categories = completeCategories(data.categories, Object.values(data.rows).flat());
@@ -307,6 +340,7 @@ export function sameCategories(a: readonly Category[], b: readonly Category[]): 
         c.name === b[i]!.name &&
         c.color === b[i]!.color &&
         !!c.excluded === !!b[i]!.excluded &&
+        !!c.archived === !!b[i]!.archived &&
         (c.accounts ?? []).join('\n') === (b[i]!.accounts ?? []).join('\n')
     )
   );

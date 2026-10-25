@@ -240,6 +240,10 @@ export class LedgerStore implements LedgerRepository {
     this.apply(edit.renameCategory(this.current, from, to));
   }
 
+  async migrateCategory(from: string, to: string, archive = false): Promise<void> {
+    this.apply(edit.migrateCategory(this.current, from, to, archive));
+  }
+
   async getDashboardConfig(): Promise<JsonValue | null> {
     return structuredClone(this.snapshot.dashboard);
   }

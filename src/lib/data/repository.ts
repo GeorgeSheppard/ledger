@@ -39,6 +39,11 @@ export interface LedgerRepository {
   saveCategories(categories: Category[]): Promise<void>;
   /** Renames a category and rewrites every transaction that used the old name. */
   renameCategory(from: string, to: string): Promise<void>;
+  /**
+   * Moves every transaction (all accounts) from category `from` to `to`, adding `to` if it is new,
+   * and optionally archives `from`. One step, so one save.
+   */
+  migrateCategory(from: string, to: string, archive?: boolean): Promise<void>;
 
   /** The dashboard layout saved in the `_Dashboard` tab, or `null` if none was saved yet. */
   getDashboardConfig(): Promise<JsonValue | null>;

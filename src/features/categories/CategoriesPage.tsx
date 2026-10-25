@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { usageOf } from '../../lib/categories/categories';
+import { activeCategories, isArchived, usageOf } from '../../lib/categories/categories';
 import { nextCategoryColor } from '../../lib/categories/palette';
 import { METADATA_TAB, type Account, type Category } from '../../lib/domain/types';
 import {
@@ -15,6 +15,7 @@ import { Kbd } from '../../ui/Kbd';
 import { DeleteConfirm } from '../accounts/DeleteConfirm';
 import { CategoryEditor } from './CategoryEditor';
 import { CategoryRow } from './CategoryRow';
+import { MigrateConfirm } from './MigrateConfirm';
 import { useCategoriesWithUsage, useCategoryActions } from './useCategoriesData';
 import { Page } from '../../ui/Page';
 
@@ -29,7 +30,9 @@ export function CategoriesPage() {
       description={
         <>
           Stored in the <code className="font-mono">{METADATA_TAB}</code> tab of your sheet.
-          Renaming a category updates every transaction that uses it.
+          Renaming a category updates every transaction that uses it. Archive a category you no
+          longer use to hide it from lists and pickers; its transactions and history stay as they
+          are.
         </>
       }
     >
@@ -49,7 +52,7 @@ export function CategoriesPage() {
 }
 
 function CategoryList({
-  categories,
+  categories: allCategories,
   accounts,
   usage,
 }: {
@@ -63,10 +66,14 @@ function CategoryList({
   const [writeError, setWriteError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
+  const [migrating, setMigrating] = useState<string | null>(null);
+  const categories = useMemo(() => activeCategories(allCategories), [allCategories]);
+  const archived = useMemo(() => allCategories.filter(isArchived), [allCategories]);
+
   const ids = useMemo(() => categories.map((c) => c.name), [categories]);
   const selected = categories.find((c) => c.name === state.selectedId);
   const mode = state.mode;
-  const browsing = mode.kind === 'browse';
+  const browsing = mode.kind === 'browse' && migrating === null;
 
   useEffect(() => {
     if (!state.selectedId) return;
@@ -103,7 +110,11 @@ function CategoryList({
 
   const move = (delta: number) => {
     if (!selected || saving) return;
-    void run(() => actions.move(selected.name, delta), selected.name);
+    // The full list also holds archived categories, so step over those to move visibly.
+    const to = categories[categories.indexOf(selected) + delta];
+    if (!to) return;
+    const full = (name: string) => allCategories.findIndex((c) => c.name === name);
+    void run(() => actions.move(selected.name, full(to.name) - full(selected.name)), selected.name);
   };
 
   const remove = () => {
@@ -112,7 +123,25 @@ function CategoryList({
     void run(() => actions.remove(selected.name), next);
   };
 
+  const archive = () => {
+    if (!selected || saving) return;
+    void run(() => actions.archive(selected.name), neighbourAfterRemoval(ids, selected.name));
+  };
+
+  const migrate = (to: string, archiveAfter: boolean) => {
+    if (!migrating) return;
+    const from = migrating;
+    void run(
+      async () => {
+        await actions.migrate(from, to, archiveAfter);
+        setMigrating(null);
+      },
+      archiveAfter ? neighbourAfterRemoval(ids, from) : from
+    );
+  };
+
   const cancel = () => {
+    setMigrating(null);
     dispatch({ type: 'cancel' });
     setWriteError(null);
   };
@@ -121,7 +150,13 @@ function CategoryList({
   useShortcut('categories.up', () => dispatch({ type: 'move', delta: -1, ids }), browsing);
   useShortcut('categories.moveDown', () => move(1), browsing && !!selected);
   useShortcut('categories.moveUp', () => move(-1), browsing && !!selected);
-  useShortcut('categories.cancel', cancel, browsing && !!selected);
+  useShortcut('categories.cancel', cancel, (browsing && !!selected) || migrating !== null);
+  useShortcut('categories.archive', archive, browsing && !!selected);
+  useShortcut(
+    'categories.migrate',
+    () => selected && setMigrating(selected.name),
+    browsing && !!selected
+  );
 
   const editorFor = (original?: Category) => (
     <CategoryEditor
@@ -156,6 +191,20 @@ function CategoryList({
           onAction={() => dispatch({ type: 'edit' })}
         >
           Edit
+        </ActionButton>
+        <ActionButton
+          shortcut="categories.archive"
+          disabled={!selected || !browsing || saving}
+          onAction={archive}
+        >
+          Archive
+        </ActionButton>
+        <ActionButton
+          shortcut="categories.migrate"
+          disabled={!selected || !browsing || saving}
+          onAction={() => selected && setMigrating(selected.name)}
+        >
+          Migrate
         </ActionButton>
         <ActionButton
           shortcut="categories.delete"
@@ -211,6 +260,22 @@ function CategoryList({
               onOpen={open}
             />
           );
+          if (migrating === category.name)
+            return (
+              <div key={category.name}>
+                {row}
+                <MigrateConfirm
+                  from={category}
+                  targets={categories.filter((c) => c.name !== category.name)}
+                  allCategories={allCategories}
+                  count={usageOf(usage, category.name)}
+                  busy={saving}
+                  onConfirm={migrate}
+                  onCancel={cancel}
+                  onCreate={(name) => actions.add(name, nextCategoryColor(allCategories))}
+                />
+              </div>
+            );
           if (mode.kind === 'confirm-delete' && mode.id === category.name)
             return (
               <div key={category.name}>
@@ -232,6 +297,48 @@ function CategoryList({
           return row;
         })}
       </div>
+
+      {archived.length > 0 && (
+        <details className="mt-6" open={categories.length === 0 || undefined}>
+          <summary className="cursor-pointer text-sm font-medium text-muted">
+            Archived ({archived.length})
+          </summary>
+          <p className="mt-1 mb-2 text-[0.8125rem] text-muted">
+            Hidden from pickers and lists. Their transactions keep the category and still appear in
+            your graphs.
+          </p>
+          <div className="flex flex-col" role="table" aria-label="Archived categories">
+            {archived.map((category) => (
+              <div
+                key={category.name}
+                role="row"
+                className="grid grid-cols-[14px_minmax(0,1fr)_auto_auto] items-center gap-3 px-3 py-2"
+              >
+                <span
+                  role="cell"
+                  className="size-3.5 rounded-full opacity-60"
+                  style={{ background: category.color }}
+                />
+                <span role="cell" className="truncate text-muted">
+                  {category.name}
+                </span>
+                <span role="cell" className="text-[0.8125rem] text-muted tabular-nums">
+                  {usageOf(usage, category.name) === 0
+                    ? 'Unused'
+                    : `${usageOf(usage, category.name)} transactions`}
+                </span>
+                <ActionButton
+                  variant="ghost"
+                  disabled={saving}
+                  onAction={() => void run(() => actions.restore(category.name), category.name)}
+                >
+                  Restore
+                </ActionButton>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
     </section>
   );
 }

@@ -157,8 +157,8 @@ export function categoryRow(category: Category): RowData {
 export const METADATA_COLUMNS = ['Type', 'Name', 'Setting', 'Value'] as const;
 
 /**
- * One row of `_Metadata`: `category | Food | color | #4f7cff`, `category | Transfers | excluded | TRUE`
- * `category | Rent | account | Current` (once per account the category is limited to; none means
+ * One row of `_Metadata`: `category | Food | color | #4f7cff`, `category | Transfers | excluded | TRUE`,
+ * `category | Gym | archived | TRUE`, `category | Rent | account | Current` (once per account the category is limited to; none means
  * global) or `account | Visa | inverted | TRUE`.
  */
 export interface MetadataEntry {
@@ -183,6 +183,7 @@ export function parseMetadata(values: readonly (readonly unknown[])[]): {
 } {
   const categories: Category[] = [];
   const excluded: string[] = [];
+  const archived: string[] = [];
   const scoped: { name: string; account: string }[] = [];
   const invertedAccounts: string[] = [];
   for (const cells of values) {
@@ -192,6 +193,8 @@ export function parseMetadata(values: readonly (readonly unknown[])[]): {
       categories.push(categorySchema.parse({ name, color: textCell(cells[3]) }));
     else if (type === 'category' && setting === 'excluded' && flagSchema.parse(cells[3] ?? false))
       excluded.push(name);
+    else if (type === 'category' && setting === 'archived' && flagSchema.parse(cells[3] ?? false))
+      archived.push(name);
     else if (type === 'category' && setting === 'account' && textCell(cells[3]))
       scoped.push({ name, account: textCell(cells[3]) });
     else if (type === 'account' && setting === 'inverted' && flagSchema.parse(cells[3] ?? false))
@@ -203,6 +206,11 @@ export function parseMetadata(values: readonly (readonly unknown[])[]): {
     const known = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
     if (known) known.excluded = true;
     else categories.push({ name, color: '', excluded: true });
+  }
+  for (const name of archived) {
+    const known = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
+    if (known) known.archived = true;
+    else categories.push({ name, color: '', archived: true });
   }
   for (const { name, account } of scoped) {
     let known = categories.find((c) => c.name.toLowerCase() === name.toLowerCase());
@@ -230,6 +238,14 @@ export function metadataEntries(
         type: 'category',
         name: c.name,
         setting: 'excluded',
+        value: true,
+      })),
+    ...categories
+      .filter((c) => c.archived)
+      .map((c): MetadataEntry => ({
+        type: 'category',
+        name: c.name,
+        setting: 'archived',
         value: true,
       })),
     ...categories.flatMap((c) =>

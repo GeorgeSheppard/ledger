@@ -4,6 +4,7 @@ import {
   moveCategory,
   recolorCategory,
   setCategoryAccounts,
+  setCategoryArchived,
   setCategoryExcluded,
   removeCategory,
   sameName,
@@ -40,6 +41,11 @@ export function useCategoryActions() {
       /** Gives every category a clearly different palette colour. */
       spreadColors: () => update(respreadColors),
       remove: (name: string) => update((list) => removeCategory(list, name)),
+      archive: (name: string) => update((list) => setCategoryArchived(list, name, true)),
+      restore: (name: string) => update((list) => setCategoryArchived(list, name, false)),
+      /** Moves every transaction in `from` to `to`; `archive` also archives `from`. One save. */
+      migrate: (from: string, to: string, archive: boolean) =>
+        mutate((r) => r.migrateCategory(from, to, archive)),
       move: (name: string, delta: number) => update((list) => moveCategory(list, name, delta)),
       /** Renames (rewriting every transaction that used the old name) and/or recolours. */
       edit: (original: Category, next: Category) =>

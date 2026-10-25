@@ -25,6 +25,29 @@ export function ignoredCategoryNames(categories: readonly Category[]): Set<strin
   return new Set(categories.filter((c) => c.excluded).map((c) => c.name.trim().toLowerCase()));
 }
 
+export function isArchived(category: Category): boolean {
+  return !!category.archived;
+}
+
+/** The categories still offered in lists and pickers (not archived), in list order. */
+export function activeCategories(categories: readonly Category[]): Category[] {
+  return categories.filter((c) => !c.archived);
+}
+
+/** Archives or restores one category. Its transactions are untouched. */
+export function setCategoryArchived(
+  categories: readonly Category[],
+  name: string,
+  archived: boolean
+): Category[] {
+  return categories.map((c) => {
+    if (!sameName(c.name, name)) return c;
+    const rest = { ...c };
+    delete rest.archived;
+    return archived ? { ...rest, archived: true } : rest;
+  });
+}
+
 /** True when every account offers the category (no account limit). */
 export function isGlobal(category: Category): boolean {
   return !category.accounts?.length;
@@ -35,7 +58,9 @@ export function categoriesForAccount(
   categories: readonly Category[],
   accountName: string
 ): Category[] {
-  return categories.filter((c) => isGlobal(c) || c.accounts!.includes(accountName));
+  return categories.filter(
+    (c) => !c.archived && (isGlobal(c) || c.accounts!.includes(accountName))
+  );
 }
 
 /** `category` limited to `accounts`, or global when the list is empty. */
