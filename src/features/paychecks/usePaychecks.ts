@@ -5,7 +5,7 @@ import type { JsonValue } from '../../lib/store/ledgerData';
 import { useLedger, useRepository } from '../../state/ledgerData';
 
 /**
- * The one place the paychecks page touches the data layer: the list stored in the `_Paychecks` tab.
+ * The one place the paychecks page touches the data layer: the list stored in the `Paychecks` tab.
  * Older data is converted when read (see `lib/paychecks/legacy.ts`). Saving goes through the store
  * like any other edit, so it reaches the sheet with the next save.
  */

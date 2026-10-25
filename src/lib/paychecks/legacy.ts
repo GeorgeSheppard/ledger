@@ -6,7 +6,7 @@ import { isIsoDate } from '../transactions/dates';
 import { type PayLine, type Paycheck } from './paychecks';
 
 /**
- * Older versions of the `_Paychecks` tab, turned into plain dated paychecks when read, so nothing
+ * Older versions of the `Paychecks` tab, turned into plain dated paychecks when read, so nothing
  * already entered is lost.
  *
  * - Version 1 was a schedule: a first payment date, gross pay, deductions and a repeat. Each

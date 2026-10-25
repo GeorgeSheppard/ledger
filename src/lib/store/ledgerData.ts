@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 import type { Account, Category, Transaction, TransactionInput } from '../domain/types';
-import { RESERVED_TAB_PREFIX } from '../domain/types';
+import { isReservedTabName } from '../domain/types';
 import { addCategory, completeCategories, sameName } from '../categories/categories';
 import { runningTotals } from '../transactions/runningTotal';
 import type { jsonSchema, ledgerDataSchema, skippedTabSchema } from './schemas';
@@ -151,8 +151,10 @@ export function checkAccountName(
 ): string {
   const title = name.trim();
   if (!title) throw new Error('Account name is required');
-  if (title.startsWith(RESERVED_TAB_PREFIX))
-    throw new Error(`Account names cannot start with "${RESERVED_TAB_PREFIX}"`);
+  if (isReservedTabName(title))
+    throw new Error(
+      `"${title}" is reserved for Ledger, account names cannot start with "_" or "Ledger_"`
+    );
   const lower = title.toLowerCase();
   const clash =
     data.accounts.some((a) => a.id !== exceptId && a.name.toLowerCase() === lower) ||

@@ -122,7 +122,7 @@ src/modules/
   state. The range comes from the date picker, from dragging across the balances graph, or from
   clicking a spending column; accounts are switched on and off in the balances legend and
   categories in the spending legend or breakdown table, and every graph follows. Balances are not
-  narrowed by category, and the money-flow Sankey narrows to the picked categories (the rest and savings collapse into one "Everything else" node); clicking a spending node picks or clears it. Every Sankey column is sorted largest first. The `_Dashboard` tab
+  narrowed by category, and the money-flow Sankey narrows to the picked categories (the rest and savings collapse into one "Everything else" node); clicking a spending node picks or clears it. Every Sankey column is sorted largest first. The `Ledger_Dashboard` tab
   of the sheet (the old widget layout) is still read and written back untouched, but layout editing
   is switched off for now.
 - **Time graphs.** Balances, spending and income/spending are drawn with Chart.js
@@ -195,7 +195,12 @@ viewport. `pnpm screenshots <story-id>` runs the play functions and exits 1 when
   - Rows are kept in date order (oldest first). Total is a running-balance formula written by the
     app (e.g. `=SUM($C$2:C2)`), so it stays correct when the user edits the sheet directly. The app
     computes totals itself and never reads the Total column.
-- `_Metadata` tab: header `Type | Name | Setting | Value`, one setting per row. It holds everything
+- Tab names: the app's own tabs are `Ledger_Metadata` and `Ledger_Dashboard` (the `Ledger_` prefix says
+  where they come from), plus `Paychecks`, a table you work with. `_` and `Ledger_` prefixes and the
+  name `Paychecks` cannot be account names. Sheets from before the rename have `_Metadata`,
+  `_Dashboard` and `_Paychecks`: those are still read (unless the new name also exists, then the old
+  tab is ignored), and renamed in place, data kept, on the first save of a change.
+- `Ledger_Metadata` tab: header `Type | Name | Setting | Value`, one setting per row. It holds everything
   the app remembers about the spreadsheet that is not a transaction:
   - `category | Food | color | #4f7cff`: one row per category, in list order.
   - `category | Interest | account | Savings`: limits the category to an account (tab name); one row
@@ -211,7 +216,7 @@ viewport. `pnpm screenshots <story-id>` runs the play functions and exits 1 when
   - Rows of an unknown type or setting are ignored, and the app rewrites the tab whole when
     categories or account settings change, so put hand notes elsewhere.
   - Old sheets have `_Categories` (`Name | Color`) instead. It is still read when there is no
-    `_Metadata`; the next save of any change writes `_Metadata` and deletes `_Categories` in the same
+    `Ledger_Metadata`; the next save of any change writes `Ledger_Metadata` and deletes `_Categories` in the same
     batch (the `.xlsx` writer does the same).
 - **Inverted accounts.** A credit card or loan is recorded the way its statement reads: purchases and
   interest are positive, payments negative, so a card's CSV imports unchanged. Marking the account
@@ -222,8 +227,8 @@ viewport. `pnpm screenshots <story-id>` runs the play functions and exits 1 when
   is a negative contribution to net worth; paying the card from a bank account pairs up with the
   card's payment row as a transfer. The tab, its Total column and the transaction table stay as the
   sheet has them.
-- `_Dashboard` tab: header `Config`, the dashboard layout as JSON in cell A2.
-- `_Paychecks` tab: a plain table, one row per payslip line, so Excel can pivot and chart it:
+- `Ledger_Dashboard` tab: header `Config`, the dashboard layout as JSON in cell A2.
+- `Paychecks` tab: a plain table, one row per payslip line, so Excel can pivot and chart it:
   `Date | Tax code | Type | Name | Amount`. One payslip per date: its lines share the date, and
   `Tax code` (kept with the paycheck, never used in any sum, repeated on each line) is optional.
   `Type` is `Income`, `Benefit in kind` or `Deduction`, and `Amount` is always positive. The

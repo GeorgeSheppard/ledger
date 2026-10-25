@@ -5,7 +5,7 @@ import { isIsoDate } from '../transactions/dates';
  * Paychecks: one entry per payslip, typed in by hand. There is no schedule and nothing repeats. A payslip is a few named income lines
  * (salary, an allowance, a bonus...) and a few named deduction lines (income tax, national
  * insurance, pension, student loan...); take-home pay is what is left. Plain data and pure
- * functions only. Saved in the spreadsheet's `_Paychecks` tab (see `./serialize.ts`).
+ * functions only. Saved in the spreadsheet's `Paychecks` tab (see `./serialize.ts`).
  *
  * Payslips vary a lot, so nothing here knows about any particular tax or allowance: a line is just
  * a name and an amount.

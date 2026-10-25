@@ -2,7 +2,7 @@ import type { DashboardRange } from '../metrics/dashboard';
 
 /**
  * The dashboard layout: an ordered list of widgets laid out left to right on a 4-column grid,
- * wrapping onto new rows. Saved in the spreadsheet's `_Dashboard` tab (see `./sheetFormat.ts`), so
+ * wrapping onto new rows. Saved in the spreadsheet's `Ledger_Dashboard` tab (see `./sheetFormat.ts`), so
  * it follows the sheet rather than the browser. Plain data and pure functions only.
  */
 

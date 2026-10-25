@@ -3,7 +3,7 @@ import { clampWidth, newWidget, type DashboardConfig, type Widget } from './conf
 
 /**
  * The dashboard layout as stored in the spreadsheet (the store keeps it as JSON in the
- * `_Dashboard` tab). Reading is forgiving because the sheet can be edited by hand: anything that
+ * `Ledger_Dashboard` tab). Reading is forgiving because the sheet can be edited by hand: anything that
  * cannot be understood is dropped or replaced with its default instead of failing the dashboard.
  */
 

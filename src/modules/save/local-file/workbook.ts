@@ -3,6 +3,7 @@ import {
   ACCOUNT_COLUMNS,
   CATEGORIES_TAB,
   DASHBOARD_TAB,
+  LEGACY_TAB_NAMES,
   METADATA_TAB,
   PAYCHECKS_TAB,
 } from '../../../lib/domain/types';
@@ -20,7 +21,7 @@ import { runningTotals } from '../../../lib/transactions/runningTotal';
 /**
  * Writes a ledger as an `.xlsx` workbook in the same tab layout as the Google Sheet. Writing starts
  * again from the original file's bytes and only touches the tabs Ledger owns (accounts,
- * `_Metadata`, `_Dashboard`, `_Paychecks`). Every other tab, including `_` tabs other features
+ * `Ledger_Metadata`, `Ledger_Dashboard`, `Paychecks`). Every other tab, including `_` tabs other features
  * add, comes back exactly as it was read.
  */
 
@@ -90,6 +91,12 @@ export async function writeWorkbook(
 ): Promise<Uint8Array> {
   const workbook = original ? await loadWorkbook(original) : await newWorkbook();
 
+  // Tabs under an old app name (`_Metadata`…) are renamed, unless the new name is already taken.
+  for (const [title, old] of Object.entries(LEGACY_TAB_NAMES)) {
+    const legacy = workbook.getWorksheet(old);
+    if (legacy && !workbook.getWorksheet(title)) legacy.name = title;
+  }
+
   // Removed first, so an account renamed to a deleted account's name does not clash with it.
   const wanted = new Set(data.accounts.map((account) => account.id));
   for (const id of knownAccountIds) if (!wanted.has(id)) workbook.removeWorksheet(id);
@@ -103,7 +110,7 @@ export async function writeWorkbook(
     writeAccount(sheet, data.rows[account.id] ?? []);
   }
 
-  // `_Metadata` replaces the old `_Categories` tab, which goes once its contents are moved over.
+  // `Ledger_Metadata` replaces the old `_Categories` tab, which goes once its contents are moved over.
   const entries = metadataEntries(data.categories, data.accounts);
   const metadata = sheetFor(workbook, METADATA_TAB, METADATA_COLUMNS, [12, 24, 12, 12]);
   writeRows(metadata, entries.length, METADATA_COLUMNS.length, (row, cell) => {
@@ -127,7 +134,7 @@ export async function writeWorkbook(
   };
   writeJsonTab(DASHBOARD_TAB, 'Config', data.dashboard);
 
-  // `_Paychecks` is a table, one row per payslip line. A file from before that held JSON in A2;
+  // `Paychecks` is a table, one row per payslip line. A file from before that held JSON in A2;
   // its header and cell are replaced here.
   const lines = paycheckValues(data.paychecks);
   const existingPaychecks = workbook.getWorksheet(PAYCHECKS_TAB);

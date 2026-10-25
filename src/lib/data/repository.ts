@@ -20,7 +20,7 @@ export interface LedgerRepository {
   renameAccount(accountId: number, name: string): Promise<void>;
   /**
    * Marks an account as a credit card or loan. Its tab keeps the amounts as they are; Ledger flips
-   * their sign wherever it counts the money (see `lib/accounts/inverted.ts`). Saved in `_Metadata`.
+   * their sign wherever it counts the money (see `lib/accounts/inverted.ts`). Saved in `Ledger_Metadata`.
    */
   setAccountInverted(accountId: number, inverted: boolean): Promise<void>;
 
@@ -45,11 +45,11 @@ export interface LedgerRepository {
    */
   migrateCategory(from: string, to: string, archive?: boolean): Promise<void>;
 
-  /** The dashboard layout saved in the `_Dashboard` tab, or `null` if none was saved yet. */
+  /** The dashboard layout saved in the `Ledger_Dashboard` tab, or `null` if none was saved yet. */
   getDashboardConfig(): Promise<JsonValue | null>;
   saveDashboardConfig(config: JsonValue | null): Promise<void>;
 
-  /** The paychecks saved in the `_Paychecks` tab, or `null` if none were saved yet. */
+  /** The paychecks saved in the `Paychecks` tab, or `null` if none were saved yet. */
   getPaychecks(): Promise<JsonValue | null>;
   savePaychecks(config: JsonValue | null): Promise<void>;
 }

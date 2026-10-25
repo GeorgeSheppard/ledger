@@ -49,6 +49,15 @@ export function saveRequests(
     layout.rowCounts[sheetId] = needed;
   };
 
+  // Tabs still under an old app name (`_Metadata`…) get the new one with the first save of a change.
+  if (layout.renames && !sameData(base.data, next)) {
+    for (const [id, title] of Object.entries(layout.renames))
+      requests.push({
+        updateSheetProperties: { properties: { sheetId: Number(id), title }, fields: 'title' },
+      });
+    delete layout.renames;
+  }
+
   for (const account of next.accounts) {
     const rows = next.rows[account.id] ?? [];
     const old = before.get(account.id);
@@ -70,7 +79,7 @@ export function saveRequests(
     }
   }
 
-  // `_Metadata` holds the categories and the per-account settings. A sheet that still has the old
+  // `Ledger_Metadata` holds the categories and the per-account settings. A sheet that still has the old
   // `_Categories` tab is moved over on any save: the new tab is written and the old one deleted in
   // the same batch.
   const entries = metadataEntries(next.categories, next.accounts);
@@ -118,7 +127,7 @@ export function saveRequests(
     });
   }
 
-  // `_Paychecks` is a table with a row per payslip line, rewritten whole from its header down (the
+  // `Paychecks` is a table with a row per payslip line, rewritten whole from its header down (the
   // open-ended range clears whatever is left below). A tab still in the old one-cell JSON layout
   // needs its grid widened first.
   if (!sameJson(base.data.paychecks, next.paychecks)) {

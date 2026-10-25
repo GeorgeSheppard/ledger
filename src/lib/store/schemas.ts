@@ -15,9 +15,9 @@ export const ledgerDataSchema = z.object({
   /** Rows per account id, oldest first. */
   rows: z.record(z.coerce.number().int(), z.array(transactionInputSchema)),
   categories: z.array(categorySchema),
-  /** Contents of the `_Dashboard` tab, or `null` when there is none yet. */
+  /** Contents of the `Ledger_Dashboard` tab, or `null` when there is none yet. */
   dashboard: jsonSchema.nullable(),
-  /** Contents of the `_Paychecks` tab in the app's JSON shape, or `null` when there is none yet. */
+  /** Contents of the `Paychecks` tab in the app's JSON shape, or `null` when there is none yet. */
   paychecks: jsonSchema.nullable(),
 });
 
@@ -29,13 +29,15 @@ export const sheetLayoutSchema = z.object({
   rowCounts: z.record(z.coerce.number().int(), z.number()),
   /** Every sheet id in use, including skipped and reserved tabs, so new tabs get a fresh one. */
   sheetIds: z.array(z.number().int()),
-  /** The legacy `_Categories` tab, deleted when `_Metadata` takes over on the next save. */
+  /** The legacy `_Categories` tab, deleted when `Ledger_Metadata` takes over on the next save. */
   categoriesSheetId: z.number().int().optional(),
   metadataSheetId: z.number().int().optional(),
   dashboardSheetId: z.number().int().optional(),
   paychecksSheetId: z.number().int().optional(),
-  /** The `_Paychecks` tab still has the old one-cell JSON layout; the next write replaces it with the table. */
+  /** The `Paychecks` tab still has the old one-cell JSON layout; the next write replaces it with the table. */
   paychecksLegacy: z.boolean().optional(),
+  /** Tabs still under an old name (`Ledger_Metadata`…), by sheet id → the name they get on the next save. */
+  renames: z.record(z.coerce.number().int(), z.string()).optional(),
 });
 
 export const remoteStateSchema = z.object({

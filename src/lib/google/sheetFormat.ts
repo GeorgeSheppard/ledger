@@ -157,7 +157,7 @@ export function categoryRow(category: Category): RowData {
 export const METADATA_COLUMNS = ['Type', 'Name', 'Setting', 'Value'] as const;
 
 /**
- * One row of `_Metadata`: `category | Food | color | #4f7cff`, `category | Transfers | excluded | TRUE`,
+ * One row of `Ledger_Metadata`: `category | Food | color | #4f7cff`, `category | Transfers | excluded | TRUE`,
  * `category | Gym | archived | TRUE`, `category | Rent | account | Current` (once per account the category is limited to; none means
  * global) or `account | Visa | inverted | TRUE`.
  */
@@ -173,7 +173,7 @@ const flagSchema = z
   .transform((v) => (typeof v === 'string' ? /^(true|yes|1)$/i.test(v.trim()) : Boolean(v)));
 
 /**
- * `_Metadata` values (from row 2, columns A–D). Rows are checked one by one: a row of an unknown
+ * `Ledger_Metadata` values (from row 2, columns A–D). Rows are checked one by one: a row of an unknown
  * type or setting, or one with a blank name, is skipped, so a hand edit never stops the sheet
  * loading. Account names are the tab names of the accounts that are inverted.
  */
@@ -220,7 +220,7 @@ export function parseMetadata(values: readonly (readonly unknown[])[]): {
   return { categories, invertedAccounts };
 }
 
-/** Everything `_Metadata` holds for these categories and accounts, in the order it is written. */
+/** Everything `Ledger_Metadata` holds for these categories and accounts, in the order it is written. */
 export function metadataEntries(
   categories: readonly Category[],
   accounts: readonly Account[]
@@ -280,7 +280,7 @@ export function metadataRow(entry: MetadataEntry): RowData {
   };
 }
 
-/** `_Dashboard` stores its config as JSON text in cell A2. Unreadable text counts as no config. */
+/** `Ledger_Dashboard` stores its config as JSON text in cell A2. Unreadable text counts as no config. */
 export function parseDashboardCell(value: unknown): JsonValue | null {
   const text = textCell(value);
   if (!text) return null;
@@ -305,10 +305,10 @@ const BENEFIT = 'Benefit in kind';
 const DEDUCTION = 'Deduction';
 
 /**
- * `_Paychecks` is a plain table with one row per payslip line, so Excel can pivot and chart it:
+ * `Paychecks` is a plain table with one row per payslip line, so Excel can pivot and chart it:
  * `Date | Paycheck | Type | Name | Amount`. `Paycheck` is a label shared by the lines of one payslip
  * (two payslips on one day need different labels), `Type` is Income, Benefit in kind or Deduction,
- * and `Amount` is always positive. Older files kept the paychecks as JSON text in cell A2, like `_Dashboard`; that
+ * and `Amount` is always positive. Older files kept the paychecks as JSON text in cell A2, like `Ledger_Dashboard`; that
  * is still read, and the next change to the paychecks writes the table.
  */
 function hasHeader(values: readonly (readonly unknown[])[], columns: readonly string[]): boolean {
@@ -326,7 +326,7 @@ export function isLegacyPaychecksTab(values: readonly (readonly unknown[])[]): b
 }
 
 /**
- * The paychecks in a `_Paychecks` tab (from row 1) in the stored JSON shape, or `null` when there
+ * The paychecks in a `Paychecks` tab (from row 1) in the stored JSON shape, or `null` when there
  * are none. Rows that cannot be understood are skipped.
  */
 export function parsePaychecksTab(values: readonly (readonly unknown[])[]): JsonValue | null {

@@ -8,7 +8,10 @@ import type { NewSpreadsheet } from '../../../lib/google/sheetsTypes';
 describe('newSpreadsheetBody', () => {
   it('has one account tab with the standard header and a metadata tab', () => {
     const body = newSpreadsheetBody('My money');
-    expect(body.sheets.map((s) => s.properties.title)).toEqual(['Current account', '_Metadata']);
+    expect(body.sheets.map((s) => s.properties.title)).toEqual([
+      'Current account',
+      'Ledger_Metadata',
+    ]);
     const header = body.sheets[0]?.data?.[0]?.rowData[0]?.values.map(
       (c) => c.userEnteredValue?.stringValue
     );
