@@ -13,8 +13,7 @@ import {
   type PaycheckList,
   type Paycheck,
 } from '../../lib/paychecks/paychecks';
-import { allTime } from '../../lib/paychecks/flow';
-import { formatDay, todayIso } from '../../lib/transactions/dates';
+import { formatDay, todayIso, yearOf } from '../../lib/transactions/dates';
 import { useShortcut } from '../../state/shortcuts';
 import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
@@ -22,12 +21,8 @@ import { Page } from '../../ui/Page';
 import { cn } from '../../ui/cn';
 import { DeleteConfirm } from '../accounts/DeleteConfirm';
 import { formatMoney } from '../../modules/graphs/shared/format';
-import { FALLBACK_COLOR } from '../../modules/graphs/shared/theme';
-import { PaycheckFlow } from '../../modules/graphs';
 import { PaycheckEditor } from './PaycheckEditor';
 import { usePaychecks } from './usePaychecks';
-
-const NO_CATEGORIES: ReadonlySet<string> = new Set();
 
 function LineChips({ lines }: { lines: PayLine[] }) {
   if (lines.length === 0) return null;
@@ -62,7 +57,9 @@ function PaycheckCard({
       onClick={onSelect}
       onDoubleClick={onEdit}
     >
-      <h2 className="font-semibold">{formatDay(paycheck.date)}</h2>
+      <h2 className="font-semibold">
+        {formatDay(paycheck.date)} {yearOf(paycheck.date)}
+      </h2>
       <dl className={cn('mt-3 grid gap-3 text-sm', hasBenefits ? 'grid-cols-4' : 'grid-cols-3')}>
         <div>
           <dt className="text-muted">Income</dt>
@@ -92,7 +89,7 @@ function PaycheckCard({
   );
 }
 
-/** `/paychecks`: payslips typed in line by line, so the dashboard can follow pay from gross to spending; the diagram here shows your salary. */
+/** `/paychecks`: payslips typed in line by line, so the dashboard can follow pay from gross to spending. */
 export function PaychecksPage() {
   const { list, save } = usePaychecks();
   const [selected, setSelected] = useState<string | null>(null);
@@ -169,9 +166,9 @@ export function PaychecksPage() {
       className="max-w-3xl"
       description={
         <>
-          Enter a payslip line by line: what you were paid, and what was taken out. The diagram
-          follows your pay from gross to take-home, and the dashboard carries it on to spending.
-          Stored in the <code className="font-mono">{PAYCHECKS_TAB}</code> tab of your sheet.
+          Enter a payslip line by line: what you were paid, and what was taken out. The dashboard
+          follows your pay from gross to take-home and on to spending. Stored in the{' '}
+          <code className="font-mono">{PAYCHECKS_TAB}</code> tab of your sheet.
         </>
       }
       actions={
@@ -196,22 +193,12 @@ export function PaychecksPage() {
         <Card className="p-6 text-sm text-muted">
           <p className="font-medium text-fg">No paychecks yet</p>
           <p className="mt-1">
-            Add a paycheck to see your salary broken down: each income line, such as salary or an
-            allowance, then tax, pension and the rest, and what you take home.
+            Add a paycheck: each income line, such as salary or an allowance, then tax, pension and
+            the rest. The dashboard then follows your pay through to spending.
           </p>
         </Card>
       ) : (
         <>
-          <Card className="p-4">
-            <h2 className="mb-3 font-semibold">Your salary</h2>
-            <PaycheckFlow
-              paychecks={list.paychecks}
-              period={allTime([], list.paychecks, todayIso())}
-              ignoredCategories={NO_CATEGORIES}
-              colorOf={() => FALLBACK_COLOR}
-              withSpending={false}
-            />
-          </Card>
           <div ref={listRef} className="flex flex-col gap-3" aria-label="Paychecks">
             {paychecks.map((paycheck) => (
               <div key={paycheck.id}>
@@ -223,7 +210,7 @@ export function PaychecksPage() {
                 />
                 {confirmDelete && paycheck.id === selected && (
                   <DeleteConfirm
-                    message={`Delete the paycheck from ${formatDay(paycheck.date)}? The dashboard will no longer count it.`}
+                    message={`Delete the paycheck from ${formatDay(paycheck.date)} ${yearOf(paycheck.date)}? The dashboard will no longer count it.`}
                     deleteShortcut="paychecks.delete"
                     cancelShortcut="paychecks.cancel"
                     onConfirm={onDelete}
