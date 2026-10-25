@@ -94,6 +94,13 @@ describe('paycheckProblem', () => {
     expect(paycheckProblem(payslip('a'))).toBeNull();
   });
 
+  it('refuses a date another paycheck already has, but not its own', () => {
+    const saved = [payslip('a', '2026-01-25'), payslip('b', '2026-02-25')];
+    expect(paycheckProblem(payslip('b', '2026-01-25'), saved)).toMatch(/already a paycheck/);
+    expect(paycheckProblem(payslip('b', '2026-03-25'), saved)).toBeNull();
+    expect(paycheckProblem(payslip('b', '2026-02-25'), saved)).toBeNull();
+  });
+
   it('explains what is wrong', () => {
     expect(paycheckProblem(payslip('a', 'nope'))).toMatch(/date/);
     expect(paycheckProblem(payslip('a', '2026-01-25', { income: [] }))).toMatch(/income/);

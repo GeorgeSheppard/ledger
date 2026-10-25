@@ -20,10 +20,8 @@ export interface AccountLine {
 }
 
 interface AccountsChartProps {
-  /** Covers the period and the data around it. */
+  /** Covers the dashboard's period. */
   series: TimeSeries;
-  /** Marked on the chart. */
-  period: Period;
   /** The accounts switched on. */
   lines: AccountLine[];
   showNetWorth: boolean;
@@ -32,16 +30,10 @@ interface AccountsChartProps {
 }
 
 /**
- * Every account's balance over time with net worth as one more line. The graph's period is shaded;
- * drag across the chart to pick a new one.
+ * Every account's balance over time with net worth as one more line. Drag across the chart to make
+ * those dates the dashboard's, which zooms the chart (and the other graphs) in to them.
  */
-export function AccountsChart({
-  series,
-  period,
-  lines,
-  showNetWorth,
-  onSelectPeriod,
-}: AccountsChartProps) {
+export function AccountsChart({ series, lines, showNetWorth, onSelectPeriod }: AccountsChartProps) {
   const view = useTimeView(series);
   const colors = useChartColors();
   const worth = series.netWorth(view.granularity);
@@ -87,7 +79,7 @@ export function AccountsChart({
     ],
   };
 
-  const { plugin } = useDragSelect(colors, onSelectPeriod, period);
+  const { plugin } = useDragSelect(colors, onSelectPeriod);
 
   const options: ChartOptions<'line'> = {
     responsive: true,
@@ -110,9 +102,7 @@ export function AccountsChart({
 
   return (
     <div>
-      <p className="mb-2 text-xs text-muted">
-        The shaded part is the dates shown. Drag across the graph to pick other dates.
-      </p>
+      <p className="mb-2 text-xs text-muted">Drag across the graph to zoom in to those dates.</p>
       <div className="relative h-64 w-full cursor-crosshair">
         <Line
           data={data}

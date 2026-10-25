@@ -1,6 +1,4 @@
 import { useMemo, useState } from 'react';
-import { isoDateOf } from '../../../lib/metrics/buckets';
-import { surroundingPeriod } from '../../../lib/metrics/period';
 import { buildTimeSeries } from '../../../lib/metrics/timeSeries';
 import type { Graph } from '../types';
 import { ChartLegend } from '../shared/ChartLegend';
@@ -23,14 +21,10 @@ export const accountsGraph: Graph = {
     selectPeriod,
   }) {
     const [showNetWorth, setShowNetWorth] = useState(true);
-    const shown = useMemo(
-      () => surroundingPeriod(ledgers, period, isoDateOf(Date.now())),
-      [ledgers, period]
-    );
     const series = useMemo(
       () =>
-        accountIds.length ? buildTimeSeries(ledgers, accountIds, shown, ignoredCategories) : null,
-      [ledgers, accountIds, shown, ignoredCategories]
+        accountIds.length ? buildTimeSeries(ledgers, accountIds, period, ignoredCategories) : null,
+      [ledgers, accountIds, period, ignoredCategories]
     );
     const lines = ledgers.map(({ account }) => ({
       id: account.id,
@@ -66,7 +60,6 @@ export const accountsGraph: Graph = {
         {series ? (
           <AccountsChart
             series={series}
-            period={period}
             lines={lines.filter((l) => l.on)}
             showNetWorth={showNetWorth}
             onSelectPeriod={selectPeriod}
