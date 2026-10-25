@@ -21,10 +21,10 @@ const ledgers = [
 ];
 
 describe('period', () => {
-  it('defaults to the latest month with data, never after today', () => {
-    expect(defaultPeriod(ledgers, '2026-10-25')).toEqual(monthPeriod('2026-09'));
-    expect(defaultPeriod(ledgers, '2026-05-02')).toEqual(monthPeriod('2026-05'));
-    expect(defaultPeriod([], '2026-05-02')).toEqual(monthPeriod('2026-05'));
+  it('defaults to the six months ending at the latest month with data, never after today', () => {
+    expect(defaultPeriod(ledgers, '2026-10-25')).toEqual({ from: '2026-04-01', to: '2026-09-30' });
+    expect(defaultPeriod(ledgers, '2026-05-02')).toEqual({ from: '2025-12-01', to: '2026-05-31' });
+    expect(defaultPeriod([], '2026-05-02')).toEqual({ from: '2025-12-01', to: '2026-05-31' });
   });
 
   it('steps whole months by months, including across a year', () => {
