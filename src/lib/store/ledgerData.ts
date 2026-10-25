@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 import type { Account, Category, Transaction, TransactionInput } from '../domain/types';
-import { RESERVED_TAB_PREFIX } from '../domain/types';
+import { isReservedTabName } from '../domain/types';
 import { addCategory, completeCategories, sameName } from '../categories/categories';
 import { runningTotals } from '../transactions/runningTotal';
 import type { jsonSchema, ledgerDataSchema, skippedTabSchema, tabReportSchema } from './schemas';
@@ -24,7 +24,6 @@ export interface LedgerSnapshot {
   /** Transactions per account id, oldest first. */
   transactionsByAccount: Record<number, Transaction[]>;
   categories: Category[];
-  dashboard: JsonValue | null;
   paychecks: JsonValue | null;
   /** Tabs ignored on load, so the UI can say why a tab is missing. */
   skippedTabs: SkippedTab[];
@@ -55,7 +54,6 @@ export function toSnapshot(
     accounts: data.accounts,
     transactionsByAccount,
     categories: data.categories,
-    dashboard: data.dashboard,
     paychecks: data.paychecks ?? null,
     skippedTabs,
     tabReports,
@@ -159,8 +157,10 @@ export function checkAccountName(
 ): string {
   const title = name.trim();
   if (!title) throw new Error('Account name is required');
-  if (title.startsWith(RESERVED_TAB_PREFIX))
-    throw new Error(`Account names cannot start with "${RESERVED_TAB_PREFIX}"`);
+  if (isReservedTabName(title))
+    throw new Error(
+      `"${title}" is reserved for Ledger, account names cannot start with "_" or "Ledger_"`
+    );
   const lower = title.toLowerCase();
   const clash =
     data.accounts.some((a) => a.id !== exceptId && a.name.toLowerCase() === lower) ||
@@ -314,10 +314,6 @@ export function withUsedCategories(data: LedgerData): LedgerData {
   return sameCategories(categories, data.categories) ? data : { ...data, categories };
 }
 
-export function setDashboard(data: LedgerData, config: JsonValue | null): LedgerData {
-  return { ...data, dashboard: structuredClone(config) };
-}
-
 export function setPaychecks(data: LedgerData, config: JsonValue | null): LedgerData {
   return { ...data, paychecks: structuredClone(config) };
 }
@@ -375,7 +371,6 @@ export function sameData(a: LedgerData, b: LedgerData): boolean {
       );
     }) &&
     sameCategories(a.categories, b.categories) &&
-    sameJson(a.dashboard, b.dashboard) &&
     sameJson(a.paychecks, b.paychecks)
   );
 }
@@ -421,7 +416,6 @@ export function rebase(fresh: LedgerData, base: LedgerData, local: LedgerData): 
     categories: sameCategories(local.categories, base.categories)
       ? fresh.categories
       : local.categories,
-    dashboard: sameJson(local.dashboard, base.dashboard) ? fresh.dashboard : local.dashboard,
     paychecks: sameJson(local.paychecks, base.paychecks)
       ? (fresh.paychecks ?? null)
       : (local.paychecks ?? null),

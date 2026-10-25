@@ -85,7 +85,6 @@ export function fixtureData(): LedgerData {
     ],
     rows: { 1: currentAccountRows(), 2: savingsAccountRows() },
     categories: FIXTURE_CATEGORIES,
-    dashboard: null,
     paychecks: { version: 3, paychecks: fixturePaychecks() },
   };
 }

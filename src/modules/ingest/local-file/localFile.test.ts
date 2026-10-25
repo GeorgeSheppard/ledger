@@ -1,6 +1,5 @@
 import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
-import { DASHBOARD_TAB } from '../../../lib/domain/types';
 import { fixtureData } from '../../../lib/data/fixtures';
 import { parsePaychecks } from '../../../lib/paychecks/serialize';
 import type { RemoteState } from '../../../lib/store/remote';
@@ -88,13 +87,11 @@ describe('reading a workbook', () => {
 describe('writing a workbook', () => {
   it('round-trips the ledger tabs in the Sheets format', async () => {
     const data = fixtureData();
-    data.dashboard = { version: 1, widgets: [] };
     const bytes = await writeWorkbook(null, [], data);
     const state = ledgerFromTabs(await readWorkbookTabs(bytes));
     expect(state.data.accounts.map((a) => a.name)).toEqual(['Current account', 'Savings']);
     expect(Object.values(state.data.rows)).toEqual(data.accounts.map((a) => data.rows[a.id]));
     expect(state.data.categories).toEqual(data.categories);
-    expect(state.data.dashboard).toEqual(data.dashboard);
     expect(state.data.paychecks).toEqual(data.paychecks);
   });
 
@@ -108,8 +105,8 @@ describe('writing a workbook', () => {
     // write replaces it with the table.
     const book = new ExcelJS.Workbook();
     await book.xlsx.load(asBuffer(await writeWorkbook(null, [], data)));
-    book.removeWorksheet(book.getWorksheet('_Paychecks')!.id);
-    const old = book.addWorksheet('_Paychecks');
+    book.removeWorksheet(book.getWorksheet('Paychecks')!.id);
+    const old = book.addWorksheet('Paychecks');
     old.addRows([
       ['Paychecks'],
       [
@@ -139,7 +136,7 @@ describe('writing a workbook', () => {
 
     const rewritten = new ExcelJS.Workbook();
     await rewritten.xlsx.load(asBuffer(await writeWorkbook(legacy, [], read.data)));
-    const sheet = rewritten.getWorksheet('_Paychecks')!;
+    const sheet = rewritten.getWorksheet('Paychecks')!;
     expect([1, 2, 3, 4, 5].map((c) => sheet.getCell(1, c).value)).toEqual([
       'Date',
       'Tax code',
@@ -150,6 +147,20 @@ describe('writing a workbook', () => {
     expect(sheet.getCell('C2').value).toBe('Income');
     expect(sheet.getCell('E3').value).toBe(500);
     expect(sheet.getCell('A2').numFmt).toBe('yyyy-mm-dd');
+  });
+
+  it('renames tabs with an old app name when writing', async () => {
+    const book = new ExcelJS.Workbook();
+    await book.xlsx.load(await userWorkbook());
+    book.addWorksheet('_Metadata').addRows([['Type', 'Name', 'Setting', 'Value']]);
+    book.addWorksheet('_Paychecks');
+    const bytes = new Uint8Array(await book.xlsx.writeBuffer());
+    const state = ledgerFromTabs(await readWorkbookTabs(bytes));
+    const written = new ExcelJS.Workbook();
+    await written.xlsx.load(asBuffer(await writeWorkbook(bytes, [], state.data)));
+    expect(written.getWorksheet('_Metadata')).toBeUndefined();
+    expect(written.getWorksheet('_Paychecks')).toBeUndefined();
+    expect(written.getWorksheet('Ledger_Metadata')).toBeDefined();
   });
 
   it('round-trips inverted accounts through _Metadata and drops an old _Categories tab', async () => {
@@ -171,7 +182,7 @@ describe('writing a workbook', () => {
     const written = new ExcelJS.Workbook();
     await written.xlsx.load(asBuffer(file.bytes));
     expect(written.getWorksheet('_Categories')).toBeUndefined();
-    expect(written.getWorksheet('_Metadata')!.getRow(1).values).toEqual([
+    expect(written.getWorksheet('Ledger_Metadata')!.getRow(1).values).toEqual([
       undefined,
       'Type',
       'Name',
@@ -206,8 +217,8 @@ describe('writing a workbook', () => {
     expect(book.worksheets.map((w) => w.name)).toEqual([
       'Current account',
       'Savings',
-      '_Metadata',
-      '_Paychecks',
+      'Ledger_Metadata',
+      'Paychecks',
     ]);
   });
 
@@ -228,7 +239,7 @@ describe('writing a workbook', () => {
       'Current',
       'Budget 2026',
       '_Notes',
-      '_Metadata',
+      'Ledger_Metadata',
     ]);
     expect(book.getWorksheet('_Notes')!.getCell('B2').value).toMatchObject({
       formula: 'A2*0.2',
@@ -238,7 +249,6 @@ describe('writing a workbook', () => {
     const current = book.getWorksheet('Current')!;
     expect(current.getCell('D3').value).toBe('Lunch');
     expect(current.getCell('E4').value).toMatchObject({ formula: 'SUM($C$2:C4)', result: 1080 });
-    expect(book.getWorksheet(DASHBOARD_TAB)).toBeUndefined();
   });
 
   it('adds and removes accounts, clearing rows left over after deletes', async () => {

@@ -9,8 +9,6 @@ import {
   parseMetadata,
   rowsToCategories,
   parseAccountTab,
-  parseDashboardCell,
-  dashboardRow,
   serialToIsoDate,
   paycheckRows,
   paycheckValues,
@@ -86,17 +84,6 @@ describe('parseAccountTab', () => {
     expect(parseAccountTab([header, [46113, '', 'ten']])).toEqual({
       error: 'Row 2 has no valid amount',
     });
-  });
-});
-
-describe('dashboard cell', () => {
-  it('round-trips JSON and treats unreadable text as no config', () => {
-    const row = dashboardRow({ widgets: [{ kind: 'netWorth' }] });
-    const text = row.values[0]?.userEnteredValue?.stringValue;
-    expect(parseDashboardCell(text)).toEqual({ widgets: [{ kind: 'netWorth' }] });
-    expect(parseDashboardCell('{oops')).toBeNull();
-    expect(parseDashboardCell(undefined)).toBeNull();
-    expect(dashboardRow(null).values).toEqual([{}]);
   });
 });
 

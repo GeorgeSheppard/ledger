@@ -17,7 +17,7 @@ export function googleConnection(client: SheetsClient, spreadsheet: SpreadsheetR
       const metadata = await client.getMetadata(spreadsheet.id);
       const tabs = metadata.sheets.map((s) => s.properties).sort((a, b) => a.index - b.index);
       const reads = tabs.flatMap((tab) => {
-        const range = readRange(tab);
+        const range = readRange(tab, tabs);
         return range ? [{ tab, range }] : [];
       });
       onProgress?.({ step: 'values', tabs: reads.map((r) => r.tab.title) });

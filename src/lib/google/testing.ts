@@ -50,7 +50,7 @@ export const tab = (
   gridProperties: { rowCount },
 });
 
-/** A spreadsheet with a `_Metadata` tab (id 99), or the old `_Categories` tab when `legacy`. */
+/** A spreadsheet with a `Ledger_Metadata` tab (id 99), or the old `_Categories` tab when `legacy`. */
 export function fakeSheet({ legacy = false } = {}) {
   return new FakeClient(
     [
@@ -58,7 +58,7 @@ export function fakeSheet({ legacy = false } = {}) {
       tab(10, 'Current', 0),
       tab(30, 'Budget', 2),
       tab(40, 'Notes', 3),
-      tab(99, legacy ? '_Categories' : '_Metadata', 4),
+      tab(99, legacy ? '_Categories' : 'Ledger_Metadata', 4),
       tab(98, '_Other', 5),
     ],
     {

@@ -1,12 +1,6 @@
 import type { Account, TransactionInput } from '../../../lib/domain/types';
+import { ACCOUNT_COLUMNS, METADATA_TAB, PAYCHECKS_TAB } from '../../../lib/domain/types';
 import {
-  ACCOUNT_COLUMNS,
-  DASHBOARD_TAB,
-  METADATA_TAB,
-  PAYCHECKS_TAB,
-} from '../../../lib/domain/types';
-import {
-  dashboardRow,
   headerRow,
   METADATA_COLUMNS,
   metadataEntries,
@@ -19,7 +13,6 @@ import type { GridRange, SheetsRequest } from '../../../lib/google/sheetsTypes';
 import { sameData, sameJson, sameRows, type LedgerData } from '../../../lib/store/ledgerData';
 import { newSheetId, type RemoteState, type SheetLayout } from '../../../lib/store/remote';
 
-const DASHBOARD_COLUMNS = ['Config'] as const;
 /** Fields written for transaction rows: values plus the date format, never the user's styling. */
 const TRANSACTION_FIELDS = 'userEnteredValue,userEnteredFormat.numberFormat';
 const NEW_TAB_ROWS = 1000;
@@ -49,6 +42,15 @@ export function saveRequests(
     layout.rowCounts[sheetId] = needed;
   };
 
+  // Tabs still under an old app name (`_Metadata`…) get the new one with the first save of a change.
+  if (layout.renames && !sameData(base.data, next)) {
+    for (const [id, title] of Object.entries(layout.renames))
+      requests.push({
+        updateSheetProperties: { properties: { sheetId: Number(id), title }, fields: 'title' },
+      });
+    delete layout.renames;
+  }
+
   for (const account of next.accounts) {
     const rows = next.rows[account.id] ?? [];
     const old = before.get(account.id);
@@ -70,7 +72,7 @@ export function saveRequests(
     }
   }
 
-  // `_Metadata` holds the categories and the per-account settings. A sheet that still has the old
+  // `Ledger_Metadata` holds the categories and the per-account settings. A sheet that still has the old
   // `_Categories` tab is moved over on any save: the new tab is written and the old one deleted in
   // the same batch.
   const entries = metadataEntries(next.categories, next.accounts);
@@ -103,22 +105,7 @@ export function saveRequests(
     }
   }
 
-  if (!sameJson(base.data.dashboard, next.dashboard)) {
-    let sheetId = layout.dashboardSheetId;
-    if (sheetId === undefined) {
-      sheetId = layout.dashboardSheetId = newSheetId(takenIds(layout, next));
-      addTab(sheetId, DASHBOARD_TAB, DASHBOARD_COLUMNS, 1);
-    }
-    requests.push({
-      updateCells: {
-        range: { ...dataRange(sheetId, 1), endRowIndex: 2 },
-        rows: [dashboardRow(next.dashboard)],
-        fields: 'userEnteredValue',
-      },
-    });
-  }
-
-  // `_Paychecks` is a table with a row per payslip line, rewritten whole from its header down (the
+  // `Paychecks` is a table with a row per payslip line, rewritten whole from its header down (the
   // open-ended range clears whatever is left below). A tab still in the old one-cell JSON layout
   // needs its grid widened first.
   if (!sameJson(base.data.paychecks, next.paychecks)) {

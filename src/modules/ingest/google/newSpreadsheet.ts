@@ -12,7 +12,7 @@ import type { NewSpreadsheet } from '../../../lib/google/sheetsTypes';
 
 export const DEFAULT_SPREADSHEET_TITLE = 'Ledger';
 
-/** Body for `spreadsheets.create`: one empty account tab and a `_Metadata` tab with the categories. */
+/** Body for `spreadsheets.create`: one empty account tab and a `Ledger_Metadata` tab with the categories. */
 export function newSpreadsheetBody(
   title: string,
   accountName = DEFAULT_ACCOUNT_NAME,

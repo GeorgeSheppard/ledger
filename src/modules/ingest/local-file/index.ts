@@ -18,7 +18,6 @@ export function newLocalLedger(title = 'Ledger'): Connection {
     accounts: [{ id: 1, name: DEFAULT_ACCOUNT_NAME }],
     rows: { 1: [] },
     categories: structuredClone(DEFAULT_CATEGORIES),
-    dashboard: null,
     paychecks: null,
   };
   const layout = { ...EMPTY_LAYOUT, sheetIds: [1] };
