@@ -46,7 +46,7 @@ src/
     cn.ts                      class name joiner (clsx + tailwind-merge)
   storybook/                   providers for stories (real session and store, demo data)
   styles/
-    global.css                 Tailwind import, design tokens (light + dark), base styles
+    global.css                 Tailwind import, design tokens (light only: white paper, black bar), base styles
   lib/                         pure TypeScript, unit tested
     domain/types.ts            Account, Transaction, TransactionInput, Category, SpreadsheetRef
     data/repository.ts         LedgerRepository interface
@@ -137,7 +137,7 @@ src/modules/
 Tailwind CSS v4, configured in `src/styles/global.css`. Keep the look consistent by reaching for the
 same few pieces everywhere:
 
-- **Colours come only from the theme tokens**, which switch automatically for dark mode. Never use
+- **Colours come only from the theme tokens**, which keep the look consistent. Never use
   raw hex values or Tailwind palette colours like `bg-gray-100` or `text-red-500`.
 
   | Token                   | Use for                             | Example classes                              |

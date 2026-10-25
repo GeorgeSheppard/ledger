@@ -9,9 +9,8 @@ pnpm storybook         # dev server on http://localhost:6006
 pnpm build-storybook   # static build in storybook-static/
 ```
 
-Light and dark follow the browser's colour scheme, like the app (the tokens in `styles/global.css`
-use `prefers-color-scheme`). To see dark in Storybook, switch your OS or use the browser's rendering
-emulation.
+The app is light only (white paper, black top bar; tokens in `styles/global.css`), so the light
+screenshots are the ones that matter; `--scheme light` skips the dark copies.
 
 ## How stories get their data
 

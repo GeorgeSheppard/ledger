@@ -2,38 +2,30 @@
 
 /*
   Design tokens. Components use these through Tailwind utilities (`bg-surface`, `text-muted`,
-  `border-line`, `text-negative`, ...), never raw hex values, so light and dark mode stay
-  consistent everywhere. Spacing, radii and type sizes use Tailwind's default scale.
+  `border-line`, `text-negative`, ...), never raw hex values, so the look stays
+  consistent everywhere (the app is light only: white paper, black top bar). Paper and ink: strong rules (`rule`) frame controls and cards, soft rules
+  (`line`) divide rows, and colour is kept for meaning (accent, income, spending, categories).
+  src/styles/contrast.test.ts holds the ratios. Spacing, radii and type sizes use Tailwind's default scale.
 */
 :root {
-  color-scheme: light dark;
-  --ledger-canvas: #f7f8fa;
+  color-scheme: light;
+  --ledger-canvas: #f4f4f1;
   --ledger-surface: #ffffff;
-  --ledger-surface-hover: #f0f1f4;
-  --ledger-line: #e0e2e7;
-  --ledger-fg: #1c2024;
-  --ledger-muted: #60646c;
-  --ledger-accent: #3a5ccc;
-  --ledger-accent-hover: #3253bb;
+  --ledger-surface-hover: #ebebe6;
+  --ledger-line: #cdcdc5;
+  --ledger-rule: #0b0b0c;
+  --ledger-fg: #0b0b0c;
+  --ledger-muted: #4a4a50;
+  --ledger-accent: #1d3ff2;
+  --ledger-accent-hover: #1531c4;
   --ledger-accent-fg: #ffffff;
-  --ledger-positive: #1f8a55;
-  --ledger-negative: #c93b3b;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ledger-canvas: #111113;
-    --ledger-surface: #18191b;
-    --ledger-surface-hover: #212225;
-    --ledger-line: #2e3035;
-    --ledger-fg: #edeef0;
-    --ledger-muted: #b0b4ba;
-    --ledger-accent: #6e8cf0;
-    --ledger-accent-hover: #8099f3;
-    --ledger-accent-fg: #0b0d12;
-    --ledger-positive: #4cc38a;
-    --ledger-negative: #ff6b6b;
-  }
+  --ledger-positive: #06764a;
+  --ledger-negative: #c01f1f;
+  --ledger-bar: #0b0b0c;
+  --ledger-bar-fg: #ffffff;
+  --ledger-tile-positive: #0a7d4e;
+  --ledger-tile-negative: #c42525;
+  --ledger-tile-fg: #ffffff;
 }
 
 /* Keyboard hints are for devices with a keyboard: hidden on touch screens and narrow windows. */
@@ -51,6 +43,12 @@
   --color-surface: var(--ledger-surface);
   --color-surface-hover: var(--ledger-surface-hover);
   --color-line: var(--ledger-line);
+  --color-rule: var(--ledger-rule);
+  --color-bar: var(--ledger-bar);
+  --color-bar-fg: var(--ledger-bar-fg);
+  --color-tile-positive: var(--ledger-tile-positive);
+  --color-tile-negative: var(--ledger-tile-negative);
+  --color-tile-fg: var(--ledger-tile-fg);
   --color-fg: var(--ledger-fg);
   --color-muted: var(--ledger-muted);
   --color-accent: var(--ledger-accent);
@@ -58,6 +56,10 @@
   --color-accent-fg: var(--ledger-accent-fg);
   --color-positive: var(--ledger-positive);
   --color-negative: var(--ledger-negative);
+
+  --shadow-card:
+    0 1px 0 0 rgb(255 255 255 / 0.05) inset, 0 1px 2px rgb(8 12 24 / 0.18),
+    0 4px 12px -4px rgb(8 12 24 / 0.22);
 
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
@@ -125,4 +127,23 @@
   .ledger-pulse {
     animation: none;
   }
+}
+
+/*
+  The top bar is black in both light and dark mode, so everything inside it keeps using the
+  ordinary tokens, remapped here to white-on-black.
+*/
+.ledger-bar {
+  --ledger-canvas: var(--ledger-bar);
+  --ledger-surface: var(--ledger-bar);
+  --ledger-surface-hover: color-mix(in srgb, var(--ledger-bar-fg) 16%, var(--ledger-bar));
+  --ledger-line: color-mix(in srgb, var(--ledger-bar-fg) 35%, var(--ledger-bar));
+  --ledger-rule: var(--ledger-bar-fg);
+  --ledger-fg: var(--ledger-bar-fg);
+  --ledger-muted: color-mix(in srgb, var(--ledger-bar-fg) 72%, var(--ledger-bar));
+  --ledger-accent: #8ea4ff;
+  --ledger-accent-hover: #adbcff;
+  --ledger-accent-fg: #06091a;
+  --ledger-positive: #4be3a0;
+  --ledger-negative: #ff8585;
 }

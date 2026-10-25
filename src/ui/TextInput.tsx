@@ -14,7 +14,7 @@ export function TextInput({ className, ...rest }: TextInputProps) {
     <input
       {...rest}
       className={cn(
-        'h-8 w-full min-w-0 rounded-lg border border-line bg-canvas px-2 text-sm text-fg transition-shadow placeholder:text-muted/70',
+        'h-9 w-full min-w-0 rounded-md border-2 border-rule bg-surface px-2 text-sm text-fg transition-shadow placeholder:text-muted/70',
         'focus:border-accent focus:ring-3 focus:ring-accent/20 focus:outline-none',
         'aria-invalid:border-negative aria-invalid:focus:ring-negative/20',
         className

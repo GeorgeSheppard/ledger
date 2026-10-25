@@ -142,7 +142,7 @@ export function AccountsOverviewPage() {
           <div
             className={cn(
               GRID,
-              'border-b border-line px-3 pb-2 text-xs font-semibold tracking-wide text-muted uppercase max-md:hidden'
+              'border-y-2 border-rule px-3 py-2 text-xs font-bold tracking-wide text-fg uppercase max-md:hidden'
             )}
             role="row"
           >

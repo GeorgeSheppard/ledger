@@ -28,7 +28,7 @@ export function Dialog({
       onClick={(event) => event.target === dialog.current && onClose()}
       aria-label={title}
       className={cn(
-        'm-auto max-h-[90dvh] w-[min(40rem,calc(100vw-32px))] overflow-y-auto rounded-xl border border-line bg-canvas p-0 text-fg outline-none backdrop:bg-black/40',
+        'm-auto max-h-[90dvh] w-[min(40rem,calc(100vw-32px))] overflow-y-auto rounded-md border-2 border-rule bg-canvas p-0 text-fg outline-none backdrop:bg-black/40',
         className
       )}
     >

@@ -23,10 +23,10 @@ export const CHART_CLASSES = {
 
 /** One colour per account line, in the order the accounts appear; they repeat past the last. */
 const ACCOUNT_COLORS = [
-  '#3a5ccc',
+  '#5b7cf5',
   '#e08a1e',
-  '#1f8a55',
-  '#8a5cc2',
+  '#27a468',
+  '#9a72d4',
   '#15a0b8',
   '#d1559a',
   '#a8741a',

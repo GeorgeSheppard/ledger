@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import { getBinding, type ShortcutId } from '../lib/shortcuts/bindings';
 import { useLedger, useSyncStatus } from '../state/ledgerData';
@@ -6,11 +6,11 @@ import { useHistory, useHistoryNotice, useHistoryState } from '../state/history'
 import { useSession } from '../state/session';
 import { ExitButton } from './ExitButton';
 import { useShortcut } from '../state/shortcuts';
-import { ActionButton } from '../ui/ActionButton';
 import { DonateLink } from '../ui/DonateLink';
-import { Kbd } from '../ui/Kbd';
+import { Menu } from '../ui/Menu';
 import { cn } from '../ui/cn';
 import { SaveStatus } from '../modules/save/ui/SaveStatus';
+import { useSaveAction } from '../modules/save/ui/useSaveAction';
 import { paths } from './paths';
 
 const NAV: { to: string; label: string; shortcut: ShortcutId }[] = [
@@ -27,68 +27,16 @@ function NavItem({ to, label, shortcut }: (typeof NAV)[number]) {
     <NavLink
       to={to}
       end={to === paths.home}
+      title={getBinding(shortcut).description}
       className={({ isActive }) =>
         cn(
-          'flex items-center justify-between rounded-lg px-2 py-1.5 text-fg no-underline hover:bg-surface-hover max-md:shrink-0 max-md:px-3',
-          isActive && 'bg-surface-hover font-semibold'
+          'flex shrink-0 items-center gap-2 border-b-4 border-transparent px-0.5 py-3.5 text-sm text-fg no-underline hover:border-line',
+          isActive && 'border-fg font-bold hover:border-fg'
         )
       }
     >
       <span>{label}</span>
-      <Kbd shortcut={shortcut} className="text-muted" />
     </NavLink>
-  );
-}
-
-/** Link to the sheet report, which says what became of each tab. Flags tabs that were not read. */
-function SheetReportLink() {
-  const navigate = useNavigate();
-  const { tabReports } = useLedger();
-  useShortcut('nav.sheets', () => navigate(paths.sheets));
-  const unread = tabReports.filter((tab) => !tab.imported).length;
-  return (
-    <NavLink
-      to={paths.sheets}
-      title={getBinding('nav.sheets').description}
-      className={({ isActive }) =>
-        cn(
-          'rounded px-1 py-0.5 text-muted underline-offset-2 hover:text-fg hover:underline',
-          isActive && 'font-semibold text-fg'
-        )
-      }
-    >
-      {unread > 0 ? `${unread} tab${unread === 1 ? '' : 's'} not read` : 'Tab report'}
-    </NavLink>
-  );
-}
-
-/** Undo and redo, which work on every page: Ctrl+Z and Ctrl+Shift+Z. */
-function UndoRedo() {
-  const history = useHistory();
-  const { undoLabel, redoLabel } = useHistoryState();
-  return (
-    <div className="flex gap-1">
-      <ActionButton
-        shortcut="history.undo"
-        variant="ghost"
-        className="flex-1 justify-between"
-        disabled={!undoLabel}
-        title={undoLabel ? `Undo: ${undoLabel}` : 'Nothing to undo'}
-        onAction={() => history.undo()}
-      >
-        Undo
-      </ActionButton>
-      <ActionButton
-        shortcut="history.redo"
-        variant="ghost"
-        className="flex-1 justify-between"
-        disabled={!redoLabel}
-        title={redoLabel ? `Redo: ${redoLabel}` : 'Nothing to redo'}
-        onAction={() => history.redo()}
-      >
-        Redo
-      </ActionButton>
-    </div>
   );
 }
 
@@ -106,11 +54,16 @@ function HistoryNotice() {
   );
 }
 
-/** The connected spreadsheet: what it is, whether it is saved, and what you can do with it. */
-function SpreadsheetPanel({ title, id, isFile }: { title: string; id: string; isFile: boolean }) {
+/** The connected spreadsheet: its name, whether it is saved, and the actions on it. */
+function SpreadsheetTools({ title, id, isFile }: { title: string; id: string; isFile: boolean }) {
   const navigate = useNavigate();
   const { closeFile } = useSession();
   const { status } = useSyncStatus();
+  const { tabReports } = useLedger();
+  const history = useHistory();
+  const { undoLabel, redoLabel } = useHistoryState();
+  const save = useSaveAction();
+  useShortcut('nav.sheets', () => navigate(paths.sheets));
   const leave = () => {
     if (!isFile) return navigate(paths.connect);
     const unsaved = status.state === 'unsaved' || status.state === 'error';
@@ -126,95 +79,95 @@ function SpreadsheetPanel({ title, id, isFile }: { title: string; id: string; is
       document.title = 'Ledger';
     };
   }, [title]);
+  const unread = tabReports.filter((tab) => !tab.imported).length;
   const openUrl = isFile || id === 'demo' ? null : `https://docs.google.com/spreadsheets/d/${id}`;
+  const name = (
+    <>
+      <span className="block truncate font-semibold">
+        {title}
+        {openUrl && <span aria-hidden="true"> ↗</span>}
+      </span>
+    </>
+  );
   return (
-    <section
-      aria-label="Spreadsheet"
-      className="flex flex-col gap-3 rounded-lg border border-line bg-canvas p-3"
-    >
-      <div className="min-w-0">
-        <div className="text-xs font-medium tracking-wide text-muted uppercase">
-          {isFile ? 'File' : 'Spreadsheet'}
-        </div>
+    <section aria-label="Spreadsheet" className="flex min-w-0 items-center gap-3">
+      <div className="max-w-[9rem] min-w-0 text-sm sm:max-w-[16rem]" title={title}>
         {openUrl ? (
           <a
             href={openUrl}
             target="_blank"
             rel="noreferrer"
             title={`Open ${title} in Google Sheets`}
-            className="block truncate font-semibold text-fg no-underline hover:underline"
+            className="block text-fg no-underline hover:underline"
           >
-            {title} <span aria-hidden="true">↗</span>
+            {name}
           </a>
         ) : (
-          <div className="truncate font-semibold" title={title}>
-            {title}
-          </div>
+          name
         )}
       </div>
-      <SaveStatus buttonClassName="w-full justify-center" />
-      <UndoRedo />
-      <div className="flex items-center justify-between gap-2 border-t border-line pt-2 text-xs">
-        <SheetReportLink />
-        <button
-          type="button"
-          className="cursor-pointer rounded px-1 py-0.5 text-muted underline-offset-2 hover:text-fg hover:underline"
-          onClick={leave}
-        >
-          {isFile ? 'Close file' : 'Switch'}
-        </button>
-      </div>
+      <SaveStatus action={save} className="max-sm:[&>span:last-child]:sr-only" />
+      <Menu
+        label="Spreadsheet actions"
+        buttonClassName="border-2 border-rule"
+        items={[
+          { label: save.menuLabel, onSelect: save.run },
+          {
+            label: undoLabel ? `Undo ${undoLabel}` : 'Undo',
+            separated: true,
+            disabled: !undoLabel,
+            onSelect: () => history.undo(),
+          },
+          {
+            label: redoLabel ? `Redo ${redoLabel}` : 'Redo',
+            disabled: !redoLabel,
+            onSelect: () => history.redo(),
+          },
+          {
+            label: unread > 0 ? `Tab report (${unread} not read)` : 'Tab report',
+            separated: true,
+            onSelect: () => navigate(paths.sheets),
+          },
+          { label: isFile ? 'Close file' : 'Switch spreadsheet', onSelect: leave },
+        ]}
+      />
     </section>
   );
 }
 
-/** Frame around every signed-in page: sidebar navigation (a top bar on phones) and sheet name. */
+/** Frame around every signed-in page: a bar across the top with navigation and the spreadsheet. */
 export function AppShell({ children }: { children: ReactNode }) {
   const { session } = useSession();
-  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="grid min-h-dvh grid-cols-1 md:grid-cols-[220px_1fr]">
-      <aside className="flex flex-col gap-4 border-b border-line bg-surface p-4 max-md:gap-2 max-md:py-2 md:sticky md:top-0 md:h-dvh md:self-start md:overflow-y-auto md:border-r md:border-b-0">
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-lg font-bold">Ledger</div>
-          <button
-            type="button"
-            className="cursor-pointer rounded-lg border border-line px-2.5 py-1 text-sm md:hidden"
-            aria-expanded={menuOpen}
-            aria-controls="shell-menu"
-            onClick={() => setMenuOpen((open) => !open)}
+    <div className="flex min-h-dvh flex-col">
+      <header className="ledger-bar sticky top-0 z-30 border-b border-line bg-bar text-fg">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-0 px-4 pt-2 md:flex-nowrap md:px-8 md:pt-0">
+          <div className="text-lg font-bold tracking-tight">Ledger</div>
+          <nav
+            aria-label="Pages"
+            className="order-3 -mx-1 flex w-full gap-5 overflow-x-auto px-1 md:order-2 md:mx-0 md:w-auto md:flex-1 md:px-0"
           >
-            {menuOpen ? 'Close' : 'Spreadsheet'}
-          </button>
-        </div>
-        <div
-          id="shell-menu"
-          className={cn('flex-col gap-4 md:flex', menuOpen ? 'flex' : 'max-md:hidden')}
-        >
+            {NAV.map((item) => (
+              <NavItem key={item.to} {...item} />
+            ))}
+          </nav>
           {session.status === 'connected' && (
-            <SpreadsheetPanel
-              title={session.spreadsheet.title}
-              id={session.spreadsheet.id}
-              isFile={session.file === true}
-            />
+            <div className="order-2 ml-auto min-w-0 py-2 md:order-3">
+              <SpreadsheetTools
+                title={session.spreadsheet.title}
+                id={session.spreadsheet.id}
+                isFile={session.file === true}
+              />
+            </div>
           )}
-          <div className="flex flex-col gap-2 md:hidden">
-            <DonateLink className="text-xs" />
-            {session.status === 'connected' && <ExitButton className="w-full justify-start" />}
-          </div>
         </div>
-        <nav className="flex flex-col gap-0.5 max-md:-mx-1 max-md:flex-row max-md:overflow-x-auto">
-          {NAV.map((item) => (
-            <NavItem key={item.to} {...item} />
-          ))}
-        </nav>
-        <div className="mt-auto flex flex-col gap-2 max-md:hidden">
-          <DonateLink className="text-xs" />
-          {session.status === 'connected' && <ExitButton className="w-full justify-start" />}
-        </div>
-      </aside>
-      <main className="min-w-0">{children}</main>
+      </header>
+      <main className="min-w-0 flex-1">{children}</main>
+      <footer className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t-2 border-rule px-4 py-3 md:px-8">
+        <DonateLink className="text-xs" />
+        {session.status === 'connected' && <ExitButton />}
+      </footer>
       {session.status === 'connected' && <HistoryNotice />}
     </div>
   );
