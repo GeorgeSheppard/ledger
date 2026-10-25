@@ -15,8 +15,6 @@ export const ledgerDataSchema = z.object({
   /** Rows per account id, oldest first. */
   rows: z.record(z.coerce.number().int(), z.array(transactionInputSchema)),
   categories: z.array(categorySchema),
-  /** Contents of the `Ledger_Dashboard` tab, or `null` when there is none yet. */
-  dashboard: jsonSchema.nullable(),
   /** Contents of the `Paychecks` tab in the app's JSON shape, or `null` when there is none yet. */
   paychecks: jsonSchema.nullable(),
 });
@@ -32,7 +30,6 @@ export const sheetLayoutSchema = z.object({
   /** The legacy `_Categories` tab, deleted when `Ledger_Metadata` takes over on the next save. */
   categoriesSheetId: z.number().int().optional(),
   metadataSheetId: z.number().int().optional(),
-  dashboardSheetId: z.number().int().optional(),
   paychecksSheetId: z.number().int().optional(),
   /** The `Paychecks` tab still has the old one-cell JSON layout; the next write replaces it with the table. */
   paychecksLegacy: z.boolean().optional(),

@@ -1,6 +1,5 @@
 import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
-import { DASHBOARD_TAB } from '../../../lib/domain/types';
 import { fixtureData } from '../../../lib/data/fixtures';
 import { parsePaychecks } from '../../../lib/paychecks/serialize';
 import type { RemoteState } from '../../../lib/store/remote';
@@ -88,13 +87,11 @@ describe('reading a workbook', () => {
 describe('writing a workbook', () => {
   it('round-trips the ledger tabs in the Sheets format', async () => {
     const data = fixtureData();
-    data.dashboard = { version: 1, widgets: [] };
     const bytes = await writeWorkbook(null, [], data);
     const state = ledgerFromTabs(await readWorkbookTabs(bytes));
     expect(state.data.accounts.map((a) => a.name)).toEqual(['Current account', 'Savings']);
     expect(Object.values(state.data.rows)).toEqual(data.accounts.map((a) => data.rows[a.id]));
     expect(state.data.categories).toEqual(data.categories);
-    expect(state.data.dashboard).toEqual(data.dashboard);
     expect(state.data.paychecks).toEqual(data.paychecks);
   });
 
@@ -252,7 +249,6 @@ describe('writing a workbook', () => {
     const current = book.getWorksheet('Current')!;
     expect(current.getCell('D3').value).toBe('Lunch');
     expect(current.getCell('E4').value).toMatchObject({ formula: 'SUM($C$2:C4)', result: 1080 });
-    expect(book.getWorksheet(DASHBOARD_TAB)).toBeUndefined();
   });
 
   it('adds and removes accounts, clearing rows left over after deletes', async () => {

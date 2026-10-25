@@ -2,7 +2,6 @@ import type { Cell, Workbook, Worksheet } from 'exceljs';
 import {
   ACCOUNT_COLUMNS,
   CATEGORIES_TAB,
-  DASHBOARD_TAB,
   LEGACY_TAB_NAMES,
   METADATA_TAB,
   PAYCHECKS_TAB,
@@ -21,7 +20,7 @@ import { runningTotals } from '../../../lib/transactions/runningTotal';
 /**
  * Writes a ledger as an `.xlsx` workbook in the same tab layout as the Google Sheet. Writing starts
  * again from the original file's bytes and only touches the tabs Ledger owns (accounts,
- * `Ledger_Metadata`, `Ledger_Dashboard`, `Paychecks`). Every other tab, including `_` tabs other features
+ * `Ledger_Metadata`, `Paychecks`). Every other tab, including `_` tabs other features
  * add, comes back exactly as it was read.
  */
 
@@ -124,15 +123,6 @@ export async function writeWorkbook(
   });
   const legacy = workbook.getWorksheet(CATEGORIES_TAB);
   if (legacy) workbook.removeWorksheet(legacy.id);
-
-  // JSON tabs: header in A1, the value in A2. Created only once there is something to keep.
-  const writeJsonTab = (title: string, header: string, value: LedgerData['dashboard']) => {
-    const existing = workbook.getWorksheet(title);
-    if (!existing && value === null) return;
-    const sheet = existing ?? sheetFor(workbook, title, [header], [60]);
-    sheet.getCell(2, 1).value = value === null ? null : JSON.stringify(value);
-  };
-  writeJsonTab(DASHBOARD_TAB, 'Config', data.dashboard);
 
   // `Paychecks` is a table, one row per payslip line. A file from before that held JSON in A2;
   // its header and cell are replaced here.

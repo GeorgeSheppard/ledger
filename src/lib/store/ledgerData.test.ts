@@ -28,7 +28,6 @@ function ledger(rows: TransactionInput[]): LedgerData {
     accounts: [{ id: 1, name: 'Current' }],
     rows: { 1: rows },
     categories: [{ name: 'Food', color: '#4f7cff' }],
-    dashboard: null,
     paychecks: null,
   };
 }
@@ -161,14 +160,12 @@ describe('rebase', () => {
       ],
       rows: { 1: [tx('2026-01-01', 1)], 2: [tx('2026-01-01', 2)] },
       categories: [],
-      dashboard: null,
       paychecks: null,
     };
     const local: LedgerData = {
       ...base,
       accounts: [...base.accounts, { id: 3, name: 'New' }],
       rows: { ...base.rows, 1: [tx('2026-01-01', 1), tx('2026-01-02', 5)], 3: [] },
-      dashboard: { widgets: [] },
     };
     const fresh: LedgerData = {
       ...base,
@@ -188,7 +185,6 @@ describe('rebase', () => {
     expect(merged.rows[1]).toEqual(local.rows[1]);
     expect(merged.rows[2]).toEqual(fresh.rows[2]);
     expect(merged.categories).toEqual(fresh.categories);
-    expect(merged.dashboard).toEqual({ widgets: [] });
     expect(sameData(rebase(fresh, base, base), fresh)).toBe(true);
   });
 });

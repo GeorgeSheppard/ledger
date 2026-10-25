@@ -1,12 +1,6 @@
 import type { Account, TransactionInput } from '../../../lib/domain/types';
+import { ACCOUNT_COLUMNS, METADATA_TAB, PAYCHECKS_TAB } from '../../../lib/domain/types';
 import {
-  ACCOUNT_COLUMNS,
-  DASHBOARD_TAB,
-  METADATA_TAB,
-  PAYCHECKS_TAB,
-} from '../../../lib/domain/types';
-import {
-  dashboardRow,
   headerRow,
   METADATA_COLUMNS,
   metadataEntries,
@@ -19,7 +13,6 @@ import type { GridRange, SheetsRequest } from '../../../lib/google/sheetsTypes';
 import { sameData, sameJson, sameRows, type LedgerData } from '../../../lib/store/ledgerData';
 import { newSheetId, type RemoteState, type SheetLayout } from '../../../lib/store/remote';
 
-const DASHBOARD_COLUMNS = ['Config'] as const;
 /** Fields written for transaction rows: values plus the date format, never the user's styling. */
 const TRANSACTION_FIELDS = 'userEnteredValue,userEnteredFormat.numberFormat';
 const NEW_TAB_ROWS = 1000;
@@ -110,21 +103,6 @@ export function saveRequests(
       delete layout.rowCounts[legacySheetId];
       delete layout.categoriesSheetId;
     }
-  }
-
-  if (!sameJson(base.data.dashboard, next.dashboard)) {
-    let sheetId = layout.dashboardSheetId;
-    if (sheetId === undefined) {
-      sheetId = layout.dashboardSheetId = newSheetId(takenIds(layout, next));
-      addTab(sheetId, DASHBOARD_TAB, DASHBOARD_COLUMNS, 1);
-    }
-    requests.push({
-      updateCells: {
-        range: { ...dataRange(sheetId, 1), endRowIndex: 2 },
-        rows: [dashboardRow(next.dashboard)],
-        fields: 'userEnteredValue',
-      },
-    });
   }
 
   // `Paychecks` is a table with a row per payslip line, rewritten whole from its header down (the

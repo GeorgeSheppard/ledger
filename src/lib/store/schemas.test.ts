@@ -6,7 +6,6 @@ const data = {
   accounts: [{ id: 7, name: 'Current' }],
   rows: { 7: [{ date: '2026-01-02', category: 'Food', amount: -4.5, note: '' }] },
   categories: [{ name: 'Food', color: '#112233' }],
-  dashboard: null,
   paychecks: { version: 1, paychecks: [] },
 };
 

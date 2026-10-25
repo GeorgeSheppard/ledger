@@ -30,7 +30,6 @@ describe('google ingest', () => {
       { title: 'Notes', reason: 'Row 2 has no valid date' },
     ]);
     expect(data.categories).toEqual([{ name: 'Food', color: '#4f7cff' }]);
-    expect(data.dashboard).toBeNull();
     expect(layout).toMatchObject({ metadataSheetId: 99, rowCounts: { 20: 3 } });
     expect(layout.sheetIds).toEqual([10, 20, 30, 40, 99, 98]);
   });
@@ -45,21 +44,15 @@ describe('google ingest', () => {
 
   it('reads app tabs under their old names and plans to rename them', async () => {
     const client = new FakeClient(
-      [
-        tab(10, 'Current', 0),
-        tab(31, '_Paychecks', 1),
-        tab(32, '_Metadata', 2),
-        tab(33, '_Dashboard', 3),
-      ],
-      { 10: [HEADER], 31: [['Date', 'Tax code', 'Type', 'Name', 'Amount']], 33: [['Config']] }
+      [tab(10, 'Current', 0), tab(31, '_Paychecks', 1), tab(32, '_Metadata', 2)],
+      { 10: [HEADER], 31: [['Date', 'Tax code', 'Type', 'Name', 'Amount']] }
     );
     const { data, layout } = await open(client).load();
     expect(data.accounts.map((a) => a.name)).toEqual(['Current']);
     expect(layout).toMatchObject({
       paychecksSheetId: 31,
       metadataSheetId: 32,
-      dashboardSheetId: 33,
-      renames: { 31: 'Paychecks', 32: 'Ledger_Metadata', 33: 'Ledger_Dashboard' },
+      renames: { 31: 'Paychecks', 32: 'Ledger_Metadata' },
     });
   });
 

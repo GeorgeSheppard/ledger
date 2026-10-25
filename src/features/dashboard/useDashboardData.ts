@@ -5,8 +5,7 @@ import { useLedgers } from './loadLedgers';
 
 /**
  * The one place the dashboard touches the data layer: the ledgers, plus the paychecks the
- * money-flow graph follows. The layout saved in the `Ledger_Dashboard` tab is left alone (and kept in the
- * sheet) while the dashboard has a fixed layout.
+ * money-flow graph follows.
  */
 export function useDashboardData() {
   const query = useLedgers();

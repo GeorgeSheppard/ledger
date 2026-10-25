@@ -45,10 +45,6 @@ export interface LedgerRepository {
    */
   migrateCategory(from: string, to: string, archive?: boolean): Promise<void>;
 
-  /** The dashboard layout saved in the `Ledger_Dashboard` tab, or `null` if none was saved yet. */
-  getDashboardConfig(): Promise<JsonValue | null>;
-  saveDashboardConfig(config: JsonValue | null): Promise<void>;
-
   /** The paychecks saved in the `Paychecks` tab, or `null` if none were saved yet. */
   getPaychecks(): Promise<JsonValue | null>;
   savePaychecks(config: JsonValue | null): Promise<void>;

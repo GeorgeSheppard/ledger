@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { DASHBOARD_TAB } from '../../../lib/domain/types';
 import type { SheetsRequest } from '../../../lib/google/sheetsTypes';
 import { fakeSheet, HEADER, tab, FakeClient } from '../../../lib/google/testing';
 import type { LedgerData } from '../../../lib/store/ledgerData';
@@ -59,7 +58,7 @@ describe('saveRequests', () => {
     expect(write.updateCells.range?.endRowIndex).toBeUndefined();
   });
 
-  it('adds new accounts, renames, categories and the dashboard tab in one batch', async () => {
+  it('adds new accounts, renames, and categories in one batch', async () => {
     const base = await loaded();
     const next: LedgerData = {
       accounts: [
@@ -72,7 +71,6 @@ describe('saveRequests', () => {
         555: [{ date: '2026-04-01', category: '', amount: -5, note: '' }],
       },
       categories: [{ name: 'Groceries', color: '#4f7cff' }],
-      dashboard: { widgets: ['netWorth'] },
       paychecks: null,
     };
     const { requests, layout } = saveRequests(base, next);
@@ -83,19 +81,10 @@ describe('saveRequests', () => {
       'updateCells',
       'updateCells',
       'updateCells',
-      'addSheet',
-      'updateCells',
-      'updateCells',
     ]);
     expect(requests[1]).toMatchObject({
       addSheet: { properties: { sheetId: 555, title: 'Credit card' } },
     });
-    expect(requests[5]).toMatchObject({ addSheet: { properties: { title: DASHBOARD_TAB } } });
-    const dashboard = requests[7] as Extract<SheetsRequest, { updateCells: unknown }>;
-    expect(dashboard.updateCells.rows[0]!.values[0]?.userEnteredValue).toEqual({
-      stringValue: '{"widgets":["netWorth"]}',
-    });
-    expect(layout.dashboardSheetId).toBeDefined();
     expect(layout.sheetIds).toContain(555);
   });
 

@@ -67,7 +67,7 @@ export function PrivacyPage() {
           <li>
             <strong>Your browser.</strong> So Ledger is quick and your changes are not lost if the
             connection drops, it keeps a working copy of your connected spreadsheet (your accounts,
-            transactions, categories and dashboard layout, plus any changes not yet saved) in your
+            transactions, categories and paychecks, plus any changes not yet saved) in your
             browser&rsquo;s local database (IndexedDB) on this device. Changes are saved back to
             your Google Sheet automatically about once a minute, or straight away when you press
             Save. This copy never leaves your device except to be saved to your own sheet, and it is

@@ -59,7 +59,6 @@ src/
     files/                     ExcelJS loading shared by reading and writing .xlsx files
     metrics/                   net worth series, monthly spend by category
     csv/                       CSV text → rows (Papa Parse)
-    dashboard/                 dashboard layout (widgets) as stored in the sheet; not editable for now
     paychecks/                 paychecks and the money-flow calculation
   modules/                     the pick-and-choose parts of the app, see "Modules" below
     ingest/                    getting a ledger in: Google, a file on this device
@@ -122,9 +121,8 @@ src/modules/
   state. The range comes from the date picker, from dragging across the balances graph, or from
   clicking a spending column; accounts are switched on and off in the balances legend and
   categories in the spending legend or breakdown table, and every graph follows. Balances are not
-  narrowed by category, and the money-flow Sankey narrows to the picked categories (the rest and savings collapse into one "Everything else" node); clicking a spending node picks or clears it. Every Sankey column is sorted largest first. The `Ledger_Dashboard` tab
-  of the sheet (the old widget layout) is still read and written back untouched, but layout editing
-  is switched off for now.
+  narrowed by category, and the money-flow Sankey narrows to the picked categories (the rest and savings collapse into one "Everything else" node); clicking a spending node picks or clears it. Every Sankey column is sorted largest first. A sheet
+  may still have a `_Dashboard` tab from the old widget layout; it is ignored and left untouched.
 - **Time graphs.** Balances, spending and income/spending are drawn with Chart.js
   (`lib/metrics/timeSeries.ts` cuts a period into months, weeks or days, `granularityFor`;
   `shared/timeView.tsx` feeds the visible range to Chart.js). Sankey and the breakdown stay on d3
@@ -195,10 +193,10 @@ viewport. `pnpm screenshots <story-id>` runs the play functions and exits 1 when
   - Rows are kept in date order (oldest first). Total is a running-balance formula written by the
     app (e.g. `=SUM($C$2:C2)`), so it stays correct when the user edits the sheet directly. The app
     computes totals itself and never reads the Total column.
-- Tab names: the app's own tabs are `Ledger_Metadata` and `Ledger_Dashboard` (the `Ledger_` prefix says
-  where they come from), plus `Paychecks`, a table you work with. `_` and `Ledger_` prefixes and the
-  name `Paychecks` cannot be account names. Sheets from before the rename have `_Metadata`,
-  `_Dashboard` and `_Paychecks`: those are still read (unless the new name also exists, then the old
+- Tab names: the app's settings tab is `Ledger_Metadata` (the `Ledger_` prefix says where it comes
+  from), plus `Paychecks`, a table you work with. `_` and `Ledger_` prefixes and the
+  name `Paychecks` cannot be account names. Sheets from before the rename have `_Metadata`
+  and `_Paychecks`: those are still read (unless the new name also exists, then the old
   tab is ignored), and renamed in place, data kept, on the first save of a change.
 - `Ledger_Metadata` tab: header `Type | Name | Setting | Value`, one setting per row. It holds everything
   the app remembers about the spreadsheet that is not a transaction:
@@ -227,7 +225,6 @@ viewport. `pnpm screenshots <story-id>` runs the play functions and exits 1 when
   is a negative contribution to net worth; paying the card from a bank account pairs up with the
   card's payment row as a transfer. The tab, its Total column and the transaction table stay as the
   sheet has them.
-- `Ledger_Dashboard` tab: header `Config`, the dashboard layout as JSON in cell A2.
 - `Paychecks` tab: a plain table, one row per payslip line, so Excel can pivot and chart it:
   `Date | Tax code | Type | Name | Amount`. One payslip per date: its lines share the date, and
   `Tax code` (kept with the paycheck, never used in any sum, repeated on each line) is optional.

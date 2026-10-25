@@ -39,13 +39,10 @@ export const CATEGORIES_TAB = '_Categories';
 
 /** Tab that holds the paychecks, one row per payslip line. A user-facing table, so no prefix. */
 export const PAYCHECKS_TAB = 'Paychecks';
-/** Tab holding the dashboard layout as JSON in cell A2. */
-export const DASHBOARD_TAB = 'Ledger_Dashboard';
 
 /** Names the app tabs had before they were renamed. Still read; renamed on the next save. */
 export const LEGACY_TAB_NAMES: Readonly<Record<string, string>> = {
   [METADATA_TAB]: '_Metadata',
-  [DASHBOARD_TAB]: '_Dashboard',
   [PAYCHECKS_TAB]: '_Paychecks',
 };
 

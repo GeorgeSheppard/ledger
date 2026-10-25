@@ -2,7 +2,6 @@ import type { SheetProperties, GridRange } from './sheetsTypes';
 import {
   ACCOUNT_COLUMNS,
   CATEGORIES_TAB,
-  DASHBOARD_TAB,
   LEGACY_TAB_NAMES,
   METADATA_TAB,
   PAYCHECKS_TAB,
@@ -13,7 +12,6 @@ import type { LedgerData, SkippedTab } from '../store/ledgerData';
 import type { RemoteState, SheetLayout } from '../store/remote';
 import {
   parseAccountTab,
-  parseDashboardCell,
   parseMetadata,
   isLegacyPaychecksTab,
   PAYCHECK_COLUMNS,
@@ -29,11 +27,10 @@ import {
 
 const CATEGORY_COLUMNS = ['Name', 'Color'] as const;
 
-type TabRole = 'metadata' | 'categories' | 'dashboard' | 'paychecks' | 'ignored' | 'account';
+type TabRole = 'metadata' | 'categories' | 'paychecks' | 'ignored' | 'account';
 
 const NEW_TAB_ROLES: Readonly<Partial<Record<string, TabRole>>> = {
   [METADATA_TAB]: 'metadata',
-  [DASHBOARD_TAB]: 'dashboard',
   [PAYCHECKS_TAB]: 'paychecks',
 };
 
@@ -85,8 +82,6 @@ export function readRange(
       return range(METADATA_COLUMNS.length);
     case 'categories':
       return range(CATEGORY_COLUMNS.length);
-    case 'dashboard':
-      return range(1, 2);
     case 'paychecks':
       return range(PAYCHECK_COLUMNS.length);
     case 'account':
@@ -105,7 +100,6 @@ export function parseSpreadsheet(
     accounts: [],
     rows: {},
     categories: [],
-    dashboard: null,
     paychecks: null,
   };
   const skippedTabs: SkippedTab[] = [];
@@ -125,9 +119,6 @@ export function parseSpreadsheet(
     } else if (role === 'categories') {
       layout.categoriesSheetId = tab.sheetId;
       legacyCategories = rowsToCategories(values.slice(1));
-    } else if (role === 'dashboard') {
-      layout.dashboardSheetId = tab.sheetId;
-      data.dashboard = parseDashboardCell(values[1]?.[0]);
     } else if (role === 'paychecks') {
       layout.paychecksSheetId = tab.sheetId;
       data.paychecks = parsePaychecksTab(values);

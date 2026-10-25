@@ -280,8 +280,8 @@ export function metadataRow(entry: MetadataEntry): RowData {
   };
 }
 
-/** `Ledger_Dashboard` stores its config as JSON text in cell A2. Unreadable text counts as no config. */
-export function parseDashboardCell(value: unknown): JsonValue | null {
+/** JSON text in a cell (the old paychecks layout). Unreadable text counts as nothing. */
+export function parseJsonCell(value: unknown): JsonValue | null {
   const text = textCell(value);
   if (!text) return null;
   try {
@@ -290,10 +290,6 @@ export function parseDashboardCell(value: unknown): JsonValue | null {
   } catch {
     return null;
   }
-}
-
-export function dashboardRow(config: JsonValue | null): RowData {
-  return { values: [config === null ? {} : stringCell(JSON.stringify(config))] };
 }
 
 export const PAYCHECK_COLUMNS = ['Date', 'Tax code', 'Type', 'Name', 'Amount'] as const;
@@ -331,7 +327,7 @@ export function isLegacyPaychecksTab(values: readonly (readonly unknown[])[]): b
  */
 export function parsePaychecksTab(values: readonly (readonly unknown[])[]): JsonValue | null {
   if (!isPaycheckTable(values)) {
-    const stored = parseDashboardCell(values[1]?.[0]);
+    const stored = parseJsonCell(values[1]?.[0]);
     return stored === null
       ? null
       : (serializePaychecks(parsePaychecks(stored)) as unknown as JsonValue);

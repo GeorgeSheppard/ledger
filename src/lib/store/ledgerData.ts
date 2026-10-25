@@ -23,7 +23,6 @@ export interface LedgerSnapshot {
   /** Transactions per account id, oldest first. */
   transactionsByAccount: Record<number, Transaction[]>;
   categories: Category[];
-  dashboard: JsonValue | null;
   paychecks: JsonValue | null;
   /** Tabs ignored on load, so the UI can say why a tab is missing. */
   skippedTabs: SkippedTab[];
@@ -48,7 +47,6 @@ export function toSnapshot(data: LedgerData, skippedTabs: SkippedTab[]): LedgerS
     accounts: data.accounts,
     transactionsByAccount,
     categories: data.categories,
-    dashboard: data.dashboard,
     paychecks: data.paychecks ?? null,
     skippedTabs,
   };
@@ -308,10 +306,6 @@ export function withUsedCategories(data: LedgerData): LedgerData {
   return sameCategories(categories, data.categories) ? data : { ...data, categories };
 }
 
-export function setDashboard(data: LedgerData, config: JsonValue | null): LedgerData {
-  return { ...data, dashboard: structuredClone(config) };
-}
-
 export function setPaychecks(data: LedgerData, config: JsonValue | null): LedgerData {
   return { ...data, paychecks: structuredClone(config) };
 }
@@ -369,7 +363,6 @@ export function sameData(a: LedgerData, b: LedgerData): boolean {
       );
     }) &&
     sameCategories(a.categories, b.categories) &&
-    sameJson(a.dashboard, b.dashboard) &&
     sameJson(a.paychecks, b.paychecks)
   );
 }
@@ -415,7 +408,6 @@ export function rebase(fresh: LedgerData, base: LedgerData, local: LedgerData): 
     categories: sameCategories(local.categories, base.categories)
       ? fresh.categories
       : local.categories,
-    dashboard: sameJson(local.dashboard, base.dashboard) ? fresh.dashboard : local.dashboard,
     paychecks: sameJson(local.paychecks, base.paychecks)
       ? (fresh.paychecks ?? null)
       : (local.paychecks ?? null),

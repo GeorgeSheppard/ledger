@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { paths } from '../../app/paths';
-import type { WidgetWidth } from '../../lib/dashboard/config';
+import type { WidgetWidth } from '../../modules/graphs/types';
 import { ignoredCategoryNames } from '../../lib/categories/categories';
 import { defaultPeriod, firstDate } from '../../lib/metrics/period';
 import { todayIso } from '../../lib/transactions/dates';
