@@ -2,31 +2,14 @@ import { parseCsv } from '../../../lib/csv/parse';
 import { XLSX_MIME } from '../../../lib/files/xlsx';
 import { DEFAULT_ACCOUNT_NAME, DEFAULT_CATEGORIES } from '../../../lib/domain/defaults';
 import type { LedgerData } from '../../../lib/store/ledgerData';
-import { EMPTY_LAYOUT, type RemoteState } from '../../../lib/store/remote';
-import { fileSaver } from '../../save';
+import { EMPTY_LAYOUT } from '../../../lib/store/remote';
+import { fileConnection } from '../shared/fileConnection';
 import type { Connection, Ingest } from '../types';
 import { ledgerFromTabs, readWorkbookTabs } from './workbook';
 
 /** The part of a file name before its extension. */
 export function fileTitle(fileName: string): string {
   return fileName.replace(/\.[^./\\]+$/, '').trim() || 'Ledger';
-}
-
-/** A ledger held in memory from `state`, saved by downloading a file. */
-function fileConnection(
-  title: string,
-  state: RemoteState,
-  original: ArrayBuffer | null
-): Connection {
-  return {
-    title,
-    load: async () => structuredClone(state),
-    saver: fileSaver(
-      title,
-      state.data.accounts.map((account) => account.id),
-      original
-    ),
-  };
 }
 
 /** An empty ledger with the starter categories and one account, for people who bring no file. */

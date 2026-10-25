@@ -15,7 +15,13 @@ import {
 } from '../modules/ingest/google/rememberedSpreadsheet';
 import type { SpreadsheetSource } from '../modules/ingest/spreadsheetSource';
 import { fixtureData } from '../lib/data/fixtures';
-import { localFileIngest, newLocalLedger, remoteOf, type Connection } from '../modules/ingest';
+import {
+  exampleLedger,
+  localFileIngest,
+  newLocalLedger,
+  remoteOf,
+  type Connection,
+} from '../modules/ingest';
 import type { SpreadsheetRef } from '../lib/domain/types';
 import {
   createGoogleServices,
@@ -62,12 +68,17 @@ export interface SessionApi {
   openFile(file: File): Promise<void>;
   /** Opens an empty ledger that is kept in a file the user downloads. */
   startBlankFile(): void;
+  /** Opens the built-in example ledger, to explore the app without any data of one's own. */
+  startExample(): void;
   /** Leaves the open file, back to wherever the user was before opening it. */
   closeFile(): void;
 }
 
 /** What each session hook provides itself; `useFileOverlay` adds the file methods on top. */
-type BaseSessionApi = Omit<SessionApi, 'openFile' | 'startBlankFile' | 'closeFile'>;
+type BaseSessionApi = Omit<
+  SessionApi,
+  'openFile' | 'startBlankFile' | 'startExample' | 'closeFile'
+>;
 
 const SessionContext = createContext<SessionApi | null>(null);
 
@@ -194,6 +205,7 @@ function useFileOverlay(base: BaseSessionApi): SessionApi {
       show(await localFileIngest.open(chosen));
     },
     startBlankFile: () => show(newLocalLedger()),
+    startExample: () => show(exampleLedger()),
     closeFile: () => setFile(null),
     async exit() {
       await discardLocalData();
