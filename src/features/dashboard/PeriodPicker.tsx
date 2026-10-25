@@ -14,6 +14,9 @@ interface PeriodPickerProps {
   /** First day with data, for "All time". */
   first?: string;
   onChange(period: Period): void;
+  /** Whether there is an earlier range to return to, and how to return to it. */
+  canGoBack: boolean;
+  onBack(): void;
 }
 
 /** The label for a period: `October 2026` for one whole month, else its first and last day. */
@@ -28,12 +31,28 @@ export function periodLabel(period: Period): string {
  * The dashboard's date range: step back and forward, pick a preset, or type any two dates. The
  * balances graph can also set it by dragging.
  */
-export function PeriodPicker({ period, today, first, onChange }: PeriodPickerProps) {
+export function PeriodPicker({
+  period,
+  today,
+  first,
+  onChange,
+  canGoBack,
+  onBack,
+}: PeriodPickerProps) {
   const [open, setOpen] = useState(false);
   const [button, setButton] = useState<HTMLButtonElement | null>(null);
   const presets = periodPresets(today, first);
   return (
     <div className="flex items-center gap-1" role="group" aria-label="Dates shown">
+      <ActionButton
+        shortcut="dashboard.backPeriod"
+        variant="ghost"
+        aria-label="Back to the previous dates"
+        disabled={!canGoBack}
+        onAction={onBack}
+      >
+        ↶ Back
+      </ActionButton>
       <ActionButton
         shortcut="dashboard.previousPeriod"
         variant="ghost"
