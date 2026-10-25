@@ -111,7 +111,7 @@ src/modules/
   `Connection` with its own saver.
 - **Get started.** The homepage only explains Ledger; its Get started button opens a dialog listing
   `INGEST_OPTIONS` (`modules/ingest/index.ts`). Each `IngestOption` has a title, a description and a
-  `Setup` component that walks through that option. The homepage and dialog list the options with a "Last used" badge; the id of the last one used is kept in `localStorage` (`modules/ingest/lastUsed.ts`), and a `Setup` reports it through `onUsed`/`onOpened`. A new ingest module adds its option to the
+  `Setup` component that walks through that option. The homepage and dialog list the options with a "Used last time" badge; the id of the last one used is kept in `localStorage` (`modules/ingest/lastUsed.ts`), and a `Setup` reports it through `onUsed`/`onOpened`. A new ingest module adds its option to the
   registry and appears in the dialog with no change to the landing or connect features.
 - **Import.** Every importer returns the same `ParsedImport` (a table, the guessed column mapping,
   warnings and, for free-form dates, the day/month order), so the preview, mapping editor and
