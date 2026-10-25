@@ -102,6 +102,7 @@ export function migrateScheduledPaychecks(stored: readonly unknown[], today: Iso
         id: '',
         date: paid,
         income: [{ id: 'l1', name: name.trim() || 'Pay', amount: gross }],
+        benefits: [],
         deductions: lines(deductions, 'Deduction'),
       });
   }
@@ -124,6 +125,7 @@ export function migrateMonthlyPaychecks(stored: readonly unknown[]): Paycheck[] 
       id: '',
       date: monthEnd(parsed.data.month),
       income: lines(parsed.data.income, 'Pay'),
+      benefits: [],
       deductions: lines(parsed.data.deductions, 'Deduction'),
     });
   }

@@ -170,6 +170,12 @@ export const SHORTCUTS = {
     scope: 'paychecks',
     allowInInputs: true,
   },
+  'paychecks.addBenefit': {
+    keys: 'alt+b',
+    description: 'Add a benefit in kind',
+    scope: 'paychecks',
+    allowInInputs: true,
+  },
   'paychecks.addDeduction': {
     keys: 'alt+d',
     description: 'Add a deduction',

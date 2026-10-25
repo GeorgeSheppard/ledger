@@ -236,6 +236,17 @@ describe('_Paychecks', () => {
     expect(parsePaychecksTab([])).toBeNull();
   });
 
+  it('reads a Benefit in kind row into the payslip', () => {
+    const { paychecks } = parsePaychecks(
+      parsePaychecksTab([
+        header,
+        ['2026-01-25', '1', 'Income', 'Salary', 3000],
+        ['2026-01-25', '1', 'Benefit in kind', 'Company car', 150],
+      ])
+    );
+    expect(paychecks[0]!.benefits).toMatchObject([{ name: 'Company car', amount: 150 }]);
+  });
+
   it('writes a header, then one row per line with a label per payslip', () => {
     const stored = serializePaychecks({
       paychecks: [
@@ -243,22 +254,25 @@ describe('_Paychecks', () => {
           id: 'x',
           date: '2026-01-25',
           income: [{ id: 'l1', name: 'Salary', amount: 3000 }],
+          benefits: [{ id: 'l1', name: 'Health insurance', amount: 80 }],
           deductions: [{ id: 'l1', name: 'Tax', amount: 600 }],
         },
         {
           id: 'y',
           date: '2026-01-25',
           income: [{ id: 'l1', name: 'Cafe', amount: 100 }],
+          benefits: [],
           deductions: [],
         },
       ],
     }) as unknown as JsonValue;
     expect(paycheckValues(stored)).toEqual([
       ['2026-01-25', '1', 'Income', 'Salary', 3000],
+      ['2026-01-25', '1', 'Benefit in kind', 'Health insurance', 80],
       ['2026-01-25', '1', 'Deduction', 'Tax', 600],
       ['2026-01-25', '2', 'Income', 'Cafe', 100],
     ]);
-    expect(paycheckRows(stored)).toHaveLength(4);
+    expect(paycheckRows(stored)).toHaveLength(5);
     expect(
       parsePaychecks(parsePaychecksTab([header, ...paycheckValues(stored)])).paychecks
     ).toHaveLength(2);

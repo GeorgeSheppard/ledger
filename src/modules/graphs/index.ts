@@ -8,6 +8,7 @@ import { spendingGraph } from './spending';
 import { statGraph } from './stat';
 import type { Graph } from './types';
 
+export { PaycheckFlow } from './sankey/PaycheckFlow';
 export type { Graph, GraphOptionsProps, GraphViewProps } from './types';
 
 /**

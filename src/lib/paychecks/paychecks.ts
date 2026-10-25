@@ -27,6 +27,11 @@ export interface Paycheck {
   date: IsoDate;
   /** Money in before anything is taken out. */
   income: PayLine[];
+  /**
+   * Taxable benefits in kind (a company car, health insurance): worth money and taxed as pay, but
+   * not paid to you in cash. They count towards gross pay but not towards take-home pay.
+   */
+  benefits: PayLine[];
   deductions: PayLine[];
 }
 
@@ -35,7 +40,7 @@ export interface PaycheckList {
   paychecks: Paycheck[];
 }
 
-export type LineKind = 'income' | 'deductions';
+export type LineKind = 'income' | 'benefits' | 'deductions';
 
 /** Money is kept to whole cents so sums do not drift. */
 export function round(amount: number): number {
@@ -44,16 +49,25 @@ export function round(amount: number): number {
 
 const sum = (lines: readonly PayLine[]) => round(lines.reduce((total, l) => total + l.amount, 0));
 
-/** Gross pay: every income line added up. */
+/** Cash paid: every income line added up. */
 export function totalIncome(paycheck: Pick<Paycheck, 'income'>): number {
   return sum(paycheck.income);
+}
+
+export function totalBenefits(paycheck: Pick<Paycheck, 'benefits'>): number {
+  return sum(paycheck.benefits);
+}
+
+/** Gross pay: what tax is worked out on, cash income plus benefits in kind. */
+export function grossPay(paycheck: Pick<Paycheck, 'income' | 'benefits'>): number {
+  return round(totalIncome(paycheck) + totalBenefits(paycheck));
 }
 
 export function totalDeductions(paycheck: Pick<Paycheck, 'deductions'>): number {
   return sum(paycheck.deductions);
 }
 
-/** Take-home pay: income less every deduction. */
+/** Take-home pay: cash income less every deduction. Benefits in kind are not paid out. */
 export function netPay(paycheck: Pick<Paycheck, 'income' | 'deductions'>): number {
   return round(totalIncome(paycheck) - totalDeductions(paycheck));
 }
@@ -69,7 +83,7 @@ export function newLine(existing: readonly { id: string }[], name = '', amount =
 }
 
 export function newPaycheck(list: PaycheckList, date: IsoDate): Paycheck {
-  return { id: newId(list.paychecks, 'p'), date, income: [], deductions: [] };
+  return { id: newId(list.paychecks, 'p'), date, income: [], benefits: [], deductions: [] };
 }
 
 /**
@@ -98,7 +112,7 @@ export function suggestedNames(list: PaycheckList, kind: LineKind): string[] {
 /** What is wrong with a paycheck, in words, or null when it can be saved. */
 export function paycheckProblem(paycheck: Paycheck): string | null {
   if (!isIsoDate(paycheck.date)) return 'Pick a date.';
-  const lines = [...paycheck.income, ...paycheck.deductions];
+  const lines = [...paycheck.income, ...paycheck.benefits, ...paycheck.deductions];
   if (lines.some((l) => !(l.amount >= 0))) return 'Amounts cannot be negative.';
   if (lines.some((l) => l.amount > 0 && !l.name.trim())) return 'Name every line.';
   if (!(totalIncome(paycheck) > 0)) return 'Add some income.';
@@ -112,7 +126,12 @@ export function tidyPaycheck(paycheck: Paycheck): Paycheck {
     lines
       .filter((l) => l.name.trim() !== '' || l.amount !== 0)
       .map((l) => ({ ...l, name: l.name.trim() }));
-  return { ...paycheck, income: tidy(paycheck.income), deductions: tidy(paycheck.deductions) };
+  return {
+    ...paycheck,
+    income: tidy(paycheck.income),
+    benefits: tidy(paycheck.benefits),
+    deductions: tidy(paycheck.deductions),
+  };
 }
 
 /** Oldest first; paychecks on the same day keep their order. */
