@@ -29,6 +29,16 @@ export const AccountSwitchedOff: Story = {
   },
 };
 
+/** "Hide all" in the balances legend, then one account double-clicked to show just that one. */
+export const OneAccountOnly: Story = {
+  render: Default.render,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole('button', { name: 'Hide all' }));
+    await userEvent.dblClick(await canvas.findByRole('button', { name: 'Savings' }));
+  },
+};
+
 /** A category picked in the breakdown; every graph is narrowed to it. */
 export const CategoryPicked: Story = {
   render: Default.render,

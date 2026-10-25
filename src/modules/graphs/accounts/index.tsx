@@ -19,6 +19,7 @@ export const accountsGraph: Graph = {
     ignoredCategories,
     accountColorOf,
     toggleAccount,
+    setAccounts,
     selectPeriod,
   }) {
     const [showNetWorth, setShowNetWorth] = useState(true);
@@ -54,7 +55,12 @@ export const accountsGraph: Graph = {
               shape: 'dot' as const,
               on: line.on,
               onToggle: () => toggleAccount(line.id),
+              onOnly: () => setAccounts([line.id]),
             })),
+            {
+              label: accountIds.length ? 'Hide all' : 'Show all',
+              onToggle: () => setAccounts(accountIds.length ? [] : lines.map((l) => l.id)),
+            },
           ]}
         />
         {series ? (

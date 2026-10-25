@@ -17,11 +17,14 @@ export function Swatch({ color, shape = 'square' }: { color: string; shape?: Swa
 
 export interface LegendItem {
   label: string;
-  color: string;
+  /** Omit for a plain action such as "Show all". */
+  color?: string;
   shape?: SwatchShape;
   /** Whether the item is switched on. Only matters when `onToggle` is given. */
   on?: boolean;
   onToggle?(): void;
+  /** Double-clicking the item switches everything else off and this one on. */
+  onOnly?(): void;
 }
 
 /** The key to a chart. Items with `onToggle` are buttons that switch their series or filter on and off. */
@@ -31,7 +34,7 @@ export function ChartLegend({ items }: { items: LegendItem[] }) {
       {items.map((item) => {
         const key = (
           <>
-            <Swatch color={item.color} shape={item.shape} />
+            {item.color && <Swatch color={item.color} shape={item.shape} />}
             <span className={cn(item.on === false && 'line-through')}>{item.label}</span>
           </>
         );
@@ -40,12 +43,14 @@ export function ChartLegend({ items }: { items: LegendItem[] }) {
             {item.onToggle ? (
               <button
                 type="button"
-                aria-pressed={item.on !== false}
+                aria-pressed={item.on === undefined ? undefined : item.on}
                 className={cn(
                   'flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-0.5 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                   item.on === false && 'opacity-50'
                 )}
+                title={item.onOnly ? `Double-click to show only ${item.label}` : undefined}
                 onClick={item.onToggle}
+                onDoubleClick={item.onOnly}
               >
                 {key}
               </button>
