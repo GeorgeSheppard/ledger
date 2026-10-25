@@ -7,7 +7,6 @@ import { useSession } from '../state/session';
 import { ExitButton } from './ExitButton';
 import { useShortcut } from '../state/shortcuts';
 import { DonateLink } from '../ui/DonateLink';
-import { Kbd } from '../ui/Kbd';
 import { Menu } from '../ui/Menu';
 import { cn } from '../ui/cn';
 import { SaveStatus } from '../modules/save/ui/SaveStatus';
@@ -36,7 +35,6 @@ function NavItem({ to, label, shortcut }: (typeof NAV)[number]) {
       }
     >
       <span>{label}</span>
-      <Kbd shortcut={shortcut} className="text-muted max-xl:hidden" />
     </NavLink>
   );
 }
@@ -83,9 +81,6 @@ function SpreadsheetTools({ title, id, isFile }: { title: string; id: string; is
   const openUrl = isFile || id === 'demo' ? null : `https://docs.google.com/spreadsheets/d/${id}`;
   const name = (
     <>
-      <span className="block text-[0.6875rem] leading-none font-semibold tracking-wide text-muted uppercase">
-        {isFile ? 'File' : 'Spreadsheet'}
-      </span>
       <span className="block truncate font-semibold">
         {title}
         {openUrl && <span aria-hidden="true"> ↗</span>}
@@ -110,8 +105,8 @@ function SpreadsheetTools({ title, id, isFile }: { title: string; id: string; is
         )}
       </div>
       <SaveStatus
-        className="flex-row items-center gap-3"
-        labelClassName="max-lg:sr-only"
+        className="flex-row items-center gap-2"
+        labelClassName="sr-only"
         buttonClassName="justify-center"
       />
       <Menu
