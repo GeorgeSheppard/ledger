@@ -104,26 +104,52 @@ describe('writing a workbook', () => {
     expect(kept.data.paychecks).toEqual(data.paychecks);
     expect(parsePaychecks(kept.data.paychecks).paychecks).toHaveLength(6);
 
-    data.paychecks = {
-      version: 1,
-      paychecks: [
-        {
-          id: 'p1',
-          name: 'Acme',
-          date: '2026-03-25',
-          gross: 3000,
-          deductions: [{ id: 'd1', name: 'Tax', amount: 500 }],
-          accountId: 1,
-          repeat: 'monthly',
-          until: '2026-04-30',
-        },
+    // A file from before the table: JSON in A2 under a one-column header. It is read, and the next
+    // write replaces it with the table.
+    const book = new ExcelJS.Workbook();
+    await book.xlsx.load(asBuffer(await writeWorkbook(null, [], data)));
+    book.removeWorksheet(book.getWorksheet('_Paychecks')!.id);
+    const old = book.addWorksheet('_Paychecks');
+    old.addRows([
+      ['Paychecks'],
+      [
+        JSON.stringify({
+          version: 1,
+          paychecks: [
+            {
+              id: 'p1',
+              name: 'Acme',
+              date: '2026-03-25',
+              gross: 3000,
+              deductions: [{ id: 'd1', name: 'Tax', amount: 500 }],
+              accountId: 1,
+              repeat: 'monthly',
+              until: '2026-04-30',
+            },
+          ],
+        }),
       ],
-    };
-    const old = ledgerFromTabs(await readWorkbookTabs(await writeWorkbook(null, [], data)));
-    expect(parsePaychecks(old.data.paychecks).paychecks.map((p) => p.date)).toEqual([
+    ]);
+    const legacy = new Uint8Array(await book.xlsx.writeBuffer());
+    const read = ledgerFromTabs(await readWorkbookTabs(legacy));
+    expect(parsePaychecks(read.data.paychecks).paychecks.map((p) => p.date)).toEqual([
       '2026-03-25',
       '2026-04-25',
     ]);
+
+    const rewritten = new ExcelJS.Workbook();
+    await rewritten.xlsx.load(asBuffer(await writeWorkbook(legacy, [], read.data)));
+    const sheet = rewritten.getWorksheet('_Paychecks')!;
+    expect([1, 2, 3, 4, 5].map((c) => sheet.getCell(1, c).value)).toEqual([
+      'Date',
+      'Paycheck',
+      'Type',
+      'Name',
+      'Amount',
+    ]);
+    expect(sheet.getCell('C2').value).toBe('Income');
+    expect(sheet.getCell('E3').value).toBe(500);
+    expect(sheet.getCell('A2').numFmt).toBe('yyyy-mm-dd');
   });
 
   it('round-trips inverted accounts through _Metadata and drops an old _Categories tab', async () => {

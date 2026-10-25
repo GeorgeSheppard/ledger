@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { parsePaychecks, serializePaychecks } from '../paychecks/serialize';
+import type { JsonValue } from '../store/ledgerData';
 import {
   isoDateToSerial,
   parseDateCell,
@@ -10,6 +12,9 @@ import {
   parseDashboardCell,
   dashboardRow,
   serialToIsoDate,
+  paycheckRows,
+  paycheckValues,
+  parsePaychecksTab,
   totalFormula,
   transactionRow,
 } from './sheetFormat';
@@ -200,5 +205,62 @@ describe('_Metadata', () => {
       { type: 'category', name: 'Food', setting: 'color', value: '#4f7cff' },
       { type: 'account', name: 'Visa', setting: 'inverted', value: true },
     ]);
+  });
+});
+
+describe('_Paychecks', () => {
+  const header = ['Date', 'Paycheck', 'Type', 'Name', 'Amount'];
+
+  it('reads one payslip per date and label, skipping rows it cannot read', () => {
+    const stored = parsePaychecksTab([
+      header,
+      ['2026-01-25', 'a', 'Income', 'Salary', 3000],
+      [46047, 'a', 'income', 'Allowance', '£200.50'],
+      ['2026-01-25', 'a', 'Deduction', 'Tax', 600],
+      ['2026-01-25', 'b', 'Income', 'Cafe', 100],
+      ['2026-01-25', 'b', 'Tip', 'Cafe', 100],
+      ['nope', 'b', 'Income', 'Cafe', 100],
+      ['2026-01-25', 'b', 'Income', 'Cafe', -5],
+    ]);
+    const list = parsePaychecks(stored).paychecks;
+    expect(list).toHaveLength(2);
+    expect(list[0]!.income.map((l) => [l.name, l.amount])).toEqual([
+      ['Salary', 3000],
+      ['Allowance', 200.5],
+    ]);
+    expect(list[1]!.income.map((l) => l.name)).toEqual(['Cafe']);
+  });
+
+  it('is empty for a table with no usable rows', () => {
+    expect(parsePaychecksTab([header])).toBeNull();
+    expect(parsePaychecksTab([])).toBeNull();
+  });
+
+  it('writes a header, then one row per line with a label per payslip', () => {
+    const stored = serializePaychecks({
+      paychecks: [
+        {
+          id: 'x',
+          date: '2026-01-25',
+          income: [{ id: 'l1', name: 'Salary', amount: 3000 }],
+          deductions: [{ id: 'l1', name: 'Tax', amount: 600 }],
+        },
+        {
+          id: 'y',
+          date: '2026-01-25',
+          income: [{ id: 'l1', name: 'Cafe', amount: 100 }],
+          deductions: [],
+        },
+      ],
+    }) as unknown as JsonValue;
+    expect(paycheckValues(stored)).toEqual([
+      ['2026-01-25', '1', 'Income', 'Salary', 3000],
+      ['2026-01-25', '1', 'Deduction', 'Tax', 600],
+      ['2026-01-25', '2', 'Income', 'Cafe', 100],
+    ]);
+    expect(paycheckRows(stored)).toHaveLength(4);
+    expect(
+      parsePaychecks(parsePaychecksTab([header, ...paycheckValues(stored)])).paychecks
+    ).toHaveLength(2);
   });
 });

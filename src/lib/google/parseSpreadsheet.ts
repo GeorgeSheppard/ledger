@@ -14,7 +14,9 @@ import {
   parseAccountTab,
   parseDashboardCell,
   parseMetadata,
-  parsePaychecksCell,
+  isLegacyPaychecksTab,
+  PAYCHECK_COLUMNS,
+  parsePaychecksTab,
   METADATA_COLUMNS,
   rowsToCategories,
 } from './sheetFormat';
@@ -37,7 +39,8 @@ export function readRange(tab: SheetProperties): GridRange | null {
   });
   if (tab.title === METADATA_TAB) return range(METADATA_COLUMNS.length);
   if (tab.title === CATEGORIES_TAB) return range(CATEGORY_COLUMNS.length);
-  if (tab.title === DASHBOARD_TAB || tab.title === PAYCHECKS_TAB) return range(1, 2);
+  if (tab.title === DASHBOARD_TAB) return range(1, 2);
+  if (tab.title === PAYCHECKS_TAB) return range(PAYCHECK_COLUMNS.length);
   if (tab.title.startsWith(RESERVED_TAB_PREFIX)) return null;
   return range(ACCOUNT_COLUMNS.length + 1);
 }
@@ -73,7 +76,8 @@ export function parseSpreadsheet(
       data.dashboard = parseDashboardCell(values[1]?.[0]);
     } else if (tab.title === PAYCHECKS_TAB) {
       layout.paychecksSheetId = tab.sheetId;
-      data.paychecks = parsePaychecksCell(values[1]?.[0]);
+      data.paychecks = parsePaychecksTab(values);
+      if (isLegacyPaychecksTab(values)) layout.paychecksLegacy = true;
     } else if (!tab.title.startsWith(RESERVED_TAB_PREFIX)) {
       const parsed = parseAccountTab(values);
       if ('error' in parsed) {
