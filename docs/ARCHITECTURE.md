@@ -178,7 +178,7 @@ rows over it. `Menu`, `Popover`, `CategoryPicker` and `AccountSwitcher` all use 
 handler that must ignore panels matches `FLOATING_SELECTOR`. Escape and arrow keys stay with each
 component, which stops them reaching the page shortcuts. Nothing else should use a z-index above
 `z-10`. Native `<select>` is drawn by the browser and needs none of this; native `title` tooltips
-likewise. The chart tooltip stays inside its own chart box on purpose.
+likewise. Charts have no hover tooltips.
 
 `UI/Floating panels` stories and the panels' own stories assert with `expectOnTop`
 (`src/storybook/floating.ts`) that the browser really paints the panel on top and inside the
