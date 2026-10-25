@@ -24,7 +24,6 @@ import { DeleteConfirm } from '../accounts/DeleteConfirm';
 import { formatMoney } from '../../modules/graphs/shared/format';
 import { FALLBACK_COLOR } from '../../modules/graphs/shared/theme';
 import { PaycheckFlow } from '../../modules/graphs';
-import { ImportPaychecksDialog } from '../../modules/import/ui/ImportPaychecksDialog';
 import { PaycheckEditor } from './PaycheckEditor';
 import { usePaychecks } from './usePaychecks';
 
@@ -103,14 +102,13 @@ export function PaychecksPage() {
     isNew: boolean;
   } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   // Newest first, like a statement.
   const paychecks = useMemo(() => [...list.paychecks].reverse(), [list]);
   const current = paychecks.find((p) => p.id === selected);
-  const browsing = !editor && !confirmDelete && !importing;
+  const browsing = !editor && !confirmDelete;
 
   useEffect(() => {
     if (!selected) return;
@@ -179,13 +177,6 @@ export function PaychecksPage() {
       actions={
         <>
           <ActionButton
-            variant="secondary"
-            disabled={!browsing}
-            onAction={() => setImporting(true)}
-          >
-            Import old sheet
-          </ActionButton>
-          <ActionButton
             shortcut="paychecks.new"
             variant="primary"
             disabled={!browsing}
@@ -243,9 +234,6 @@ export function PaychecksPage() {
             ))}
           </div>
         </>
-      )}
-      {importing && (
-        <ImportPaychecksDialog list={list} onSave={save} onClose={() => setImporting(false)} />
       )}
       {editor && (
         <PaycheckEditor

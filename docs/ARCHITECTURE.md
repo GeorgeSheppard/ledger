@@ -63,7 +63,7 @@ src/
     paychecks/                 paychecks and the money-flow calculation
   modules/                     the pick-and-choose parts of the app, see "Modules" below
     ingest/                    getting a ledger in: Google, a file on this device
-    import/                    turning bank data into transactions (CSV, pasted text) and the old paycheck sheet into paychecks
+    import/                    turning bank data into transactions: CSV, pasted text
     graphs/                    dashboard graphs: one folder per graph, plus a registry
     save/                      pushing changes back where the ledger came from
   features/                    one folder per page: pages, components, feature hooks
@@ -94,9 +94,7 @@ src/modules/
     local-file/    keeps changes in memory; download() builds the updated .xlsx
     ui/            Save button and status
   import/        Importer { id, label, accepts, parse(input, options) → ParsedImport }
-                 PaycheckImporter { id, label, accepts, parse(input) → PaycheckImport } (old paycheck sheet)
     csv/           a CSV file; delimiter and header row detected
-    old-paychecks/ the old paycheck sheet (Date … Take Home), checked against its Take Home column
     pasted-text/   text copied from a bank's website, read with heuristics
     shared/        mapping, values, reconcile and import plan, common to every importer
     ui/            Import data dialog (drop zone, paste box, mapping, preview)
