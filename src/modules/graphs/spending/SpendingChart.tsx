@@ -3,6 +3,7 @@ import { Bar } from 'react-chartjs-2';
 import type { Period } from '../../../lib/metrics/period';
 import type { TimeSeries } from '../../../lib/metrics/timeSeries';
 import { useChartColors } from '../shared/chartjs';
+import { DRAG_EVENTS, useDragSelect } from '../shared/dragSelect';
 import { formatBucket, formatCompact } from '../shared/format';
 import { anchorTime, timeScale, useTimeView } from '../shared/timeView';
 
@@ -29,7 +30,7 @@ interface SpendingChartProps {
 
 /**
  * Spending as stacked columns, one segment per category, cut into months, weeks or days to suit
- * the period. There is no tooltip; click a column to make its dates the dashboard's. Click a
+ * the period. There is no tooltip; drag across it or click a column to make those dates the dashboard's. Click a
  * category in the legend to filter to it.
  */
 export function SpendingChart({ series, categories, colorOf, onSelectPeriod }: SpendingChartProps) {
@@ -61,12 +62,16 @@ export function SpendingChart({ series, categories, colorOf, onSelectPeriod }: S
   }));
   const data: ChartData<'bar', BarPoint[]> = { datasets };
 
+  const { plugin, wasDrag } = useDragSelect(colors, onSelectPeriod);
+
   const options: ChartOptions<'bar'> = {
     responsive: true,
+    events: [...DRAG_EVENTS],
     maintainAspectRatio: false,
     layout: { padding: { top: 8 } },
     interaction: { mode: 'index', axis: 'x', intersect: false },
     onClick: (_event, elements, chart) => {
+      if (wasDrag()) return;
       const first = elements[0];
       const raw = first && (chart.data.datasets[first.datasetIndex]?.data[first.index] as BarPoint);
       if (raw) onSelectPeriod({ from: raw.start, to: raw.end });
@@ -86,8 +91,19 @@ export function SpendingChart({ series, categories, colorOf, onSelectPeriod }: S
   };
 
   return (
-    <div className="relative h-64 w-full cursor-pointer">
-      <Bar data={data} options={options} aria-label="Spending by category" role="img" />
+    <div>
+      <p className="mb-2 text-xs text-muted">
+        Drag across the graph to pick other dates, or click a column to pick that one.
+      </p>
+      <div className="relative h-64 w-full cursor-crosshair">
+        <Bar
+          data={data}
+          options={options}
+          aria-label="Spending by category"
+          role="img"
+          plugins={[plugin]}
+        />
+      </div>
     </div>
   );
 }
