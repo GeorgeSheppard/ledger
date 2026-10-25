@@ -7,6 +7,7 @@ export const paths = {
   transactions: '/transactions',
   categories: '/categories',
   paychecks: '/paychecks',
+  sheets: '/sheets',
   import: '/import',
   privacy: '/privacy',
   terms: '/terms',
