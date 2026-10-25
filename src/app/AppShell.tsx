@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import { getBinding, type ShortcutId } from '../lib/shortcuts/bindings';
 import { useLedger, useSyncStatus } from '../state/ledgerData';
@@ -138,10 +138,30 @@ function SpreadsheetTools({ title, id, isFile }: { title: string; id: string; is
 /** Frame around every signed-in page: a bar across the top with navigation and the spreadsheet. */
 export function AppShell({ children }: { children: ReactNode }) {
   const { session } = useSession();
+  const header = useRef<HTMLElement>(null);
+  // Other sticky things (the dashboard's dates, scrolling a row into view) sit below the bar, whose
+  // height changes with the width (two rows on phones), so it is published as a CSS variable.
+  useEffect(() => {
+    const element = header.current;
+    if (!element) return;
+    const root = document.documentElement;
+    const publish = () =>
+      root.style.setProperty('--ledger-bar-height', `${element.getBoundingClientRect().height}px`);
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--ledger-bar-height');
+    };
+  }, []);
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="ledger-bar sticky top-0 z-30 border-b border-line bg-bar text-fg">
+      <header
+        ref={header}
+        className="ledger-bar sticky top-0 z-30 border-b border-line bg-bar text-fg"
+      >
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-0 px-4 pt-2 md:flex-nowrap md:px-8 md:pt-0">
           <div className="text-lg font-bold tracking-tight">Ledger</div>
           <nav

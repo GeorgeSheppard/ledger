@@ -67,6 +67,8 @@
 @layer base {
   /* Keep the scrollbar's space when a short list removes it, so filtering doesn't shift the layout. */
   html {
+    /* Anchors and scrolled-to rows stop below the sticky top bar. */
+    scroll-padding-top: var(--ledger-bar-height, 0px);
     scrollbar-gutter: stable;
   }
 

@@ -2,7 +2,8 @@ import { sankey } from 'd3-sankey';
 
 /**
  * Lays out a Sankey diagram: nodes in columns, sized by the money through them, joined by ribbons
- * as wide as the money they carry. A thin adapter over d3-sankey; no drawing, so it can be tested.
+ * as wide as the money they carry. Columns run left to right, or top to bottom (`vertical`) for
+ * narrow screens, where there is height to spare and little width. A thin adapter over d3-sankey; no drawing, so it can be tested.
  */
 
 export interface SankeyNodeInput {
@@ -18,12 +19,15 @@ export interface SankeyLinkInput {
 }
 
 export interface SankeyOptions {
+  /** The drawing's size in pixels, whichever way the columns run. */
   width: number;
   height: number;
+  /** Which way the columns run; left to right by default. */
+  orientation?: 'horizontal' | 'vertical';
   nodeWidth?: number;
-  /** Vertical gap between nodes in a column. */
+  /** Gap between nodes in a column. */
   nodePadding?: number;
-  /** Nodes never get thinner than this, so tiny amounts stay visible. */
+  /** Nodes never get thinner (along their column) than this, so tiny amounts stay visible. */
   minNodeHeight?: number;
 }
 
@@ -42,7 +46,7 @@ export interface LaidLink {
   source: string;
   target: string;
   value: number;
-  /** Where the ribbon's centre line leaves the source and enters the target. */
+  /** Where the ribbon's centre line leaves the source and enters the target (drawing coordinates). */
   x0: number;
   y0: number;
   x1: number;
@@ -64,8 +68,16 @@ interface SNode extends SankeyNodeInput {
 export function layoutSankey(
   nodes: readonly SankeyNodeInput[],
   links: readonly SankeyLinkInput[],
-  { width, height, nodeWidth = 14, nodePadding = 14, minNodeHeight = 2 }: SankeyOptions
+  {
+    width,
+    height,
+    orientation = 'horizontal',
+    nodeWidth = 14,
+    nodePadding = 14,
+    minNodeHeight = 2,
+  }: SankeyOptions
 ): SankeyLayout {
+  const vertical = orientation === 'vertical';
   const columnOf = new Map(nodes.map((n) => [n.id, n.column]));
   // d3-sankey rejects links that do not go forward, and ignores nothing, so filter them here.
   const real = links.filter(
@@ -84,36 +96,38 @@ export function layoutSankey(
     .nodeSort((a, b) => (b.value ?? 0) - (a.value ?? 0))
     .nodeWidth(nodeWidth)
     .nodePadding(nodePadding)
-    .extent([
-      [0, 0],
-      [width, height],
-    ])({
+    // d3 always lays columns along x; for a vertical diagram it works in a transposed box.
+    .extent([[0, 0], vertical ? [height, width] : [width, height]])({
     nodes: nodes.map((n) => ({ ...n })),
     links: real.map((l) => ({ ...l })),
   });
 
-  const laid = graph.nodes.map((n): LaidNode => ({
-    id: n.id,
-    column: n.column,
-    x: n.x0 ?? 0,
-    y: n.y0 ?? 0,
-    width: nodeWidth,
-    height: Math.max((n.y1 ?? 0) - (n.y0 ?? 0), minNodeHeight),
-    value: n.value ?? 0,
-  }));
+  const laid = graph.nodes.map((n): LaidNode => {
+    const length = Math.max((n.y1 ?? 0) - (n.y0 ?? 0), minNodeHeight);
+    return {
+      id: n.id,
+      column: n.column,
+      x: vertical ? (n.y0 ?? 0) : (n.x0 ?? 0),
+      y: vertical ? (n.x0 ?? 0) : (n.y0 ?? 0),
+      width: vertical ? length : nodeWidth,
+      height: vertical ? nodeWidth : length,
+      value: n.value ?? 0,
+    };
+  });
   return {
     nodes: laid,
     links: graph.links.map((l) => {
       const source = l.source as SNode & { x1?: number };
       const target = l.target as SNode & { x0?: number };
+      const [from, to] = [source.x1 ?? 0, target.x0 ?? 0];
       return {
         source: source.id,
         target: target.id,
         value: l.value,
-        x0: source.x1 ?? 0,
-        y0: l.y0 ?? 0,
-        x1: target.x0 ?? 0,
-        y1: l.y1 ?? 0,
+        x0: vertical ? (l.y0 ?? 0) : from,
+        y0: vertical ? from : (l.y0 ?? 0),
+        x1: vertical ? (l.y1 ?? 0) : to,
+        y1: vertical ? to : (l.y1 ?? 0),
         width: l.width ?? 0,
       };
     }),
@@ -121,7 +135,14 @@ export function layoutSankey(
 }
 
 /** SVG path for a ribbon's centre line; stroke it with the ribbon's width. */
-export function linkPath(link: Pick<LaidLink, 'x0' | 'y0' | 'x1' | 'y1'>): string {
+export function linkPath(
+  link: Pick<LaidLink, 'x0' | 'y0' | 'x1' | 'y1'>,
+  orientation: 'horizontal' | 'vertical' = 'horizontal'
+): string {
+  if (orientation === 'vertical') {
+    const mid = (link.y0 + link.y1) / 2;
+    return `M${link.x0},${link.y0}C${link.x0},${mid} ${link.x1},${mid} ${link.x1},${link.y1}`;
+  }
   const mid = (link.x0 + link.x1) / 2;
   return `M${link.x0},${link.y0}C${mid},${link.y0} ${mid},${link.y1} ${link.x1},${link.y1}`;
 }
