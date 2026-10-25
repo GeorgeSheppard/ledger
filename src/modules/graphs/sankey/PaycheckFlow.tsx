@@ -8,26 +8,22 @@ import { NoData } from '../shared/NoData';
 import { SankeyChart } from './SankeyChart';
 
 interface PaycheckFlowProps {
-  /** Needed for spending; leave out with `withSpending` off. */
-  ledgers?: AccountLedger[];
+  ledgers: AccountLedger[];
   paychecks: readonly Paycheck[];
   period: Period;
-  accountIds?: number[];
+  accountIds: number[];
   ignoredCategories: ReadonlySet<string>;
   colorOf(category: string): string;
-  /** Carry take-home pay on into spending and savings. On unless false. */
-  withSpending?: boolean;
 }
 
-/** The totals line and Sankey diagram for the paychecks in a period; the dashboard widget follows it on into spending; the Paychecks page stops at take-home pay. */
+/** The totals line and Sankey diagram for the paychecks in a period on into spending. */
 export function PaycheckFlow({
-  ledgers = [],
+  ledgers,
   paychecks,
   period,
   accountIds,
   ignoredCategories,
   colorOf,
-  withSpending = true,
 }: PaycheckFlowProps) {
   const flow = useMemo(() => {
     return buildMoneyFlow({
@@ -37,9 +33,8 @@ export function PaycheckFlow({
       to: period.to,
       accountIds,
       ignoredCategories,
-      withSpending,
     });
-  }, [accountIds, ledgers, paychecks, period, ignoredCategories, withSpending]);
+  }, [accountIds, ledgers, paychecks, period, ignoredCategories]);
 
   if (!flow) return <NoData>No paychecks entered for this period.</NoData>;
   return (
@@ -47,7 +42,7 @@ export function PaycheckFlow({
       <p className="mb-3 text-sm text-muted tabular-nums">
         Gross {formatMoney(flow.totals.gross)} · Deductions {formatMoney(flow.totals.deductions)} ·
         Take-home {formatMoney(flow.totals.takeHome)}
-        {withSpending && <> · Spent {formatMoney(flow.totals.spending)}</>}
+        {' · '}Spent {formatMoney(flow.totals.spending)}
       </p>
       <SankeyChart flow={flow} colorOf={colorOf} />
     </>

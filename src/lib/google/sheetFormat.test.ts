@@ -209,11 +209,12 @@ describe('_Metadata', () => {
 });
 
 describe('_Paychecks', () => {
-  const header = ['Date', 'Paycheck', 'Type', 'Name', 'Amount'];
+  const header = ['Date', 'Tax code', 'Type', 'Name', 'Amount'];
+  const oldHeader = ['Date', 'Paycheck', 'Type', 'Name', 'Amount'];
 
-  it('reads one payslip per date and label, skipping rows it cannot read', () => {
+  it('reads one payslip per date and label in the old layout, skipping rows it cannot read', () => {
     const stored = parsePaychecksTab([
-      header,
+      oldHeader,
       ['2026-01-25', 'a', 'Income', 'Salary', 3000],
       [46047, 'a', 'income', 'Allowance', '£200.50'],
       ['2026-01-25', 'a', 'Deduction', 'Tax', 600],
@@ -231,6 +232,21 @@ describe('_Paychecks', () => {
     expect(list[1]!.income.map((l) => l.name)).toEqual(['Cafe']);
   });
 
+  it('reads one payslip per date, with its tax code', () => {
+    const { paychecks } = parsePaychecks(
+      parsePaychecksTab([
+        header,
+        ['2026-01-25', '1257L', 'Income', 'Salary', 3000],
+        ['2026-01-25', '1257L', 'Deduction', 'Tax', 600],
+        ['2026-02-25', '', 'Income', 'Salary', 3000],
+      ])
+    );
+    expect(paychecks).toHaveLength(2);
+    expect(paychecks[0]).toMatchObject({ taxCode: '1257L' });
+    expect(paychecks[0]!.deductions).toHaveLength(1);
+    expect(paychecks[1]!.taxCode).toBeUndefined();
+  });
+
   it('is empty for a table with no usable rows', () => {
     expect(parsePaychecksTab([header])).toBeNull();
     expect(parsePaychecksTab([])).toBeNull();
@@ -240,41 +256,41 @@ describe('_Paychecks', () => {
     const { paychecks } = parsePaychecks(
       parsePaychecksTab([
         header,
-        ['2026-01-25', '1', 'Income', 'Salary', 3000],
-        ['2026-01-25', '1', 'Benefit in kind', 'Company car', 150],
+        ['2026-01-25', '', 'Income', 'Salary', 3000],
+        ['2026-01-25', '', 'Benefit in kind', 'Company car', 150],
       ])
     );
     expect(paychecks[0]!.benefits).toMatchObject([{ name: 'Company car', amount: 150 }]);
   });
 
-  it('writes a header, then one row per line with a label per payslip', () => {
+  it('writes one row per line with the tax code on each, and reads it back', () => {
     const stored = serializePaychecks({
       paychecks: [
         {
           id: 'x',
           date: '2026-01-25',
+          taxCode: '1257L',
           income: [{ id: 'l1', name: 'Salary', amount: 3000 }],
           benefits: [{ id: 'l1', name: 'Health insurance', amount: 80 }],
           deductions: [{ id: 'l1', name: 'Tax', amount: 600 }],
         },
         {
           id: 'y',
-          date: '2026-01-25',
-          income: [{ id: 'l1', name: 'Cafe', amount: 100 }],
+          date: '2026-02-25',
+          income: [{ id: 'l1', name: 'Salary', amount: 3000 }],
           benefits: [],
           deductions: [],
         },
       ],
     }) as unknown as JsonValue;
     expect(paycheckValues(stored)).toEqual([
-      ['2026-01-25', '1', 'Income', 'Salary', 3000],
-      ['2026-01-25', '1', 'Benefit in kind', 'Health insurance', 80],
-      ['2026-01-25', '1', 'Deduction', 'Tax', 600],
-      ['2026-01-25', '2', 'Income', 'Cafe', 100],
+      ['2026-01-25', '1257L', 'Income', 'Salary', 3000],
+      ['2026-01-25', '1257L', 'Benefit in kind', 'Health insurance', 80],
+      ['2026-01-25', '1257L', 'Deduction', 'Tax', 600],
+      ['2026-02-25', '', 'Income', 'Salary', 3000],
     ]);
     expect(paycheckRows(stored)).toHaveLength(5);
-    expect(
-      parsePaychecks(parsePaychecksTab([header, ...paycheckValues(stored)])).paychecks
-    ).toHaveLength(2);
+    const read = parsePaychecks(parsePaychecksTab([header, ...paycheckValues(stored)])).paychecks;
+    expect(read.map((p) => p.taxCode)).toEqual(['1257L', undefined]);
   });
 });

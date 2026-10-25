@@ -280,7 +280,9 @@ export function dashboardRow(config: JsonValue | null): RowData {
   return { values: [config === null ? {} : stringCell(JSON.stringify(config))] };
 }
 
-export const PAYCHECK_COLUMNS = ['Date', 'Paycheck', 'Type', 'Name', 'Amount'] as const;
+export const PAYCHECK_COLUMNS = ['Date', 'Tax code', 'Type', 'Name', 'Amount'] as const;
+/** The layout before the tax code: column B was a label separating payslips on the same day. Still read. */
+const PAYCHECK_COLUMNS_V1 = ['Date', 'Paycheck', 'Type', 'Name', 'Amount'] as const;
 
 const INCOME = 'Income';
 const BENEFIT = 'Benefit in kind';
@@ -293,11 +295,13 @@ const DEDUCTION = 'Deduction';
  * and `Amount` is always positive. Older files kept the paychecks as JSON text in cell A2, like `_Dashboard`; that
  * is still read, and the next change to the paychecks writes the table.
  */
-function isPaycheckTable(values: readonly (readonly unknown[])[]): boolean {
+function hasHeader(values: readonly (readonly unknown[])[], columns: readonly string[]): boolean {
   const header = values[0] ?? [];
-  return PAYCHECK_COLUMNS.every(
-    (name, i) => textCell(header[i]).toLowerCase() === name.toLowerCase()
-  );
+  return columns.every((name, i) => textCell(header[i]).toLowerCase() === name.toLowerCase());
+}
+
+function isPaycheckTable(values: readonly (readonly unknown[])[]): boolean {
+  return hasHeader(values, PAYCHECK_COLUMNS) || hasHeader(values, PAYCHECK_COLUMNS_V1);
 }
 
 /** Whether the tab still has the old JSON layout (so the table has to replace its header too). */
@@ -316,10 +320,12 @@ export function parsePaychecksTab(values: readonly (readonly unknown[])[]): Json
       ? null
       : (serializePaychecks(parsePaychecks(stored)) as unknown as JsonValue);
   }
+  const labelled = hasHeader(values, PAYCHECK_COLUMNS_V1);
   const byLabel = new Map<string, Paycheck>();
   for (const cells of values.slice(1)) {
     const date = parseDateCell(cells[0]);
-    const label = textCell(cells[1]);
+    const label = labelled ? textCell(cells[1]) : '';
+    const taxCode = labelled ? '' : textCell(cells[1]);
     const type = textCell(cells[2]).toLowerCase();
     const amount = parseNumberCell(cells[4]);
     if (!date || amount === null || !(amount > 0)) continue;
@@ -330,6 +336,7 @@ export function parsePaychecksTab(values: readonly (readonly unknown[])[]): Json
       paycheck = { id: `p${byLabel.size + 1}`, date, income: [], benefits: [], deductions: [] };
       byLabel.set(key, paycheck);
     }
+    if (taxCode && !paycheck.taxCode) paycheck.taxCode = taxCode;
     const list =
       type === 'income'
         ? paycheck.income
@@ -346,12 +353,11 @@ export function parsePaychecksTab(values: readonly (readonly unknown[])[]): Json
 /** The header row and one row per line of every paycheck, oldest paycheck first. */
 export function paycheckRows(config: JsonValue | null): RowData[] {
   const rows: RowData[] = [headerRow(PAYCHECK_COLUMNS)];
-  for (const [i, paycheck] of parsePaychecks(config).paychecks.entries()) {
-    const label = String(i + 1);
+  for (const paycheck of parsePaychecks(config).paychecks) {
     const line = (type: string, l: { name: string; amount: number }): RowData => ({
       values: [
         dateCell(paycheck.date),
-        stringCell(label),
+        stringCell(paycheck.taxCode ?? ''),
         stringCell(type),
         stringCell(l.name),
         { userEnteredValue: { numberValue: l.amount } },
@@ -364,17 +370,17 @@ export function paycheckRows(config: JsonValue | null): RowData[] {
   return rows;
 }
 
-/** The same rows as plain values, for writing an `.xlsx`: ISO dates, then the four text/number cells. */
+/** The same rows as plain values, for writing an `.xlsx`: ISO dates, then the tax code, type, name and amount. */
 export function paycheckValues(
   config: JsonValue | null
 ): [string, string, string, string, number][] {
   const out: [string, string, string, string, number][] = [];
-  for (const [i, paycheck] of parsePaychecks(config).paychecks.entries()) {
-    const label = String(i + 1);
-    for (const l of paycheck.income) out.push([paycheck.date, label, INCOME, l.name, l.amount]);
-    for (const l of paycheck.benefits) out.push([paycheck.date, label, BENEFIT, l.name, l.amount]);
+  for (const paycheck of parsePaychecks(config).paychecks) {
+    const code = paycheck.taxCode ?? '';
+    for (const l of paycheck.income) out.push([paycheck.date, code, INCOME, l.name, l.amount]);
+    for (const l of paycheck.benefits) out.push([paycheck.date, code, BENEFIT, l.name, l.amount]);
     for (const l of paycheck.deductions)
-      out.push([paycheck.date, label, DEDUCTION, l.name, l.amount]);
+      out.push([paycheck.date, code, DEDUCTION, l.name, l.amount]);
   }
   return out;
 }
