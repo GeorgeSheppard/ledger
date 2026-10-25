@@ -73,6 +73,7 @@ src/
     categories/                category management page
     dashboard/                 the dashboard page: date range, shared filters, graph frame
     paychecks/                 paychecks page
+    sheets/                    sheet report: what became of each tab when the spreadsheet loaded
     legal/                     privacy policy and terms
 ```
 

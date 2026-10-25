@@ -39,7 +39,7 @@ export function newLocalLedger(title = 'Ledger'): Connection {
     paychecks: null,
   };
   const layout = { ...EMPTY_LAYOUT, sheetIds: [1] };
-  return fileConnection(title, { data, skippedTabs: [], layout }, null);
+  return fileConnection(title, { data, skippedTabs: [], tabReports: [], layout }, null);
 }
 
 /**

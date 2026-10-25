@@ -34,6 +34,7 @@ export const SHORTCUTS = {
   'nav.accounts': { keys: 'mod+a', description: 'Go to accounts', scope: 'global' },
   'nav.categories': { keys: 'mod+k', description: 'Go to categories', scope: 'global' },
   'nav.paychecks': { keys: 'mod+y', description: 'Go to paychecks', scope: 'global' },
+  'nav.sheets': { keys: 'mod+i', description: 'See how each tab was read', scope: 'global' },
   'sync.save': {
     keys: 'mod+s',
     description: 'Save changes, or download the file',

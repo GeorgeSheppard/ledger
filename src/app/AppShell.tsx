@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import type { ShortcutId } from '../lib/shortcuts/bindings';
-import { useSyncStatus } from '../state/ledgerData';
+import { useLedger, useSyncStatus } from '../state/ledgerData';
 import { useSession } from '../state/session';
 import { ExitButton } from './ExitButton';
 import { useShortcut } from '../state/shortcuts';
@@ -35,6 +35,28 @@ function NavItem({ to, label, shortcut }: (typeof NAV)[number]) {
     >
       <span>{label}</span>
       <Kbd shortcut={shortcut} className="text-muted" />
+    </NavLink>
+  );
+}
+
+/** Link to the sheet report, which says what became of each tab. Flags tabs that were not read. */
+function SheetReportLink() {
+  const navigate = useNavigate();
+  const { tabReports } = useLedger();
+  useShortcut('nav.sheets', () => navigate(paths.sheets));
+  const unread = tabReports.filter((tab) => !tab.imported).length;
+  return (
+    <NavLink
+      to={paths.sheets}
+      className={({ isActive }) =>
+        cn(
+          'flex items-center justify-between rounded-lg px-2 py-1 text-sm text-muted no-underline hover:bg-surface-hover',
+          isActive && 'bg-surface-hover font-semibold text-fg'
+        )
+      }
+    >
+      <span>{unread > 0 ? `Tabs · ${unread} not read` : 'How tabs were read'}</span>
+      <Kbd shortcut="nav.sheets" />
     </NavLink>
   );
 }
@@ -73,6 +95,7 @@ function SpreadsheetPanel({ title, isFile }: { title: string; isFile: boolean })
         </div>
       </div>
       <SaveStatus buttonClassName="w-full justify-between" />
+      <SheetReportLink />
       <ActionButton variant="ghost" className="w-full whitespace-nowrap" onAction={leave}>
         {isFile ? 'Close file' : 'Switch spreadsheet'}
       </ActionButton>
