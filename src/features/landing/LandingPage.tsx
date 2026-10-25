@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
 import { DonateLink } from '../../ui/DonateLink';
+import type { IngestOption } from '../../modules/ingest';
 import { GetStartedDialog } from '../connect/GetStartedDialog';
+import { IngestOptionList } from '../connect/IngestOptionList';
+import { useLastUsedIngest } from '../connect/useLastUsedIngest';
 import { LegalLinks } from '../legal/LegalPage';
 import { SheetPreview } from './SheetPreview';
 
@@ -43,11 +46,16 @@ const STEPS = [
  */
 export function LandingPage() {
   const [starting, setStarting] = useState(false);
+  const [initial, setInitial] = useState<IngestOption | null>(null);
+  const { lastUsed } = useLastUsedIngest();
 
   const cta = (
     <ActionButton
       variant="primary"
-      onAction={() => setStarting(true)}
+      onAction={() => {
+        setInitial(null);
+        setStarting(true);
+      }}
       className="self-start px-4 py-2.5 text-base"
     >
       Get started
@@ -68,7 +76,18 @@ export function LandingPage() {
             without being an Excel wizard. All of your data is stored in your own Google Sheet, or
             in a spreadsheet file on your device, so you stay in control of it.
           </p>
-          {cta}
+          <div className="flex flex-col gap-3">
+            <h2 className="text-sm font-medium tracking-wide text-muted uppercase">
+              Choose how to start
+            </h2>
+            <IngestOptionList
+              lastUsed={lastUsed}
+              onChoose={(option) => {
+                setInitial(option);
+                setStarting(true);
+              }}
+            />
+          </div>
         </div>
         <SheetPreview />
       </section>
@@ -128,7 +147,7 @@ export function LandingPage() {
         <DonateLink />
         <LegalLinks />
       </footer>
-      {starting && <GetStartedDialog onClose={() => setStarting(false)} />}
+      {starting && <GetStartedDialog initial={initial} onClose={() => setStarting(false)} />}
     </div>
   );
 }

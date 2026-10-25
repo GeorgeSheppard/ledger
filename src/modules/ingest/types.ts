@@ -36,6 +36,8 @@ export function remoteOf({ load, saver }: Connection): LedgerRemote {
 export interface IngestSetupProps {
   /** Call once the ledger is open, so the dialog or page can step aside. */
   onOpened(): void;
+  /** Call once the user has committed to this option, even before the ledger is open (such as after signing in). */
+  onUsed(): void;
 }
 
 /**
