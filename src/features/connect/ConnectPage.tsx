@@ -8,12 +8,14 @@ import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
 import { Page } from '../../ui/Page';
 import { GetStartedDialog } from './GetStartedDialog';
+import { useLastUsedIngest } from './useLastUsedIngest';
 
 /** After sign-in, or when switching: choose a Google Sheet, or one of the other ways to start. */
 export function ConnectPage() {
   const { session } = useSession();
   const navigate = useNavigate();
   const [others, setOthers] = useState(false);
+  const { markUsed } = useLastUsedIngest();
 
   if (session.status === 'signed-out') return <Navigate to={paths.home} replace />;
   const current = session.status === 'connected' ? session.spreadsheet : null;
@@ -41,7 +43,12 @@ export function ConnectPage() {
         </Card>
       )}
 
-      <GoogleSpreadsheetStep onOpened={() => navigate(paths.home)} />
+      <GoogleSpreadsheetStep
+        onOpened={() => {
+          markUsed('google');
+          navigate(paths.home);
+        }}
+      />
 
       <p className="text-sm text-muted">
         Not using Google?{' '}

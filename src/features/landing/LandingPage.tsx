@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
 import { DonateLink } from '../../ui/DonateLink';
+import type { IngestOption } from '../../modules/ingest';
 import { GetStartedDialog } from '../connect/GetStartedDialog';
+import { IngestOptionList } from '../connect/IngestOptionList';
+import { useLastUsedIngest } from '../connect/useLastUsedIngest';
 import { LegalLinks } from '../legal/LegalPage';
 import { SheetPreview } from './SheetPreview';
 
@@ -43,22 +45,14 @@ const STEPS = [
  */
 export function LandingPage() {
   const [starting, setStarting] = useState(false);
-
-  const cta = (
-    <ActionButton
-      variant="primary"
-      onAction={() => setStarting(true)}
-      className="self-start px-4 py-2.5 text-base"
-    >
-      Get started
-    </ActionButton>
-  );
+  const [initial, setInitial] = useState<IngestOption | null>(null);
+  const { lastUsed } = useLastUsedIngest();
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 p-6 md:p-8">
       <header className="text-lg font-bold">Ledger</header>
 
-      <section className="grid items-center gap-8 md:grid-cols-[1fr_1.1fr]">
+      <section className="grid items-center gap-8 rounded-3xl border border-accent/20 bg-linear-to-br from-accent/15 via-surface to-surface p-6 md:grid-cols-[1fr_1.1fr] md:p-10">
         <div className="flex flex-col gap-6">
           <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
             Your money, in a spreadsheet you own.
@@ -68,7 +62,16 @@ export function LandingPage() {
             without being an Excel wizard. All of your data is stored in your own Google Sheet, or
             in a spreadsheet file on your device, so you stay in control of it.
           </p>
-          {cta}
+          <div className="flex flex-col gap-3">
+            <h2 className="text-xl font-semibold tracking-tight">Get started</h2>
+            <IngestOptionList
+              lastUsed={lastUsed}
+              onChoose={(option) => {
+                setInitial(option);
+                setStarting(true);
+              }}
+            />
+          </div>
         </div>
         <SheetPreview />
       </section>
@@ -121,14 +124,13 @@ export function LandingPage() {
             page. Your spreadsheet stays where it is.
           </li>
         </ul>
-        {cta}
       </section>
 
       <footer className="flex flex-col gap-3 border-t border-line pt-6">
         <DonateLink />
         <LegalLinks />
       </footer>
-      {starting && <GetStartedDialog onClose={() => setStarting(false)} />}
+      {starting && <GetStartedDialog initial={initial} onClose={() => setStarting(false)} />}
     </div>
   );
 }
