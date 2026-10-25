@@ -45,6 +45,7 @@ function parseLines(value: unknown): PayLine[] {
 const storedPaycheckSchema = z.object({
   id: z.string().optional().catch(undefined),
   date: isoDateSchema,
+  taxCode: z.string().optional().catch(undefined),
   income: z.unknown().optional().transform(parseLines),
   benefits: z.unknown().optional().transform(parseLines),
   deductions: z.unknown().optional().transform(parseLines),
@@ -95,6 +96,7 @@ export function serializePaychecks(list: PaycheckList): StoredPaychecks {
     paychecks: list.paychecks.map((p) => ({
       id: p.id,
       date: p.date,
+      ...(p.taxCode ? { taxCode: p.taxCode } : {}),
       income: p.income.map(line),
       benefits: p.benefits.map(line),
       deductions: p.deductions.map(line),

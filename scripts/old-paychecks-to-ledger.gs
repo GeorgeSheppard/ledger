@@ -12,7 +12,8 @@
  * (in any order; or no header at all if the columns are in that order).
  *
  * Output is the plain table Ledger reads and Excel can chart, one row per payslip line:
- *   Date | Paycheck | Type | Name | Amount     (Type: Income / Benefit in kind / Deduction)
+ *   Date | Tax code | Type | Name | Amount     (Type: Income / Benefit in kind / Deduction)
+ * One payslip per date; the tax code is repeated on each of its rows (the app keeps it but never uses it).
  *
  * By default it writes a new tab called "_Paychecks (new)" in the old spreadsheet; copy its rows
  * into the `_Paychecks` tab of your Ledger sheet. To skip the copying, put your Ledger
@@ -23,7 +24,7 @@
  *  - Total Income -> Income "Salary"; Taxable Benefits -> Benefit in kind "Taxable benefits".
  *  - Income Tax, NI, Student Loan, Donations and Pension (Salary Sacrifice) -> Deductions.
  *  - Pension (Employer) is left out (paid by your employer, not part of take-home).
- *  - Tax Code and Tax Year are dropped. Zero amounts are skipped.
+ *  - Tax Code is kept in the Tax code column. Tax Year is dropped. Zero amounts are skipped.
  *  - Take Home is only a check. Rows that do not add up are listed in the message when it finishes.
  *    If a row only adds up without the salary-sacrifice pension, that pension is not listed as a deduction.
  */
@@ -33,7 +34,7 @@ var SOURCE_SHEET = '';
 /** Optional: the Ledger spreadsheet's id, to write straight into its `_Paychecks` tab. */
 var TARGET_SPREADSHEET_ID = '';
 
-var HEADER = ['Date', 'Paycheck', 'Type', 'Name', 'Amount'];
+var HEADER = ['Date', 'Tax code', 'Type', 'Name', 'Amount'];
 var COLUMNS = [
   'date',
   'taxCode',
@@ -86,30 +87,24 @@ function convertOldPaychecks() {
   var existing =
     tab.getLastRow() > 0 ? tab.getRange(1, 1, tab.getLastRow(), HEADER.length).getValues() : [];
   var firstRow;
-  var label;
   if (existing.length === 0) {
     tab.getRange(1, 1, 1, HEADER.length).setValues([HEADER]).setFontWeight('bold');
     firstRow = 2;
-    label = 1;
   } else {
     var header = existing[0].map(String);
     if (header.join('|').toLowerCase() !== HEADER.join('|').toLowerCase())
       throw new Error(
-        'The `_Paychecks` tab is not the Date | Paycheck | Type | Name | Amount table. Open Ledger, change a paycheck so it rewrites the tab, then run this again.'
+        'The `_Paychecks` tab is not the Date | Tax code | Type | Name | Amount table. Open Ledger, change a paycheck so it rewrites the tab, then run this again.'
       );
     firstRow = existing.length + 1;
-    label =
-      existing.slice(1).reduce(function (max, row) {
-        return Math.max(max, Number(row[1]) || 0);
-      }, 0) + 1;
   }
 
   var rows = [];
-  result.paychecks.forEach(function (p, i) {
+  result.paychecks.forEach(function (p) {
     var parts = p.date.split('-');
     var date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
     p.lines.forEach(function (l) {
-      rows.push([date, String(label + i), l[0], l[1], l[2]]);
+      rows.push([date, p.taxCode, l[0], l[1], l[2]]);
     });
   });
   tab.getRange(firstRow, 1, rows.length, HEADER.length).setValues(rows);
@@ -248,7 +243,11 @@ function convertRows_(grid, tz) {
           takeHome.toFixed(2) +
           '.'
       );
-    paychecks.push({ date: date, lines: lines });
+    paychecks.push({
+      date: date,
+      taxCode: String(cellOf_(row, index.taxCode)).trim(),
+      lines: lines,
+    });
   });
 
   if (employer > 0)
@@ -259,6 +258,13 @@ function convertRows_(grid, tz) {
     );
   paychecks.sort(function (a, b) {
     return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+  });
+  paychecks.forEach(function (p, i) {
+    if (i > 0 && paychecks[i - 1].date === p.date)
+      warnings.push(
+        p.date +
+          ' has more than one paycheck. The format has one payslip per date, so their lines will be read back as one.'
+      );
   });
   return { paychecks: paychecks, warnings: warnings };
 }

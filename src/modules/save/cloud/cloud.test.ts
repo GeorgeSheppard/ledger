@@ -99,7 +99,7 @@ describe('saveRequests', () => {
     expect(layout.sheetIds).toContain(555);
   });
 
-  const PAYCHECK_HEADER = ['Date', 'Paycheck', 'Type', 'Name', 'Amount'];
+  const PAYCHECK_HEADER = ['Date', 'Tax code', 'Type', 'Name', 'Amount'];
   const PAY = {
     version: 3,
     paychecks: [
@@ -118,8 +118,8 @@ describe('saveRequests', () => {
       10: [HEADER],
       30: [
         PAYCHECK_HEADER,
-        ['2026-01-25', '1', 'Income', 'Salary', 3000],
-        ['2026-01-25', '1', 'Deduction', 'Tax', 600],
+        ['2026-01-25', '', 'Income', 'Salary', 3000],
+        ['2026-01-25', '', 'Deduction', 'Tax', 600],
       ],
     });
     const base = await googleConnection(client, { id: 'sheet', title: 'Ledger' }).load();
@@ -145,7 +145,7 @@ describe('saveRequests', () => {
     expect(write.updateCells.rows).toHaveLength(2);
     expect(write.updateCells.rows[1]!.values.map((v) => v.userEnteredValue)).toEqual([
       expect.objectContaining({ numberValue: expect.any(Number) }),
-      { stringValue: '1' },
+      { stringValue: '' },
       { stringValue: 'Income' },
       { stringValue: 'Salary' },
       { numberValue: 3000 },

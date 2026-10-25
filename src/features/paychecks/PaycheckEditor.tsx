@@ -25,6 +25,8 @@ interface DraftLine {
 }
 interface Draft {
   date: string;
+  /** Not editable here; carried through so saving does not lose it. */
+  taxCode: string | undefined;
   income: DraftLine[];
   benefits: DraftLine[];
   deductions: DraftLine[];
@@ -37,6 +39,7 @@ function toDraft(paycheck: Paycheck): Draft {
     list.map((l) => ({ ...l, amount: amountText(l.amount) }));
   return {
     date: paycheck.date,
+    taxCode: paycheck.taxCode,
     income: lines(paycheck.income),
     benefits: lines(paycheck.benefits),
     deductions: lines(paycheck.deductions),
@@ -54,6 +57,7 @@ function fromDraft(draft: Draft, id: string): Paycheck {
   return {
     id,
     date: draft.date,
+    ...(draft.taxCode ? { taxCode: draft.taxCode } : {}),
     income: lines(draft.income),
     benefits: lines(draft.benefits),
     deductions: lines(draft.deductions),

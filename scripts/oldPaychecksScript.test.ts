@@ -13,7 +13,10 @@ const { convertRows_ } = new Function('Utilities', `${source}; return { convertR
   convertRows_(
     grid: unknown[][],
     tz: string
-  ): { paychecks: { date: string; lines: [string, string, number][] }[]; warnings: string[] };
+  ): {
+    paychecks: { date: string; taxCode: string; lines: [string, string, number][] }[];
+    warnings: string[];
+  };
 };
 
 const HEADER = [
@@ -52,6 +55,7 @@ describe('old-paychecks-to-ledger.gs', () => {
     expect(paychecks).toEqual([
       {
         date: '2026-09-25',
+        taxCode: '1257L',
         lines: [
           ['Income', 'Salary', 5000],
           ['Benefit in kind', 'Taxable benefits', 120],
@@ -102,5 +106,10 @@ describe('old-paychecks-to-ledger.gs', () => {
     const r = convertRows_([HEADER, ['13/02/2026', '', '', 100], ['junk', '', '', 100]], 'UTC');
     expect(r.paychecks.map((p) => p.date)).toEqual(['2026-02-13']);
     expect(r.warnings.join(' ')).toMatch(/no readable date/);
+  });
+
+  it('warns when two paychecks share a date', () => {
+    const r = convertRows_([HEADER, ROW, ROW], 'UTC');
+    expect(r.warnings.join(' ')).toMatch(/2026-09-25 has more than one paycheck/);
   });
 });

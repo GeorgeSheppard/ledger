@@ -220,9 +220,11 @@ viewport. `pnpm screenshots <story-id>` runs the play functions and exits 1 when
   sheet has them.
 - `_Dashboard` tab: header `Config`, the dashboard layout as JSON in cell A2.
 - `_Paychecks` tab: a plain table, one row per payslip line, so Excel can pivot and chart it:
-  `Date | Paycheck | Type | Name | Amount`. `Paycheck` is a label shared by the lines of one payslip
-  (two payslips on the same day need different labels), `Type` is `Income`, `Benefit in kind` or
-  `Deduction`, and `Amount` is always positive. Take-home pay is income less deductions; a benefit in
+  `Date | Tax code | Type | Name | Amount`. One payslip per date: its lines share the date, and
+  `Tax code` (kept with the paycheck, never used in any sum, repeated on each line) is optional.
+  `Type` is `Income`, `Benefit in kind` or `Deduction`, and `Amount` is always positive. The
+  earlier layout with a `Paycheck` label in column B is still read (the label separates payslips on
+  the same date) and is replaced by this one on the next change. Take-home pay is income less deductions; a benefit in
   kind (a taxable benefit not paid in cash) counts towards gross pay but not take-home pay. A paycheck is one payslip
   typed in by hand: nothing repeats and there is no schedule, account or one-per-month rule; the
   date only decides which months of the dashboard count it (`src/lib/paychecks`). The paychecks page

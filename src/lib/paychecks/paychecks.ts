@@ -25,6 +25,8 @@ export interface Paycheck {
   id: string;
   /** The day the pay arrived. Only decides which months of the dashboard count it. */
   date: IsoDate;
+  /** The tax code on the payslip (`1257L`). Kept with the paycheck, never used in any sum. */
+  taxCode?: string;
   /** Money in before anything is taken out. */
   income: PayLine[];
   /**

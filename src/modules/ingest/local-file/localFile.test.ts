@@ -142,7 +142,7 @@ describe('writing a workbook', () => {
     const sheet = rewritten.getWorksheet('_Paychecks')!;
     expect([1, 2, 3, 4, 5].map((c) => sheet.getCell(1, c).value)).toEqual([
       'Date',
-      'Paycheck',
+      'Tax code',
       'Type',
       'Name',
       'Amount',
