@@ -57,9 +57,21 @@ function PaycheckCard({
       onClick={onSelect}
       onDoubleClick={onEdit}
     >
-      <h2 className="font-semibold">
-        {formatDay(paycheck.date)} {yearOf(paycheck.date)}
-      </h2>
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="font-semibold">
+          {formatDay(paycheck.date)} {yearOf(paycheck.date)}
+          {paycheck.taxCode && (
+            <span className="ml-2 text-xs font-normal text-muted">{paycheck.taxCode}</span>
+          )}
+        </h2>
+        <ActionButton
+          variant="ghost"
+          aria-label={`Edit paycheck from ${formatDay(paycheck.date)} ${yearOf(paycheck.date)}`}
+          onAction={onEdit}
+        >
+          Edit
+        </ActionButton>
+      </div>
       <dl className={cn('mt-3 grid gap-3 text-sm', hasBenefits ? 'grid-cols-4' : 'grid-cols-3')}>
         <div>
           <dt className="text-muted">Income</dt>

@@ -25,8 +25,7 @@ interface DraftLine {
 }
 interface Draft {
   date: string;
-  /** Not editable here; carried through so saving does not lose it. */
-  taxCode: string | undefined;
+  taxCode: string;
   income: DraftLine[];
   benefits: DraftLine[];
   deductions: DraftLine[];
@@ -39,7 +38,7 @@ function toDraft(paycheck: Paycheck): Draft {
     list.map((l) => ({ ...l, amount: amountText(l.amount) }));
   return {
     date: paycheck.date,
-    taxCode: paycheck.taxCode,
+    taxCode: paycheck.taxCode ?? '',
     income: lines(paycheck.income),
     benefits: lines(paycheck.benefits),
     deductions: lines(paycheck.deductions),
@@ -57,7 +56,7 @@ function fromDraft(draft: Draft, id: string): Paycheck {
   return {
     id,
     date: draft.date,
-    ...(draft.taxCode ? { taxCode: draft.taxCode } : {}),
+    ...(draft.taxCode.trim() ? { taxCode: draft.taxCode.trim() } : {}),
     income: lines(draft.income),
     benefits: lines(draft.benefits),
     deductions: lines(draft.deductions),
@@ -216,7 +215,7 @@ export function PaycheckEditor({ paycheck, isNew, list, onSave, onCancel }: Payc
   }, []);
 
   const current = fromDraft(draft, paycheck.id);
-  const problem = paycheckProblem(current);
+  const problem = paycheckProblem(current, list.paychecks);
   const net = netPay(current);
   const finite = (n: number) => (Number.isFinite(n) ? n : 0);
 
@@ -290,7 +289,21 @@ export function PaycheckEditor({ paycheck, isNew, list, onSave, onCancel }: Payc
             id={`${id}-date`}
             type="date"
             value={draft.date}
+            aria-invalid={showProblem && !!problem && problem.includes('date') ? true : undefined}
             onChange={(e) => setDraft((d) => ({ ...d, date: e.target.value }))}
+          />
+        </Field>
+
+        <Field
+          label="Tax code"
+          htmlFor={`${id}-tax`}
+          hint="Optional, as printed on the payslip, such as 1257L. Kept with the paycheck."
+        >
+          <TextInput
+            id={`${id}-tax`}
+            value={draft.taxCode}
+            placeholder="1257L"
+            onChange={(e) => setDraft((d) => ({ ...d, taxCode: e.target.value }))}
           />
         </Field>
 
