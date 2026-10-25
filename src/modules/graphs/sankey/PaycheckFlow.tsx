@@ -14,6 +14,8 @@ interface PaycheckFlowProps {
   accountIds: number[];
   ignoredCategories: ReadonlySet<string>;
   colorOf(category: string): string;
+  chosen: readonly string[];
+  onToggleCategory(category: string): void;
 }
 
 /** The totals line and Sankey diagram for the paychecks in a period on into spending. */
@@ -24,6 +26,8 @@ export function PaycheckFlow({
   accountIds,
   ignoredCategories,
   colorOf,
+  chosen,
+  onToggleCategory,
 }: PaycheckFlowProps) {
   const flow = useMemo(() => {
     return buildMoneyFlow({
@@ -44,7 +48,12 @@ export function PaycheckFlow({
         Take-home {formatMoney(flow.totals.takeHome)}
         {' · '}Spent {formatMoney(flow.totals.spending)}
       </p>
-      <SankeyChart flow={flow} colorOf={colorOf} />
+      <SankeyChart
+        flow={flow}
+        colorOf={colorOf}
+        chosen={chosen}
+        onToggleCategory={onToggleCategory}
+      />
     </>
   );
 }

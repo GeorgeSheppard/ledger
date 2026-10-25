@@ -61,3 +61,12 @@ export const BackEnabled: Story = {
     await userEvent.keyboard('{Escape}');
   },
 };
+
+/** A spending node clicked in the Sankey: it is outlined and the other spending is dimmed. */
+export const SankeyCategoryClicked: Story = {
+  render: Default.render,
+  play: async ({ canvasElement }) => {
+    const node = await within(canvasElement).findByRole('button', { name: /^Groceries: / });
+    await userEvent.click(node);
+  },
+};
