@@ -7,7 +7,7 @@ import {
   periodDays,
   periodPresets,
   surroundingPeriod,
-  previousPeriod,
+  comparisonPeriods,
   shiftPeriod,
 } from './period';
 
@@ -39,7 +39,21 @@ describe('period', () => {
   it('steps other ranges by their length', () => {
     const range = { from: '2026-03-05', to: '2026-03-11' };
     expect(periodDays(range)).toBe(7);
-    expect(previousPeriod(range)).toEqual({ from: '2026-02-26', to: '2026-03-04' });
+    expect(comparisonPeriods(range)[0]).toEqual({ from: '2026-02-26', to: '2026-03-04' });
+  });
+
+  it('compares with up to six earlier periods, never ones before the first transaction', () => {
+    const october = comparisonPeriods(monthPeriod('2026-10'));
+    expect(october.map((p) => p.from.slice(0, 7))).toEqual([
+      '2026-09',
+      '2026-08',
+      '2026-07',
+      '2026-06',
+      '2026-05',
+      '2026-04',
+    ]);
+    expect(comparisonPeriods(monthPeriod('2026-10'), '2026-08-01')).toHaveLength(2);
+    expect(comparisonPeriods(monthPeriod('2026-10'), '2026-08-15')).toHaveLength(1);
   });
 
   it('offers presets, and all time when there is data', () => {

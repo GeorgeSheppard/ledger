@@ -9,8 +9,8 @@ interface CategoryBreakdownProps {
   rows: CategorySpend[];
   /** Categories the dashboard is filtered to; empty for all. */
   chosen: string[];
-  /** The dates "vs previous" compares with. */
-  previous: Period;
+  /** The earlier periods (most recent first) whose average "vs average" compares with. */
+  compared: Period[];
   colorOf(category: string): string;
   onToggle(category: string): void;
 }
@@ -18,18 +18,24 @@ interface CategoryBreakdownProps {
 const NUMBER = 'pl-3 text-right tabular-nums whitespace-nowrap';
 
 /**
- * Spending per category over the period, as bars with the change from the period before. Click a
+ * Spending per category over the period, as bars with the change from the average of the periods before. Click a
  * row to filter the dashboard to that category.
  */
 export function CategoryBreakdown({
   rows,
   chosen,
-  previous,
+  compared,
   colorOf,
   onToggle,
 }: CategoryBreakdownProps) {
   if (!rows.length) return <p className="text-sm text-muted">No spending in these dates.</p>;
-  const max = Math.max(...rows.map((r) => Math.max(r.amount, r.previous)), 1);
+  const oldest = compared.at(-1);
+  const newest = compared[0];
+  const explanation =
+    oldest && newest
+      ? `Compared with the average of the ${compared.length} ${compared.length === 1 ? 'period' : 'periods'} of the same length before, ${formatDay(oldest.from)} to ${formatDay(newest.to)}`
+      : 'There is no earlier spending to compare with';
+  const max = Math.max(...rows.map((r) => Math.max(r.amount, r.average)), 1);
   return (
     <table className="w-full text-sm">
       <thead className="border-b border-line text-xs text-muted">
@@ -43,18 +49,14 @@ export function CategoryBreakdown({
           <th scope="col" className="text-right">
             Spent
           </th>
-          <th
-            scope="col"
-            className="text-right"
-            title={`Compared with ${formatDay(previous.from)} to ${formatDay(previous.to)}`}
-          >
-            vs previous
+          <th scope="col" className="text-right" title={explanation}>
+            vs average
           </th>
         </tr>
       </thead>
       <tbody>
         {rows.map((row) => {
-          const change = row.amount - row.previous;
+          const change = row.amount - row.average;
           const color = colorOf(row.category);
           const on = !chosen.length || chosen.includes(row.category);
           return (
@@ -78,8 +80,8 @@ export function CategoryBreakdown({
                   />
                   <div
                     className="absolute -inset-y-1 -ml-px w-0.5 bg-fg/50"
-                    style={{ left: `${(row.previous / max) * 100}%` }}
-                    title={`Previous ${formatMoney(row.previous)}`}
+                    style={{ left: `${(row.average / max) * 100}%` }}
+                    title={`Average ${formatMoney(row.average)}`}
                   />
                 </div>
               </td>
@@ -98,6 +100,18 @@ export function CategoryBreakdown({
           );
         })}
       </tbody>
+      <caption className="caption-bottom pt-2 text-left text-xs text-muted">
+        {oldest && newest ? (
+          <>
+            The tick on each bar is the usual spend: the average per period over the{' '}
+            {compared.length} {compared.length === 1 ? 'period' : 'periods'} before (
+            {formatDay(oldest.from)} to {formatDay(newest.to)}). The change on the right is this
+            period against it.
+          </>
+        ) : (
+          'No earlier history to compare with yet.'
+        )}
+      </caption>
     </table>
   );
 }
