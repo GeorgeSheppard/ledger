@@ -24,10 +24,10 @@ import { DeleteConfirm } from '../accounts/DeleteConfirm';
 import { formatMoney } from '../../modules/graphs/shared/format';
 import { FALLBACK_COLOR } from '../../modules/graphs/shared/theme';
 import { PaycheckFlow } from '../../modules/graphs';
-import { ignoredCategoryNames } from '../../lib/categories/categories';
-import { useLedgers } from '../dashboard/loadLedgers';
 import { PaycheckEditor } from './PaycheckEditor';
 import { usePaychecks } from './usePaychecks';
+
+const NO_CATEGORIES: ReadonlySet<string> = new Set();
 
 function LineChips({ lines }: { lines: PayLine[] }) {
   if (lines.length === 0) return null;
@@ -92,7 +92,7 @@ function PaycheckCard({
   );
 }
 
-/** `/paychecks`: payslips typed in line by line, so the dashboard can follow pay from gross to spending. */
+/** `/paychecks`: payslips typed in line by line, so the dashboard can follow pay from gross to spending; the diagram here shows your salary. */
 export function PaychecksPage() {
   const { list, save } = usePaychecks();
   const [selected, setSelected] = useState<string | null>(null);
@@ -104,15 +104,6 @@ export function PaychecksPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const ledgers = useLedgers();
-  const ignored = useMemo(
-    () => ignoredCategoryNames(ledgers.data?.categories ?? []),
-    [ledgers.data]
-  );
-  const colorOf = useMemo(() => {
-    const colors = new Map(ledgers.data?.categories.map((c) => [c.name, c.color]));
-    return (category: string) => colors.get(category) ?? FALLBACK_COLOR;
-  }, [ledgers.data]);
 
   // Newest first, like a statement.
   const paychecks = useMemo(() => [...list.paychecks].reverse(), [list]);
@@ -178,9 +169,9 @@ export function PaychecksPage() {
       className="max-w-3xl"
       description={
         <>
-          Enter a payslip line by line: what you were paid, and what was taken out. The dashboard
-          can then follow your money from gross pay to spending. Stored in the{' '}
-          <code className="font-mono">{PAYCHECKS_TAB}</code> tab of your sheet.
+          Enter a payslip line by line: what you were paid, and what was taken out. The diagram
+          follows your pay from gross to take-home, and the dashboard carries it on to spending.
+          Stored in the <code className="font-mono">{PAYCHECKS_TAB}</code> tab of your sheet.
         </>
       }
       actions={
@@ -205,24 +196,22 @@ export function PaychecksPage() {
         <Card className="p-6 text-sm text-muted">
           <p className="font-medium text-fg">No paychecks yet</p>
           <p className="mt-1">
-            Add a paycheck to see where your pay goes: each income line, such as salary or an
-            allowance, then tax, pension and the rest, and what you spend.
+            Add a paycheck to see your salary broken down: each income line, such as salary or an
+            allowance, then tax, pension and the rest, and what you take home.
           </p>
         </Card>
       ) : (
         <>
-          {ledgers.data && (
-            <Card className="p-4">
-              <h2 className="mb-3 font-semibold">Where your pay goes</h2>
-              <PaycheckFlow
-                ledgers={ledgers.data.ledgers}
-                paychecks={list.paychecks}
-                period={allTime(ledgers.data.ledgers, list.paychecks, todayIso())}
-                ignoredCategories={ignored}
-                colorOf={colorOf}
-              />
-            </Card>
-          )}
+          <Card className="p-4">
+            <h2 className="mb-3 font-semibold">Your salary</h2>
+            <PaycheckFlow
+              paychecks={list.paychecks}
+              period={allTime([], list.paychecks, todayIso())}
+              ignoredCategories={NO_CATEGORIES}
+              colorOf={() => FALLBACK_COLOR}
+              withSpending={false}
+            />
+          </Card>
           <div ref={listRef} className="flex flex-col gap-3" aria-label="Paychecks">
             {paychecks.map((paycheck) => (
               <div key={paycheck.id}>
