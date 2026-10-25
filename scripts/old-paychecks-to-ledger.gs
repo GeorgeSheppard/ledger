@@ -67,7 +67,8 @@ function convertOldPaychecks() {
   var source = SpreadsheetApp.getActive();
   var sheet = SOURCE_SHEET ? source.getSheetByName(SOURCE_SHEET) : source.getActiveSheet();
   if (!sheet) throw new Error('No tab called "' + SOURCE_SHEET + '".');
-  var tz = source.getSpreadsheetTimeZone();
+  // Older sheets can have no time zone set, so fall back to the script's, then UTC.
+  var tz = source.getSpreadsheetTimeZone() || Session.getScriptTimeZone() || 'UTC';
 
   var result = convertRows_(sheet.getDataRange().getValues(), tz);
   if (result.paychecks.length === 0)
