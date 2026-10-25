@@ -52,10 +52,7 @@ export function CashFlowChart({ series, onSelectPeriod }: CashFlowChartProps) {
     data: points.map<Point>((p) => ({ ...p, y: sign * p[key] })),
   });
   const data = {
-    datasets: [
-      bar('income', colors.positive, 1),
-      bar('spending', colors.negative, -1),
-    ],
+    datasets: [bar('income', colors.positive, 1), bar('spending', colors.negative, -1)],
   } as ChartData<'bar', Point[]>;
 
   const options: ChartOptions<'bar'> = {
