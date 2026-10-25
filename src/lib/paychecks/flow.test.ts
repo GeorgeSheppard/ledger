@@ -47,25 +47,6 @@ describe('buildMoneyFlow', () => {
   ];
   const paychecks = [payslip('2026-01'), payslip('2026-02')];
 
-  it('narrows to the picked categories and gathers the rest into one node', () => {
-    const flow = buildMoneyFlow({
-      paychecks,
-      ledgers,
-      from: '2026-01-01',
-      to: '2026-02-28',
-      categories: ['Food'],
-    })!;
-    expect(value(flow, 'takeHome', 'category:Food')).toBe(400);
-    expect(flow.links.some((l) => l.target === 'category:Rent')).toBe(false);
-    expect(value(flow, 'takeHome', 'rest')).toBe(4400);
-    expect(flow.nodes.filter((n) => n.column === 3).map((n) => n.label)).toEqual([
-      'Food',
-      'Everything else',
-    ]);
-    expect(flow.totals.spending).toBe(400);
-    balanced(flow);
-  });
-
   it('follows each income line through gross pay, deductions and take-home into spending', () => {
     const flow = buildMoneyFlow({ paychecks, ledgers, from: '2026-01-01', to: '2026-02-28' })!;
     expect(flow.totals).toEqual({

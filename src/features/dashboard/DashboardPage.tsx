@@ -15,7 +15,7 @@ import { Page } from '../../ui/Page';
 import { PeriodPicker } from './PeriodPicker';
 import { describeView, ViewTransactions } from './ViewTransactions';
 import { useDashboardData } from './useDashboardData';
-import { usePeriodHistory } from './usePeriodHistory';
+import { useViewHistory } from './useViewHistory';
 
 /** Grid span per graph width: everything stacks on phones, at most 2 across on tablets. */
 const SPANS: Record<WidgetWidth, string> = {
@@ -39,7 +39,6 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { query, paychecks } = useDashboardData();
   const [hiddenAccounts, setHiddenAccounts] = useState<number[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
 
   const ledgers = query.data?.ledgers;
   const [today] = useState(todayIso);
@@ -47,7 +46,15 @@ export function DashboardPage() {
     () => (ledgers ? defaultPeriod(ledgers, today) : null),
     [ledgers, today]
   );
-  const { period, select: setPicked, back, canGoBack } = usePeriodHistory(initialPeriod);
+  const {
+    period,
+    categories,
+    select: setPicked,
+    toggleCategory,
+    clearCategories,
+    back,
+    canGoBack,
+  } = useViewHistory(initialPeriod);
   const ignored = useMemo(() => ignoredCategoryNames(query.data?.categories ?? []), [query.data]);
   const colorOf = useMemo(() => {
     const colors = new Map(query.data?.categories.map((c) => [c.name, c.color]));
@@ -69,10 +76,6 @@ export function DashboardPage() {
   const setAccounts = useCallback(
     (on: number[]) => setHiddenAccounts(allIds.filter((id) => !on.includes(id))),
     [allIds]
-  );
-  const toggleCategory = useCallback(
-    (category: string) => setCategories((chosen) => toggled(chosen, category)),
-    []
   );
 
   if (query.status === 'loading') return <Page title="Dashboard" description="Loading…" />;
@@ -125,7 +128,7 @@ export function DashboardPage() {
               variant="ghost"
               onAction={() => {
                 setHiddenAccounts([]);
-                setCategories([]);
+                clearCategories();
               }}
             >
               Clear filters

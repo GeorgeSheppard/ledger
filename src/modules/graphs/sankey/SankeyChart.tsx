@@ -8,6 +8,8 @@ import { FALLBACK_COLOR, INCOME_COLOR, SPENDING_COLOR } from '../shared/theme';
 const NODE_WIDTH = 12;
 const NODE_PADDING = 12;
 const MIN_LINK_OPACITY = 0.3;
+/** Thinnest clickable width of a ribbon into a category. */
+const MIN_PICK_WIDTH = 12;
 
 const KIND_COLORS: Record<Exclude<FlowKind, 'category'>, string> = {
   income: INCOME_COLOR,
@@ -28,7 +30,7 @@ interface Hover {
 interface SankeyChartProps {
   flow: MoneyFlow;
   colorOf(category: string): string;
-  /** Categories picked as the dashboard's filter; their nodes are outlined. */
+  /** Categories picked as the dashboard's filter; their nodes are outlined and the other spending is dimmed. */
   chosen?: readonly string[];
   /** Clicking a spending category node. Other nodes can't be filtered on, so do nothing. */
   onToggleCategory?(category: string): void;
@@ -63,6 +65,7 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
     node.kind === 'category' ? colorOf(node.category ?? node.label) : KIND_COLORS[node.kind];
   const isChosen = (node: FlowNode) =>
     node.kind === 'category' && chosen.includes(node.category ?? node.label);
+  const filtering = chosen.length > 0;
   const labelOf = (id: string) => nodeById.get(id)?.label ?? id;
 
   const share = (value: number, of: number) =>
@@ -103,6 +106,8 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
 
   const linkOpacity = (index: number) => {
     const link = layout.links[index]!;
+    const target = nodeById.get(link.target)!;
+    if (filtering && target.kind === 'category') return isChosen(target) ? 0.65 : 0.08;
     if (hoveredLink) return hoveredLink === link ? 0.65 : 0.15;
     if (hoveredNode)
       return link.source === hoveredNode.id || link.target === hoveredNode.id ? 0.65 : 0.12;
@@ -132,16 +137,32 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
         <g fill="none">
           {layout.links.map((link, i) => {
             const target = nodeById.get(link.target)!;
+            const pickable = target.kind === 'category' && !!onToggleCategory;
             return (
-              <path
-                key={`${link.source}>${link.target}`}
-                d={linkPath(link)}
-                stroke={colorOfNode(target)}
-                strokeWidth={Math.max(link.width, 1)}
-                strokeOpacity={linkOpacity(i)}
-                onMouseMove={track(`link:${i}`)}
-                className="cursor-default"
-              />
+              <g key={`${link.source}>${link.target}`}>
+                <path
+                  d={linkPath(link)}
+                  stroke={colorOfNode(target)}
+                  strokeWidth={Math.max(link.width, 1)}
+                  strokeOpacity={linkOpacity(i)}
+                  onMouseMove={track(`link:${i}`)}
+                  onClick={
+                    pickable ? () => onToggleCategory(target.category ?? target.label) : undefined
+                  }
+                  className={pickable ? 'cursor-pointer' : 'cursor-default'}
+                />
+                {pickable && (
+                  // A thin ribbon is hard to hit, so it gets an invisible wider one on top.
+                  <path
+                    d={linkPath(link)}
+                    stroke="transparent"
+                    strokeWidth={Math.max(link.width, MIN_PICK_WIDTH)}
+                    onMouseMove={track(`link:${i}`)}
+                    onClick={() => onToggleCategory(target.category ?? target.label)}
+                    className="cursor-pointer"
+                  />
+                )}
+              </g>
             );
           })}
         </g>
@@ -149,7 +170,9 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
           const node = nodeById.get(laid.id)!;
           const clickable = node.kind === 'category' && !!onToggleCategory;
           const selected = isChosen(node);
-          const dim = hoveredNode && !touches(laid.id);
+          const dim =
+            (hoveredNode && !touches(laid.id)) ||
+            (filtering && node.kind === 'category' && !selected);
           const lines = laid.height >= 28;
           const textY = laid.y + laid.height / 2;
           return (
