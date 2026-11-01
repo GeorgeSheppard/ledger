@@ -121,6 +121,9 @@ interface Draft {
   balance: number | null;
 }
 
+/** A list marker such as `1. ` that some apps put before a line. */
+const LIST_MARKER = /^\d{1,3}\.\s+(?=\S)/;
+
 type SignSource = 'explicit' | 'balance' | 'keyword' | 'assumed';
 
 function cleanLine(line: string): string {
@@ -342,11 +345,25 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
   const drafts: Draft[] = [];
   let currentDate: IsoDate | null = null;
   let pending: string[] = [];
+  /** Numbered sub-lines under a date heading: who paid or a reference, not the merchant. */
+  let refs: string[] = [];
+  /** End-of-day balance printed on a date heading, for the first transaction listed under it. */
+  let dayBalance: number | null = null;
   let unused = 0;
 
   for (const [index, raw] of rawLines.entries()) {
-    const line = cleanLine(raw);
+    let line = cleanLine(raw);
     if (line === '' || JUNK_LINE.test(line)) continue;
+
+    // `1. Yulia Chan` is a numbered sub-line, but `15. Oct 2026` is still a date.
+    let isRef = false;
+    const marked = line.replace(LIST_MARKER, '');
+    if (marked !== line && findDate(line, dayFirst, today)?.start !== 0) {
+      line = marked;
+      isRef = findDate(line, dayFirst, today) === null && takeMoney(line).tokens.length === 0;
+    } else if (marked !== line) {
+      line = marked;
+    }
 
     const relative = line.match(/^(today|yesterday)$/i);
     if (relative) {
@@ -364,6 +381,10 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
       if (ownDate) {
         currentDate = ownDate;
         pending = note ? [note] : [];
+        refs = [];
+        dayBalance = null;
+      } else if (note && isRef) {
+        refs = [...refs, note].slice(-2);
       } else if (note) {
         pending = [...pending, note].slice(-2);
       }
@@ -372,6 +393,15 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
 
     if (SUMMARY_LINE.test(note)) {
       pending = [];
+      continue;
+    }
+    // A date heading with a lone amount (`Mon 19 Oct £5,569.54`) is the balance at the end of
+    // that day, not a transaction.
+    if (ownDate && note === '' && tokens.length === 1) {
+      currentDate = ownDate;
+      pending = [];
+      refs = [];
+      dayBalance = tokens[0]!.value;
       continue;
     }
     const date: IsoDate | null = ownDate ?? currentDate;
@@ -390,15 +420,18 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
       continue;
     }
     const printedBalance =
-      labelledBalance?.value ?? (plain.length >= 2 ? plain[plain.length - 1]!.value : null);
+      labelledBalance?.value ?? (plain.length >= 2 ? plain[plain.length - 1]!.value : dayBalance);
+    const text = ownDate ? note : [...pending, note].filter(Boolean).join(' ');
     drafts.push({
       line: index + 1,
       date,
-      note: ownDate ? note : [...pending, note].filter(Boolean).join(' '),
+      note: refs.length > 0 && text ? `${text} (${refs.join(', ')})` : text || refs.join(', '),
       amount,
       balance: printedBalance,
     });
     pending = [];
+    refs = [];
+    dayBalance = null;
   }
 
   const order = chainOrder(drafts);
