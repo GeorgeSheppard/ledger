@@ -28,7 +28,7 @@ interface ImportDialogProps {
 export function ImportDialog({ account, transactions, categories, onClose }: ImportDialogProps) {
   const dialog = useRef<HTMLDialogElement>(null);
   const importer = useImport(account.id, transactions, categories);
-  const { file, mapping, plan, result, pasted } = importer;
+  const { file, mapping, plan, pasted } = importer;
   const [pasting, setPasting] = useState(false);
 
   useEffect(() => {
@@ -55,18 +55,6 @@ export function ImportDialog({ account, transactions, categories, onClose }: Imp
             Close
           </ActionButton>
         </header>
-
-        {result && (
-          <Card className="border-positive/40 bg-positive/8 px-4 py-3 text-sm" role="status">
-            <p>
-              Added {plural(result.added, 'transaction')} to {account.name}
-              {result.skipped > 0 && `, skipped ${result.skipped} already there`}
-              {result.categoriesAdded > 0 &&
-                `, and created ${plural(result.categoriesAdded, 'new category', 'new categories')}`}
-              .
-            </p>
-          </Card>
-        )}
 
         {pasting && !file ? (
           <PasteBox onText={importer.loadText} onUseFile={() => setPasting(false)} />
@@ -149,7 +137,7 @@ export function ImportDialog({ account, transactions, categories, onClose }: Imp
                 shortcut="import.confirm"
                 variant="primary"
                 disabled={!plan || plan.toAdd.length === 0 || importer.importing}
-                onAction={() => void importer.confirm()}
+                onAction={() => void importer.confirm().then((added) => added && onClose())}
               >
                 {importer.importing
                   ? 'Importing…'

@@ -26,12 +26,6 @@ export interface PastedSource {
   dayFirst: boolean;
 }
 
-export interface ImportResult {
-  added: number;
-  skipped: number;
-  categoriesAdded: number;
-}
-
 /** `existing` and `categories` are what the account page already shows, so nothing is re-read. */
 export function useImport(accountId: number, existing: Transaction[], categories: Category[]) {
   const mutate = useLedgerMutation();
@@ -39,7 +33,6 @@ export function useImport(accountId: number, existing: Transaction[], categories
   const [parsed, setParsed] = useState<ParsedImport | null>(null);
   const [source, setSource] = useState<{ importer: Importer; input: ImportInput } | null>(null);
   const [mapping, setMapping] = useState<ColumnMapping | null>(null);
-  const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
 
@@ -58,7 +51,6 @@ export function useImport(accountId: number, existing: Transaction[], categories
   const load = useCallback(
     (importer: Importer, input: ImportInput, options?: ImportOptions) => {
       setError(null);
-      setResult(null);
       try {
         const next = importer.parse(input, options);
         setParsed(next);
@@ -118,12 +110,12 @@ export function useImport(accountId: number, existing: Transaction[], categories
 
   const reset = useCallback(() => {
     clear();
-    setResult(null);
     setError(null);
   }, [clear]);
 
-  const confirm = useCallback(async () => {
-    if (!plan || plan.toAdd.length === 0) return;
+  /** Adds the planned rows. Resolves true once saved, false if nothing was added. */
+  const confirm = useCallback(async (): Promise<boolean> => {
+    if (!plan || plan.toAdd.length === 0) return false;
     setImporting(true);
     setError(null);
     try {
@@ -133,14 +125,11 @@ export function useImport(accountId: number, existing: Transaction[], categories
         }
         await repository.addTransactions(accountId, plan.toAdd);
       });
-      setResult({
-        added: plan.toAdd.length,
-        skipped: plan.counts.existing,
-        categoriesAdded: plan.newCategories.length,
-      });
       clear();
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      return false;
     } finally {
       setImporting(false);
     }
@@ -154,7 +143,6 @@ export function useImport(accountId: number, existing: Transaction[], categories
     plan,
     error,
     importing,
-    result,
     pasted,
     loadFile,
     loadText,
