@@ -329,7 +329,7 @@ export function TransactionTable({
     if (mixed) return;
     setConfirmingDelete(false);
     setMode({ kind: 'new' });
-    beginEditing(emptyDraft(todayIso()), 'category');
+    beginEditing(emptyDraft(todayIso()), 'date');
   };
 
   const editSelected = () => {
