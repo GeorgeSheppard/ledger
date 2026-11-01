@@ -115,11 +115,18 @@ export function DashboardPage() {
           <p className="min-w-0 text-sm text-muted max-md:hidden">
             {describeView(period, allIds.length, accountIds.length, categories)}
           </p>
-          {filtered && (
-            <ActionButton variant="ghost" onAction={clearFilters}>
-              Clear filters
-            </ActionButton>
-          )}
+          {/* Always laid out (just hidden), so the first filter doesn't reflow the bar and move
+              everything below it; that would break a double-click on a legend entry. */}
+          <ActionButton
+            variant="ghost"
+            onAction={clearFilters}
+            disabled={!filtered}
+            aria-hidden={!filtered}
+            tabIndex={filtered ? undefined : -1}
+            className={cn(!filtered && 'invisible')}
+          >
+            Clear filters
+          </ActionButton>
           <ViewTransactions
             ledgers={query.data.ledgers}
             period={period}
