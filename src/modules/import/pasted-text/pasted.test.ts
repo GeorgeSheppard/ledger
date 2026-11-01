@@ -304,7 +304,7 @@ describe('feeding the import pipeline', () => {
 });
 
 describe('Splitwise activity', () => {
-  it('becomes rows of the user share: spending negative, refunds positive, zero kept', () => {
+  it('becomes rows of what is owed: positive when owed to you, negative when you owe', () => {
     const text = `November 2026View printable summary
 Nov
 01
@@ -336,10 +336,13 @@ you paid
 £29.99`;
     const parsed = parsePastedText(text, { today });
     expect(parsed.table.rows).toEqual([
-      ['2026-11-01', 'Food', '-56.00'],
+      ['2026-11-01', 'Food', '28.00'],
       ['2026-10-25', 'Weekend cabin trip', '-41.20'],
       ['2026-10-18', 'Cabin flights refund', '220.00'],
-      ['2026-10-19', 'Online order', '0.00'],
+      ['2026-10-19', 'Online order', '29.99'],
+    ]);
+    expect(parsed.warnings).toEqual([
+      'Splitwise amounts are what is owed: positive when someone owes you, negative when you owe them.',
     ]);
   });
 });
