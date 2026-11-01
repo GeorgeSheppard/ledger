@@ -311,19 +311,19 @@ Nov
 
 Food
 you paid
-£97.00you lent Anastasia
-£31.00
+£84.00you lent Priya
+£28.00
 Oct
 25
 
-Disneyland Paris stuff 
-Anastasia W. paid
-£28.89Anastasia lent you
-£28.89`;
+Weekend cabin trip 
+Priya N. paid
+£41.20Priya lent you
+£41.20`;
     const parsed = parsePastedText(text, { today });
     expect(parsed.table.rows).toEqual([
-      ['2026-11-01', 'Food', '-66.00'],
-      ['2026-10-25', 'Disneyland Paris stuff', '-28.89'],
+      ['2026-11-01', 'Food', '-56.00'],
+      ['2026-10-25', 'Weekend cabin trip', '-41.20'],
     ]);
   });
 });
