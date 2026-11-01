@@ -557,6 +557,7 @@ export function TransactionTable({
           selected={selectedSet.has(transaction.id)}
           onActivate={activate}
           menuItems={menuFor(transaction)}
+          inverted={accounts.some((a) => a.id === transaction.accountId && a.inverted)}
           accountName={mixed ? accountNames.get(transaction.accountId) : undefined}
         />
       </div>

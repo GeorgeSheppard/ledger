@@ -23,6 +23,8 @@ interface TransactionRowProps {
   menuItems: readonly MenuItem[];
   /** The account's name, shown in place of the running total where the list mixes accounts. */
   accountName?: string;
+  /** The account records spending as positive, so a positive amount is money owed, not income. */
+  inverted?: boolean;
 }
 
 export function TransactionRow({
@@ -32,6 +34,7 @@ export function TransactionRow({
   onActivate,
   menuItems,
   accountName,
+  inverted = false,
 }: TransactionRowProps) {
   const fieldOf = (event: MouseEvent<HTMLDivElement>) =>
     ((event.target as HTMLElement).closest<HTMLElement>('[data-field]')?.dataset.field ??
@@ -91,7 +94,7 @@ export function TransactionRow({
         role="cell"
         className={cn(
           'text-right whitespace-nowrap tabular-nums',
-          transaction.amount > 0 && 'text-positive'
+          (inverted ? transaction.amount < 0 : transaction.amount > 0) && 'text-positive'
         )}
         data-field="amount"
       >
