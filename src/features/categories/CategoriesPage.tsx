@@ -12,7 +12,6 @@ import { useLedger } from '../../state/ledgerData';
 import { useShortcut } from '../../state/shortcuts';
 import { ActionButton } from '../../ui/ActionButton';
 import { Kbd } from '../../ui/Kbd';
-import { DeleteConfirm } from '../accounts/DeleteConfirm';
 import { CategoryEditor } from './CategoryEditor';
 import { CategoryRow } from './CategoryRow';
 import { MigrateConfirm } from './MigrateConfirm';
@@ -109,7 +108,7 @@ function CategoryList({
   };
 
   const remove = () => {
-    if (mode.kind !== 'confirm-delete' || !selected) return;
+    if (!selected || saving) return;
     const next = neighbourAfterRemoval(ids, selected.name);
     void run(() => actions.remove(selected.name), next);
   };
@@ -137,12 +136,6 @@ function CategoryList({
     setMigrating(selected.name);
   };
 
-  const startDelete = () => {
-    if (!selected) return;
-    dispatch({ type: 'cancel' });
-    dispatch({ type: 'confirm-delete', id: selected.name });
-  };
-
   const cancel = () => {
     setMigrating(null);
     dispatch({ type: 'cancel' });
@@ -164,11 +157,9 @@ function CategoryList({
       onCancel={cancel}
       onArchive={original ? archive : undefined}
       onMigrate={original ? startMigrate : undefined}
-      onDelete={original ? startDelete : undefined}
+      onDelete={original ? remove : undefined}
     />
   );
-
-  const selectedUsage = selected ? usageOf(usage, selected.name) : 0;
 
   return (
     <section className="flex flex-col" aria-label="Categories">
@@ -225,24 +216,6 @@ function CategoryList({
                   onConfirm={migrate}
                   onCancel={cancel}
                   onCreate={(name) => actions.add(name, nextCategoryColor(allCategories))}
-                />
-              </div>
-            );
-          if (mode.kind === 'confirm-delete' && mode.id === category.name)
-            return (
-              <div key={category.name}>
-                {row}
-                <DeleteConfirm
-                  message={
-                    selectedUsage > 0
-                      ? `Delete “${category.name}”? ${selectedUsage} ${selectedUsage === 1 ? 'transaction keeps' : 'transactions keep'} the name, shown as an unlisted category.`
-                      : `Delete “${category.name}”?`
-                  }
-                  deleteShortcut="categories.delete"
-                  cancelShortcut="categories.cancel"
-                  busy={saving}
-                  onConfirm={remove}
-                  onCancel={cancel}
                 />
               </div>
             );
