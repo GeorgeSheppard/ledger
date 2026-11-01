@@ -5,6 +5,8 @@ import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test';
 import { expectOnTop } from '../../storybook/floating';
 import { BIG_ACCOUNT_NAME, CREDIT_CARD_NAME, Connected } from '../../storybook/providers';
 import { useLedger } from '../../state/ledgerData';
+import { useState } from 'react';
+import { AccountSwitcher } from './AccountSwitcher';
 import { AccountsOverviewPage } from './AccountsOverviewPage';
 import { AccountsPage } from './AccountsPage';
 import { TransactionsPage } from './TransactionsPage';
@@ -338,5 +340,57 @@ export const Settings: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click((await canvas.findAllByRole('row'))[1]!);
+  },
+};
+
+const MANY = Array.from({ length: 40 }, (_, i) => ({ id: i + 1, name: `Account ${i + 1}` }));
+
+function ManyAccounts() {
+  const [current, setCurrent] = useState<(typeof MANY)[number] | null>(MANY[0]);
+  return (
+    <div className="p-4">
+      <AccountSwitcher
+        accounts={MANY}
+        current={current}
+        onSelect={setCurrent}
+        onSelectAll={() => setCurrent(null)}
+      />
+    </div>
+  );
+}
+
+/** Arrowing down through a long account list keeps the highlighted option scrolled into view. */
+export const SwitcherArrowScroll: Story = {
+  render: () => (
+    <Connected shell route="/accounts/1">
+      <ManyAccounts />
+    </Connected>
+  ),
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      await within(canvasElement).findByRole('button', { name: /switch account/i })
+    );
+    const screen = within(document.body);
+    const list = await screen.findByRole('listbox');
+    const input = screen.getByRole('textbox', { name: /find account/i });
+    const inView = (el: HTMLElement) => {
+      const a = el.getBoundingClientRect();
+      const b = list.getBoundingClientRect();
+      return a.top >= b.top - 1 && a.bottom <= b.bottom + 1;
+    };
+    for (let i = 0; i < 30; i++) fireEvent.keyDown(input, { key: 'ArrowDown' });
+    await waitFor(() => {
+      const selected = list.querySelector<HTMLElement>('[aria-selected="true"]')!;
+      expect(selected).toHaveTextContent('Account 31');
+      expect(inView(selected)).toBe(true);
+    });
+    // And back up: the first entries must scroll back into view too.
+    for (let i = 0; i < 31; i++) fireEvent.keyDown(input, { key: 'ArrowUp' });
+    await waitFor(() => {
+      const selected = list.querySelector<HTMLElement>('[aria-selected="true"]')!;
+      expect(selected).toHaveTextContent('All accounts');
+      expect(inView(selected)).toBe(true);
+    });
+    await expect(input).toHaveFocus();
   },
 };

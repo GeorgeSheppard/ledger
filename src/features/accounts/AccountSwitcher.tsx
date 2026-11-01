@@ -1,4 +1,12 @@
-import { useCallback, useId, useMemo, useState, type KeyboardEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react';
 import { filterAccounts } from '../../lib/accounts/accounts';
 import type { Account } from '../../lib/domain/types';
 import { ActionButton } from '../../ui/ActionButton';
@@ -35,6 +43,7 @@ export function AccountSwitcher({
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const listId = useId();
+  const listRef = useRef<HTMLUListElement>(null);
   const [anchor, setAnchor] = useState<HTMLDivElement | null>(null);
   const dismiss = useCallback(() => setOpen(false), []);
   const optionId = (account: Account | null) => `${listId}-${account ? account.id : 'all'}`;
@@ -46,6 +55,17 @@ export function AccountSwitcher({
       ? [null, ...found]
       : found;
   }, [accounts, query]);
+
+  // Keep the highlighted option in view. Scroll the list itself rather than calling
+  // scrollIntoView, which can also scroll the page and make the panel close (it dismisses on scroll).
+  useEffect(() => {
+    const list = listRef.current;
+    const option = list?.children[active] as HTMLElement | undefined;
+    if (!list || !option) return;
+    if (option.offsetTop < list.scrollTop) list.scrollTop = option.offsetTop;
+    else if (option.offsetTop + option.offsetHeight > list.scrollTop + list.clientHeight)
+      list.scrollTop = option.offsetTop + option.offsetHeight - list.clientHeight;
+  }, [active, matches, open]);
 
   const show = () => {
     setQuery('');
@@ -64,6 +84,14 @@ export function AccountSwitcher({
       event.preventDefault();
       const n = Math.max(1, matches.length);
       setActive((i) => (i + (event.key === 'ArrowDown' ? 1 : -1) + n) % n);
+    } else if (event.key === 'PageDown' || event.key === 'PageUp') {
+      event.preventDefault();
+      setActive((i) =>
+        Math.min(
+          Math.max(0, matches.length - 1),
+          Math.max(0, i + (event.key === 'PageDown' ? 8 : -8))
+        )
+      );
     } else if (event.key === 'Enter') {
       event.preventDefault();
       choose(matches[active]);
@@ -93,7 +121,7 @@ export function AccountSwitcher({
           anchor={anchor}
           onDismiss={dismiss}
           placement="bottom-end"
-          className="w-72 rounded-xl p-1.5 shadow-xl"
+          className="flex w-72 flex-col rounded-xl p-1.5 shadow-xl"
           onPlaced={(panel) => panel.querySelector('input')?.focus()}
         >
           <input
@@ -111,7 +139,12 @@ export function AccountSwitcher({
             }}
             onKeyDown={onKeyDown}
           />
-          <ul id={listId} role="listbox" className="my-1.5 max-h-72 overflow-y-auto">
+          <ul
+            ref={listRef}
+            id={listId}
+            role="listbox"
+            className="relative my-1.5 max-h-72 min-h-0 flex-1 overflow-y-auto"
+          >
             {matches.map((account, i) => {
               const isCurrent = account ? account.id === current?.id : current === null;
               return (
