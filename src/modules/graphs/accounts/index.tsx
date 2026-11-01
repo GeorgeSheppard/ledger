@@ -22,8 +22,7 @@ export const accountsGraph: Graph = {
   }) {
     const [showNetWorth, setShowNetWorth] = useState(true);
     const series = useMemo(
-      () =>
-        accountIds.length ? buildTimeSeries(ledgers, accountIds, period, ignoredCategories) : null,
+      () => buildTimeSeries(ledgers, accountIds, period, ignoredCategories),
       [ledgers, accountIds, period, ignoredCategories]
     );
     const lines = ledgers.map(({ account }) => ({
@@ -49,7 +48,11 @@ export const accountsGraph: Graph = {
               shape: 'dot' as const,
               on: line.on,
               onToggle: () => toggleAccount(line.id),
-              onOnly: () => setAccounts([line.id]),
+              // Double-click: just this account; double-click it again to bring them all back.
+              onOnly: () =>
+                setAccounts(
+                  line.on && accountIds.length === 1 ? lines.map((l) => l.id) : [line.id]
+                ),
             })),
             {
               label: accountIds.length ? 'Hide all' : 'Show all',
@@ -57,7 +60,7 @@ export const accountsGraph: Graph = {
             },
           ]}
         />
-        {series ? (
+        {showNetWorth || accountIds.length ? (
           <AccountsChart
             series={series}
             lines={lines.filter((l) => l.on)}
@@ -65,7 +68,7 @@ export const accountsGraph: Graph = {
             onSelectPeriod={selectPeriod}
           />
         ) : (
-          <NoData>No accounts switched on. Click an account above to show it.</NoData>
+          <NoData>Nothing switched on. Click an account above to show it.</NoData>
         )}
       </>
     );

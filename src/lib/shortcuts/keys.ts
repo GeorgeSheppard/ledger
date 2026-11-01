@@ -52,6 +52,7 @@ const KEY_LABELS: Record<string, string> = {
   enter: '↵',
   escape: 'Esc',
   backspace: '⌫',
+  delete: 'Del',
   arrowup: '↑',
   arrowdown: '↓',
   arrowleft: '←',

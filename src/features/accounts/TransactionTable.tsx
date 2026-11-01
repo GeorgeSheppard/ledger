@@ -473,7 +473,7 @@ export function TransactionTable({
     cancel,
     browsing && (selection.ids.length > 0 || confirmingDelete)
   );
-  useShortcut('transactions.deleteKey', askToDelete, browsing && selectedRows.length > 0);
+  useShortcut('transactions.delete', askToDelete, browsing && selectedRows.length > 0);
   useShortcut('transactions.deleteBackspace', askToDelete, browsing && selectedRows.length > 0);
   useShortcut(
     'transactions.search',
@@ -617,7 +617,6 @@ export function TransactionTable({
         {!mixed && (
           <ActionButton
             shortcut="transactions.new"
-            hideHint
             variant="primary"
             disabled={busy}
             onAction={startNew}

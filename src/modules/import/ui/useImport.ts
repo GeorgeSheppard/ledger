@@ -8,9 +8,15 @@ import {
   type Importer,
   type ParsedImport,
 } from '..';
-import { buildImportPlan, withNewCategories, type ImportPlan } from '../shared/importPlan';
+import { buildCategoryIndex } from '../../../lib/categories/suggest';
+import {
+  buildImportPlan,
+  type CategoryOverrides,
+  withNewCategories,
+  type ImportPlan,
+} from '../shared/importPlan';
 import { guessMapping, toTable, type ColumnMapping } from '../shared/mapping';
-import { useLedgerMutation } from '../../../state/ledgerData';
+import { useLedger, useLedgerMutation } from '../../../state/ledgerData';
 
 /**
  * State for importing into one account: what an importer read, its column mapping, and the plan
@@ -26,44 +32,45 @@ export interface PastedSource {
   dayFirst: boolean;
 }
 
-export interface ImportResult {
-  added: number;
-  skipped: number;
-  categoriesAdded: number;
-}
-
 /** `existing` and `categories` are what the account page already shows, so nothing is re-read. */
 export function useImport(accountId: number, existing: Transaction[], categories: Category[]) {
   const mutate = useLedgerMutation();
+  const { transactionsByAccount } = useLedger();
+  // Past transactions from every account, so a shop seen in one account is known in the others.
+  const suggestions = useMemo(
+    () => buildCategoryIndex(Object.values(transactionsByAccount).flat()),
+    [transactionsByAccount]
+  );
+  const [overrides, setOverrides] = useState<CategoryOverrides>({});
 
   const [parsed, setParsed] = useState<ParsedImport | null>(null);
   const [source, setSource] = useState<{ importer: Importer; input: ImportInput } | null>(null);
   const [mapping, setMapping] = useState<ColumnMapping | null>(null);
-  const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
 
   const plan: ImportPlan | null = useMemo(() => {
     if (!parsed || !mapping) return null;
-    return buildImportPlan(parsed.table, mapping, existing, categories);
-  }, [parsed, mapping, existing, categories]);
+    return buildImportPlan(parsed.table, mapping, existing, categories, suggestions, overrides);
+  }, [parsed, mapping, existing, categories, suggestions, overrides]);
 
   const clear = useCallback(() => {
     setParsed(null);
     setSource(null);
     setMapping(null);
+    setOverrides({});
   }, []);
 
   /** Reads `input` with any importer. Sets `error` and clears the screen when nothing was read. */
   const load = useCallback(
     (importer: Importer, input: ImportInput, options?: ImportOptions) => {
       setError(null);
-      setResult(null);
       try {
         const next = importer.parse(input, options);
         setParsed(next);
         setSource({ importer, input });
         setMapping(next.mapping);
+        setOverrides({});
       } catch (e) {
         clear();
         setError(e instanceof Error ? e.message : String(e));
@@ -101,6 +108,7 @@ export function useImport(accountId: number, existing: Transaction[], categories
       const table = toTable(parsed.grid, hasHeader);
       setParsed({ ...parsed, table });
       setMapping(guessMapping(table));
+      setOverrides({});
     },
     [parsed]
   );
@@ -118,12 +126,12 @@ export function useImport(accountId: number, existing: Transaction[], categories
 
   const reset = useCallback(() => {
     clear();
-    setResult(null);
     setError(null);
   }, [clear]);
 
-  const confirm = useCallback(async () => {
-    if (!plan || plan.toAdd.length === 0) return;
+  /** Adds the planned rows. Resolves true once saved, false if nothing was added. */
+  const confirm = useCallback(async (): Promise<boolean> => {
+    if (!plan || plan.toAdd.length === 0) return false;
     setImporting(true);
     setError(null);
     try {
@@ -133,14 +141,11 @@ export function useImport(accountId: number, existing: Transaction[], categories
         }
         await repository.addTransactions(accountId, plan.toAdd);
       });
-      setResult({
-        added: plan.toAdd.length,
-        skipped: plan.counts.existing,
-        categoriesAdded: plan.newCategories.length,
-      });
       clear();
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      return false;
     } finally {
       setImporting(false);
     }
@@ -150,11 +155,13 @@ export function useImport(accountId: number, existing: Transaction[], categories
     file,
     mapping,
     setMapping,
+    /** Sets the category of the preview row on `line`, replacing the guess. */
+    setCategory: (line: number, category: string) =>
+      setOverrides((o) => ({ ...o, [line]: category })),
     setHasHeader,
     plan,
     error,
     importing,
-    result,
     pasted,
     loadFile,
     loadText,
