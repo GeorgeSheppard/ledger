@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { periodCashFlow } from '../metrics/dashboard';
+import { balanceAtEnds, netWorthAtEnds } from '../metrics/netWorth';
+import { buildTimeSeries } from '../metrics/timeSeries';
 import { monthPeriod } from '../metrics/period';
 import { MemoryCache } from '../store/cache';
 import type { LedgerData } from '../store/ledgerData';
 import { LedgerStore } from '../store/ledgerStore';
 import { MemoryRemote } from '../store/remote';
+import { summarizeAccount } from '../transactions/display';
 import { planBalanceAdjustment } from '../transactions/adjustment';
 import { filterTransactions, noFilters } from '../transactions/filters';
 
@@ -87,5 +90,66 @@ describe('a credit card account', () => {
     await store.addTransactions(2, [plan.input]);
     await store.save();
     expect(remote.data.rows[2]!.at(-1)).toMatchObject({ note: 'Balance adjustment', amount: -120 });
+  });
+
+  describe('balances', () => {
+    // A card opened owing 100, then a 50 purchase, a 20 refund and an 80 payment from the current account.
+    const withOpening = (): LedgerData => {
+      const data = sheet();
+      data.rows[2] = [
+        { date: '2026-02-01', category: '', amount: -100, note: 'Opening balance' },
+        ...data.rows[2]!,
+      ];
+      return data;
+    };
+    const ledgersOf = async () => {
+      const remote = new MemoryRemote(withOpening());
+      const store = await LedgerStore.open({
+        spreadsheetId: 's',
+        remote,
+        cache: new MemoryCache(),
+      });
+      const snap = store.getSnapshot();
+      return snap.accounts.map((account) => ({
+        account,
+        transactions: snap.transactionsByAccount[account.id] ?? [],
+      }));
+    };
+
+    it('shows the balance owed as negative in the accounts list summary', async () => {
+      const [, card] = await ledgersOf();
+      expect(summarizeAccount(card!.transactions, '2026-03-20').balance).toBe(-50);
+      expect(summarizeAccount(card!.transactions, '2026-03-20')).toMatchObject({
+        monthIn: 100, // refund and payment
+        monthOut: -50,
+      });
+    });
+
+    it('counts the card against net worth at each date', async () => {
+      const ledgers = await ledgersOf();
+      expect(balanceAtEnds(ledgers[1]!.transactions, ['2026-02-28', '2026-03-31'])).toEqual([
+        -100, -50,
+      ]);
+      const points = netWorthAtEnds(ledgers, ['2026-02-28', '2026-03-31']);
+      expect(points.map((p) => p.total)).toEqual([-100, 1870]); // 1920 current, -50 card
+      expect(points[1]!.byAccount).toEqual({ 1: 1920, 2: -50 });
+    });
+
+    it('draws the Balances graph from the same numbers, and leaves the opening balance out of spending', async () => {
+      const ledgers = await ledgersOf();
+      const series = buildTimeSeries(ledgers, [1, 2], { from: '2026-02-01', to: '2026-03-31' });
+      expect(series.netWorth('month').at(-1)?.total).toBe(1870);
+      const flow = periodCashFlow(ledgers, [1, 2], { from: '2026-02-01', to: '2026-03-31' });
+      expect(flow.spending).toBe(50); // not the 100 opening balance
+    });
+
+    it('adjusts the balance on a date from the same sum', async () => {
+      const [, card] = await ledgersOf();
+      // On 5 March the card owed 150 (100 opening + 50 purchase); the bank says 140.
+      expect(planBalanceAdjustment(card!.transactions, '2026-03-05', -140)).toMatchObject({
+        current: -150,
+        difference: 10,
+      });
+    });
   });
 });
