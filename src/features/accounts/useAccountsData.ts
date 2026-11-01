@@ -80,6 +80,10 @@ export function useAccountActions() {
       const [added] = await mutate((r) => r.addTransactions(accountId, [input]));
       return added;
     },
+    adjustBalance: async (accountId: number, input: TransactionInput) => {
+      const [added] = await mutate((r) => r.addTransactions(accountId, [input], 'Adjust balance'));
+      return added;
+    },
     updateTransaction: (accountId: number, row: number, input: TransactionInput) =>
       mutate((r) => r.updateTransaction(accountId, row, input)),
     deleteTransaction: (accountId: number, row: number) =>

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { periodCashFlow } from '../metrics/dashboard';
 import { monthPeriod } from '../metrics/period';
 import { MemoryCache } from '../store/cache';
+import { planBalanceAdjustment } from '../transactions/adjustment';
 import { toSnapshot, type LedgerData } from '../store/ledgerData';
 import { LedgerStore } from '../store/ledgerStore';
 import { MemoryRemote } from '../store/remote';
@@ -111,5 +112,17 @@ describe('inverted accounts', () => {
     expect(flow.income).toBe(2020); // salary and the refund, exactly as on a current account
     expect(flow.spending).toBe(50); // the purchase; the 80 card payment is a transfer, not spending
     expect(toSnapshot(toMoneyTerms(sheet()), []).transactionsByAccount[2]).toHaveLength(4);
+  });
+
+  it('a balance adjustment on a card is written with the sheet side sign', async () => {
+    const { store, remote } = await open();
+    const rows = store.getSnapshot().transactionsByAccount[2]!;
+    // Money terms: the card is 50 in credit. The bank says 70 is owed.
+    const plan = planBalanceAdjustment(rows, '2026-03-11', -70)!;
+    expect(plan.current).toBe(50);
+    expect(plan.input.amount).toBe(-120);
+    await store.addTransactions(2, [plan.input]);
+    await store.save();
+    expect(remote.data.rows[2]!.at(-1)).toMatchObject({ note: 'Balance adjustment', amount: 120 });
   });
 });

@@ -49,6 +49,7 @@ import {
   type Selection,
 } from '../../lib/transactions/selection';
 import { cashFlowTotals, moneyOfRow } from '../../lib/transactions/summary';
+import { useLedger } from '../../state/ledgerData';
 import { useShortcut } from '../../state/shortcuts';
 import { ActionButton } from '../../ui/ActionButton';
 import { cn } from '../../ui/cn';
@@ -56,6 +57,7 @@ import { Kbd } from '../../ui/Kbd';
 import type { MenuItem } from '../../ui/Menu';
 import { FLOATING_SELECTOR } from '../../ui/FloatingPanel';
 import { FunnelIcon, Popover } from '../../ui/Popover';
+import { BalanceAdjustmentDialog } from './BalanceAdjustmentDialog';
 import { DeleteConfirm } from './DeleteConfirm';
 import { TransactionEditor } from './TransactionEditor';
 import {
@@ -124,6 +126,8 @@ export function TransactionTable({
   initialFilters,
 }: TransactionTableProps) {
   const actions = useAccountActions();
+  const { transactionsByAccount } = useLedger();
+  const [adjusting, setAdjusting] = useState(false);
   const [mode, setMode] = useState<Mode>({ kind: 'browse' });
   const [editing, setEditing] = useState<Editing | null>(null);
   const [chosen, setSelection] = useState<Selection>(noSelection);
@@ -164,8 +168,8 @@ export function TransactionTable({
   );
   const editingRow = mode.kind === 'edit' ? mode.id : null;
   const isEditing = mode.kind !== 'browse';
-  const busy = isEditing || saving || paused;
-  const browsing = !isEditing && !paused;
+  const busy = isEditing || saving || paused || adjusting;
+  const browsing = !isEditing && !paused && !adjusting;
 
   const mobile = useMediaQuery('(max-width: 767px)');
   const items = useMemo<ListItem[]>(
@@ -326,7 +330,7 @@ export function TransactionTable({
     if (mixed) return;
     setConfirmingDelete(false);
     setMode({ kind: 'new' });
-    beginEditing(emptyDraft(todayIso()), 'category');
+    beginEditing(emptyDraft(todayIso()), 'date');
   };
 
   const editSelected = () => {
@@ -481,7 +485,7 @@ export function TransactionTable({
         setFocusSearch(true);
       }
     },
-    !paused
+    !paused && !adjusting
   );
 
   const editor = editing && (
@@ -622,6 +626,14 @@ export function TransactionTable({
           </ActionButton>
         )}
         <ActionButton
+          variant="secondary"
+          disabled={busy || accounts.length === 0}
+          title="Set an account to the balance it really has, e.g. after interest"
+          onAction={() => setAdjusting(true)}
+        >
+          Balance adjustment
+        </ActionButton>
+        <ActionButton
           className="md:hidden"
           variant={panelOpen ? 'primary' : 'secondary'}
           aria-expanded={panelOpen}
@@ -664,6 +676,15 @@ export function TransactionTable({
           </span>
         )}
       </div>
+
+      {adjusting && (
+        <BalanceAdjustmentDialog
+          accounts={accounts}
+          transactionsByAccount={transactionsByAccount}
+          initialAccountId={account?.id}
+          onClose={() => setAdjusting(false)}
+        />
+      )}
 
       {panelOpen && !wide && (
         <TransactionFilterPanel
