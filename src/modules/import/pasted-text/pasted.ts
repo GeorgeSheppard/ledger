@@ -355,7 +355,7 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
     let line = cleanLine(raw);
     if (line === '' || JUNK_LINE.test(line)) continue;
 
-    // `1. Yulia Chan` is a numbered sub-line, but `15. Oct 2026` is still a date.
+    // `1. John Doe` is a numbered sub-line, but `15. Oct 2026` is still a date.
     let isRef = false;
     const marked = line.replace(LIST_MARKER, '');
     if (marked !== line && findDate(line, dayFirst, today)?.start !== 0) {
