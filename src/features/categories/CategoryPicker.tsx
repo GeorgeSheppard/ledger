@@ -27,13 +27,18 @@ interface CategoryPickerProps {
   onChange(name: string): void;
   /** Adds a new category to the list. The picker selects it once this resolves. */
   onCreate(name: string): Promise<void>;
+  /**
+   * Up and Down move to the same cell in the row above or below, like a spreadsheet, until the user
+   * types: after that they move through the matching categories instead.
+   */
+  onMoveRow?(delta: 1 | -1): void;
   inputRef?: Ref<HTMLInputElement>;
   invalid?: boolean;
   'aria-label'?: string;
 }
 
 /**
- * Combobox for choosing a category: type to filter, arrows to move, Enter to pick. When the typed
+ * Combobox for choosing a category: type to filter, arrows to move (or, before typing, to the neighbouring row when `onMoveRow` is given), Enter to pick. When the typed
  * name does not exist yet, the last option creates it. Escape closes the list before it lets the
  * key reach the row editor (which cancels editing).
  */
@@ -43,6 +48,7 @@ export function CategoryPicker({
   allCategories = categories,
   onChange,
   onCreate,
+  onMoveRow,
   inputRef,
   invalid,
   'aria-label': ariaLabel = 'Category',
@@ -52,6 +58,7 @@ export function CategoryPicker({
   const [query, setQuery] = useState(value);
   const [active, setActive] = useState(0);
   const [creating, setCreating] = useState(false);
+  const [typed, setTyped] = useState(false);
   const [anchor, setAnchor] = useState<HTMLDivElement | null>(null);
 
   const options = useMemo<Option[]>(() => {
@@ -89,6 +96,7 @@ export function CategoryPicker({
   };
 
   const commit = (name: string) => {
+    setTyped(false);
     onChange(name);
     setQuery(name);
     setOpen(false);
@@ -97,8 +105,9 @@ export function CategoryPicker({
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
-      if (!open) return openList();
       const delta = event.key === 'ArrowDown' ? 1 : -1;
+      if (onMoveRow && !typed) return onMoveRow(delta);
+      if (!open) return openList();
       setActive((i) => (i + delta + options.length) % options.length);
     } else if (event.key === 'Enter' && open && !event.metaKey && !event.ctrlKey) {
       event.preventDefault();
@@ -142,12 +151,14 @@ export function CategoryPicker({
         readOnly={creating}
         onFocus={(event) => {
           setQuery(value);
+          setTyped(false);
           openList();
           event.currentTarget.select();
         }}
         onBlur={close}
         onChange={(event) => {
           const text = event.target.value;
+          setTyped(true);
           setQuery(text);
           setOpen(true);
           setActive(0);

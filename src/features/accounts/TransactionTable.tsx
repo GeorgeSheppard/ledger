@@ -108,7 +108,7 @@ const COLUMNS: { key: SortKey; label: string; align?: 'right' }[] = [
 /**
  * The account's transactions, newest first and grouped by month until a column is sorted.
  * A click selects a row; clicking the row that is the only one selected (or double-clicking) edits
- * it. Ctrl/⌘+click and Shift+click extend the selection, J/K move it, Shift+A selects everything
+ * it. Ctrl/⌘+click and Shift+click extend the selection, J/K or the arrow keys move it, Shift+A selects everything
  * shown and Delete removes the selection. The search box and filter panel narrow the list; the menu
  * at the end of each row has the common "show me…" actions.
  *
@@ -335,7 +335,7 @@ export function TransactionTable({
 
   const editSelected = () => {
     const [only, ...rest] = selectedRows;
-    if (only && rest.length === 0) openNow(only, 'note');
+    if (only && rest.length === 0) openNow(only, 'category');
   };
 
   const select = (transaction: Transaction, modifiers: ClickModifiers) => {
@@ -459,9 +459,20 @@ export function TransactionTable({
     await actions.saveCategories(addCategory(categories, name));
   };
 
+  const moveEditing = (delta: 1 | -1, field: DraftField) => {
+    if (mode.kind !== 'edit') return;
+    const at = shown.findIndex((t) => t.id === mode.id);
+    const next = shown[at + delta];
+    if (at !== -1 && next) {
+      void open(next, field).then(() => setRevealKey((k) => k + 1));
+    }
+  };
+
   const move = (delta: number) => selectAndReveal(moveSelection(selection, shownIds, delta));
   useShortcut('transactions.down', () => move(1), browsing);
   useShortcut('transactions.up', () => move(-1), browsing);
+  useShortcut('transactions.arrowDown', () => move(1), browsing);
+  useShortcut('transactions.arrowUp', () => move(-1), browsing);
   useShortcut(
     'transactions.selectAll',
     () => setSelection(selectAll(shownIds)),
@@ -488,6 +499,17 @@ export function TransactionTable({
     !paused && !adjusting
   );
 
+  // There are no Save/Cancel buttons: edits are live and Ctrl+Z reverts them. Escape closes the
+  // row, keeping the changes when they are valid and dropping them when they are not.
+  const finishEditing = () => {
+    if (!editing || saving) return;
+    if (isDraftDirty(editing.draft, editing.original) && validateDraft(editing.draft).ok)
+      void save();
+    else stopEditing();
+  };
+  useShortcut('transactions.cancel', finishEditing, isEditing && !paused);
+  useShortcut('transactions.save', () => void save(), isEditing && !paused);
+
   const editor = editing && (
     <TransactionEditor
       draft={editing.draft}
@@ -495,7 +517,6 @@ export function TransactionTable({
       categories={offeredCategories}
       allCategories={categories}
       isNew={mode.kind === 'new'}
-      saving={saving}
       total={
         editingRow && !mixed ? transactions.find((t) => t.id === editingRow)?.total : undefined
       }
@@ -503,8 +524,8 @@ export function TransactionTable({
       focusKey={editing.focusKey}
       onChange={(draft) => setEditing({ ...editing, draft })}
       onSave={() => void save()}
-      onCancel={cancel}
       onCreateCategory={createCategory}
+      onMoveRow={mode.kind === 'edit' ? moveEditing : undefined}
     />
   );
 
