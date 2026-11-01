@@ -218,6 +218,12 @@ describe('LedgerStore', () => {
       expect(remote.data.rows[1]).toHaveLength(before);
     });
 
+    it('names a labelled add for Undo', async () => {
+      const { store } = await open();
+      await store.addTransactions(1, [input('2026-02-01', 12)], 'Adjust balance');
+      expect(store.history.getState().undoLabel).toBe('Adjust balance');
+    });
+
     it('undoes edits one at a time, newest first, and drops redo after a new edit', async () => {
       const { store } = await open();
       await store.setAccountInverted(2, true);

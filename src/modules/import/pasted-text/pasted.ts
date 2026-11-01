@@ -1,4 +1,5 @@
 import type { IsoDate } from '../../../lib/domain/types';
+import { looksLikeSplitwise, parseSplitwise } from '../../../lib/splitwise/splitwise';
 import { guessMapping, toTable, type ColumnMapping, type CsvTable } from '../shared/mapping';
 import { parseAmount, parseDate } from '../shared/values';
 
@@ -319,6 +320,25 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
   const today = options.today ?? new Date().toISOString().slice(0, 10);
   const rawLines = text.split(/\r\n|\r|\n/);
 
+  if (looksLikeSplitwise(text)) {
+    const { expenses, warnings } = parseSplitwise(text);
+    if (expenses.length > 0) {
+      return {
+        kind: 'text',
+        table: {
+          headers: TEXT_HEADERS,
+          rows: expenses.map((e) => [e.date, e.description, formatAmount(-e.spending)]),
+          lines: expenses.map((_, i) => i + 1),
+          hasHeader: true,
+        },
+        mapping: { ...TEXT_MAPPING },
+        warnings,
+        ambiguousDates: false,
+        dayFirst: options.dayFirst ?? true,
+      };
+    }
+  }
+
   const tabbed = tabbedRows(rawLines);
   if (tabbed) {
     const table = toTable(tabbed);
@@ -355,7 +375,7 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
     let line = cleanLine(raw);
     if (line === '' || JUNK_LINE.test(line)) continue;
 
-    // `1. John Doe` is a numbered sub-line, but `15. Oct 2026` is still a date.
+    // `1. Jo Bloggs` is a numbered sub-line, but `15. Oct 2026` is still a date.
     let isRef = false;
     const marked = line.replace(LIST_MARKER, '');
     if (marked !== line && findDate(line, dayFirst, today)?.start !== 0) {

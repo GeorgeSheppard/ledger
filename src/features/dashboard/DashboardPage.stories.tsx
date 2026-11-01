@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { userEvent, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 import { Connected } from '../../storybook/providers';
 import { DashboardPage } from './DashboardPage';
 
@@ -29,13 +29,23 @@ export const AccountSwitchedOff: Story = {
   },
 };
 
-/** "Hide all" in the balances legend, then one account double-clicked to show just that one. */
+/**
+ * Double-clicking a balances legend entry (every account starting on) shows just that account. The
+ * first click filters, which must not shift the page or the second click would miss the entry.
+ */
 export const OneAccountOnly: Story = {
   render: Default.render,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(await canvas.findByRole('button', { name: 'Hide all' }));
     await userEvent.dblClick(await canvas.findByRole('button', { name: 'Savings' }));
+    await expect(canvas.getByRole('button', { name: 'Savings' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    await expect(canvas.getByRole('button', { name: 'Current account' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
   },
 };
 

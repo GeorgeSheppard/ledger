@@ -303,31 +303,56 @@ describe('feeding the import pipeline', () => {
   });
 });
 
+describe('Splitwise activity', () => {
+  it('becomes negative rows of the user share', () => {
+    const text = `November 2026View printable summary
+Nov
+01
+
+Food
+you paid
+£97.00you lent Anastasia
+£31.00
+Oct
+25
+
+Disneyland Paris stuff 
+Anastasia W. paid
+£28.89Anastasia lent you
+£28.89`;
+    const parsed = parsePastedText(text, { today });
+    expect(parsed.table.rows).toEqual([
+      ['2026-11-01', 'Food', '-66.00'],
+      ['2026-10-25', 'Disneyland Paris stuff', '-28.89'],
+    ]);
+  });
+});
+
 describe('date headings that carry the day balance', () => {
   it('does not import the balance beside a date as a transaction', () => {
-    const text = `1. Mon 19 Oct£5,569.54
-   1. Int'l 2292185434
-Anthropic* Claude
-San Francisco
+    const text = `1. Mon 19 Oct£1,000.00
+   1. Int'l 1234567890
+Example* Service
+London
 −£18.00
-2. Sat 17 Oct£5,587.54
-   1. John Doe
-Dishoom
+2. Sat 17 Oct£1,018.00
+   1. A Person
+Corner Cafe
 −£33.00`;
     const parsed = parsePastedText(text, { today: '2026-10-25' });
     expect(parsed.table.rows).toEqual([
-      ['2026-10-19', "Anthropic* Claude San Francisco (Int'l 2292185434)", '-18.00'],
-      ['2026-10-17', 'Dishoom (John Doe)', '-33.00'],
+      ['2026-10-19', "Example* Service London (Int'l 1234567890)", '-18.00'],
+      ['2026-10-17', 'Corner Cafe (A Person)', '-33.00'],
     ]);
     expect(parsed.warnings).toEqual([]);
   });
 
   it('uses the day balance to sign unsigned amounts', () => {
-    const text = `Mon 19 Oct£5,569.54
-Anthropic
+    const text = `Mon 19 Oct£1,000.00
+Example
 18.00
-Sat 17 Oct£5,587.54
-Dishoom
+Sat 17 Oct£1,018.00
+Corner Cafe
 33.00`;
     expect(
       parsePastedText(text, { today: '2026-10-25' }).table.rows.map((r) => Number(r[2]))

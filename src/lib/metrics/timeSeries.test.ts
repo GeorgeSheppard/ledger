@@ -39,9 +39,21 @@ describe('buildTimeSeries', () => {
     expect(series.netWorth('week')[index]!.total).toBe(950);
   });
 
-  it('leaves out accounts that were not asked for', () => {
-    const none = buildTimeSeries(ledgers, [], april2May);
-    expect(none.netWorth('month').map((p) => p.total)).toEqual([0, 0]);
+  it('keeps net worth across every account whichever accounts are switched on', () => {
+    const two = [
+      ...ledgers,
+      {
+        account: { id: 2, name: 'Savings' },
+        transactions: makeTransactions(2, [['2026-04-02', 500, 'Gift']]),
+      },
+    ];
+    const worth = (ids: number[]) =>
+      buildTimeSeries(two, ids, april2May)
+        .netWorth('month')
+        .map((p) => p.total);
+    expect(worth([1, 2])).toEqual([1445, 1438]);
+    expect(worth([1])).toEqual(worth([1, 2]));
+    expect(worth([])).toEqual(worth([1, 2]));
   });
   it('only counts transactions inside the period, and balances as of its end', () => {
     const part = buildTimeSeries(ledgers, [1], { from: '2026-04-09', to: '2026-04-25' });

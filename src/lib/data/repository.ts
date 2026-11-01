@@ -27,7 +27,12 @@ export interface LedgerRepository {
   /** Transactions in date order (oldest first). */
   listTransactions(accountId: number): Promise<Transaction[]>;
   /** Inserts rows in date order, after any existing rows on the same day. Returns the stored rows. */
-  addTransactions(accountId: number, inputs: TransactionInput[]): Promise<Transaction[]>;
+  addTransactions(
+    accountId: number,
+    inputs: TransactionInput[],
+    /** What Undo calls this step. Defaults to "Add N transactions". */
+    label?: string
+  ): Promise<Transaction[]>;
   /** Replaces a row; if its date changed, it moves to stay in date order. */
   updateTransaction(accountId: number, row: number, input: TransactionInput): Promise<void>;
   deleteTransaction(accountId: number, row: number): Promise<void>;

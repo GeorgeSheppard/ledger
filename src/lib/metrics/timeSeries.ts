@@ -27,7 +27,11 @@ export interface TimeSeries {
   buckets(granularity: Granularity): Bucket[];
   /** Income and spending, limited to the chosen categories when there are any. */
   cashFlow(granularity: Granularity): PeriodCashFlow[];
-  /** Balances at the end of each bucket. Not narrowed by category: a balance has no category. */
+  /**
+   * Balances at the end of each bucket. Not narrowed by category (a balance has no category) and
+   * not by account: `total` is always every account's balance combined, so net worth does not move
+   * when accounts are switched off. `byAccount` holds every account; pick the ones to draw.
+   */
   netWorth(granularity: Granularity): PeriodNetWorth[];
 }
 
@@ -78,7 +82,7 @@ export function buildTimeSeries(
     ),
     netWorth: cache((g) =>
       netWorthAtEnds(
-        ledgers,
+        dated,
         // A balance is as of the end of the period, even when its last bucket carries on past it.
         buckets(g).map((b) => (b.end > last ? last : b.end))
       )
