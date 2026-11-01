@@ -48,7 +48,11 @@ export const accountsGraph: Graph = {
               shape: 'dot' as const,
               on: line.on,
               onToggle: () => toggleAccount(line.id),
-              onOnly: () => setAccounts([line.id]),
+              // Double-click: just this account; double-click it again to bring them all back.
+              onOnly: () =>
+                setAccounts(
+                  line.on && accountIds.length === 1 ? lines.map((l) => l.id) : [line.id]
+                ),
             })),
             {
               label: accountIds.length ? 'Hide all' : 'Show all',

@@ -48,7 +48,11 @@ export function ChartLegend({ items }: { items: LegendItem[] }) {
                   'flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-0.5 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                   item.on === false && 'opacity-50'
                 )}
-                title={item.onOnly ? `Double-click to show only ${item.label}` : undefined}
+                title={
+                  item.onOnly
+                    ? `Double-click to show only ${item.label} (again to show all)`
+                    : undefined
+                }
                 onClick={item.onToggle}
                 onDoubleClick={item.onOnly}
               >
