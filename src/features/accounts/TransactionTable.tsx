@@ -616,7 +616,6 @@ export function TransactionTable({
         {!mixed && (
           <ActionButton
             shortcut="transactions.new"
-            hideHint
             variant="primary"
             disabled={busy}
             onAction={startNew}
