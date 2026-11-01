@@ -346,7 +346,7 @@ export const Settings: Story = {
 const MANY = Array.from({ length: 40 }, (_, i) => ({ id: i + 1, name: `Account ${i + 1}` }));
 
 function ManyAccounts() {
-  const [current, setCurrent] = useState<(typeof MANY)[number] | null>(MANY[0]);
+  const [current, setCurrent] = useState<(typeof MANY)[number] | null>(MANY[0] ?? null);
   return (
     <div className="p-4">
       <AccountSwitcher
