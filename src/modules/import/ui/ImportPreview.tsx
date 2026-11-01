@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import type { Account } from '../../../lib/domain/types';
+import { toAccountSide } from '../../../lib/accounts/inverted';
 import type { ImportPlan, PlanRowStatus } from '../shared/importPlan';
 import { useShortcut } from '../../../state/shortcuts';
 import { Badge } from '../../../ui/Badge';
@@ -28,7 +30,7 @@ const CELL = 'border-b border-line px-3 py-2 align-top';
 const ROW_LIMIT = 500;
 
 /** Every row of the file with what will happen to it. `f` cycles the filter. */
-export function ImportPreview({ plan }: { plan: ImportPlan }) {
+export function ImportPreview({ plan, account }: { plan: ImportPlan; account: Account }) {
   const [filter, setFilter] = useState<Filter>('all');
   useShortcut('import.filter', () =>
     setFilter(
@@ -70,7 +72,12 @@ export function ImportPreview({ plan }: { plan: ImportPlan }) {
               <th className={cn(CELL, 'font-semibold')}>Date</th>
               <th className={cn(CELL, 'font-semibold')}>Note</th>
               <th className={cn(CELL, 'font-semibold')}>Category</th>
-              <th className={cn(CELL, 'text-right font-semibold')}>Amount</th>
+              <th className={cn(CELL, 'text-right font-semibold')}>
+                Amount
+                {account.inverted && (
+                  <span className="block text-xs font-normal">+ is money you spend</span>
+                )}
+              </th>
               <th className={cn(CELL, 'font-semibold')}>Status</th>
             </tr>
           </thead>
@@ -91,7 +98,7 @@ export function ImportPreview({ plan }: { plan: ImportPlan }) {
                         'text-right whitespace-nowrap tabular-nums',
                         row.status === 'existing'
                           ? 'text-muted'
-                          : row.input.amount < 0
+                          : toAccountSide(account, row.input.amount) < 0
                             ? 'text-negative'
                             : 'text-positive'
                       )}

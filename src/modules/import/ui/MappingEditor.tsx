@@ -16,6 +16,8 @@ interface MappingEditorProps {
   mapping: ColumnMapping;
   onMappingChange(mapping: ColumnMapping): void;
   onHasHeaderChange(hasHeader: boolean): void;
+  /** The account records spending as positive, so files that show it as negative need flipping. */
+  inverted?: boolean;
 }
 
 const NONE = '';
@@ -34,6 +36,7 @@ export function MappingEditor({
   mapping,
   onMappingChange,
   onHasHeaderChange,
+  inverted = false,
 }: MappingEditorProps) {
   const firstField = useRef<HTMLSelectElement>(null);
   useShortcut('import.mapping', () => firstField.current?.focus());
@@ -116,7 +119,9 @@ export function MappingEditor({
             checked={mapping.invertAmounts}
             onChange={(e) => onMappingChange({ ...mapping, invertAmounts: e.target.checked })}
           />
-          Spending is positive in this file (flip signs)
+          {inverted
+            ? 'Spending is negative in this file (flip signs, this account records spending as positive)'
+            : 'Spending is positive in this file (flip signs)'}
           <Kbd shortcut="import.invert" className="text-muted" />
         </label>
       </div>

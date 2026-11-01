@@ -7,7 +7,10 @@ export const pastedTextImporter: Importer = {
   label: 'Pasted text',
   accepts: 'text',
   parse({ name, text }, options = {}) {
-    const parsed = parsePastedText(text, { dayFirst: options.dayFirst });
+    const parsed = parsePastedText(text, {
+      dayFirst: options.dayFirst,
+      inverted: options.inverted,
+    });
     if (parsed.table.rows.length === 0)
       throw new Error(parsed.warnings.join(' ') || 'Nothing in the pasted text could be read.');
     const { headers, rows } = parsed.table;

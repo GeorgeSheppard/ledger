@@ -5,7 +5,7 @@ import { netWorthByMonth } from '../metrics/netWorth';
 import { monthPeriod } from '../metrics/period';
 import { findTransfers } from '../metrics/transfers';
 import { toTransactions } from '../store/ledgerData';
-import { asMoney, moneyLedgers } from './inverted';
+import { asMoney, moneyLedgers, toAccountSide } from './inverted';
 
 const bank: Account = { id: 1, name: 'Current' };
 const card: Account = { id: 2, name: 'Visa', inverted: true };
@@ -64,5 +64,14 @@ describe('with an inverted account', () => {
     const ledgers = moneyLedgers([bank, card], byAccount);
     const paired = findTransfers(ledgers.flatMap((l) => l.transactions));
     expect(paired).toEqual(new Set(['1:3', '2:3']));
+  });
+});
+
+describe('toAccountSide', () => {
+  it('writes money terms the way an inverted tab records them', () => {
+    expect(toAccountSide(card, -12.5)).toBe(12.5);
+    expect(toAccountSide(card, 200)).toBe(-200);
+    expect(toAccountSide(card, 0)).toBe(0);
+    expect(toAccountSide(bank, -12.5)).toBe(-12.5);
   });
 });

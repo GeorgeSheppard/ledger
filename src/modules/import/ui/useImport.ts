@@ -33,7 +33,12 @@ export interface ImportResult {
 }
 
 /** `existing` and `categories` are what the account page already shows, so nothing is re-read. */
-export function useImport(accountId: number, existing: Transaction[], categories: Category[]) {
+export function useImport(
+  accountId: number,
+  existing: Transaction[],
+  categories: Category[],
+  inverted = false
+) {
   const mutate = useLedgerMutation();
 
   const [parsed, setParsed] = useState<ParsedImport | null>(null);
@@ -90,8 +95,8 @@ export function useImport(accountId: number, existing: Transaction[], categories
   /** Reads text pasted from a bank's website. `dayFirst` overrides the detected date order. */
   const loadText = useCallback(
     (text: string, dayFirst?: boolean) =>
-      load(pastedTextImporter, { name: 'Pasted text', text }, { dayFirst }),
-    [load]
+      load(pastedTextImporter, { name: 'Pasted text', text }, { dayFirst, inverted }),
+    [load, inverted]
   );
 
   /** Re-reads the rows with or without a header row and re-guesses the mapping. */
