@@ -1,4 +1,5 @@
 import type { IsoDate } from '../../../lib/domain/types';
+import { looksLikeSplitwise, parseSplitwise } from '../../../lib/splitwise/splitwise';
 import { guessMapping, toTable, type ColumnMapping, type CsvTable } from '../shared/mapping';
 import { parseAmount, parseDate } from '../shared/values';
 
@@ -315,6 +316,25 @@ function tabbedRows(lines: readonly string[]): string[][] | null {
 export function parsePastedText(text: string, options: PasteOptions = {}): PastedParse {
   const today = options.today ?? new Date().toISOString().slice(0, 10);
   const rawLines = text.split(/\r\n|\r|\n/);
+
+  if (looksLikeSplitwise(text)) {
+    const { expenses, warnings } = parseSplitwise(text);
+    if (expenses.length > 0) {
+      return {
+        kind: 'text',
+        table: {
+          headers: TEXT_HEADERS,
+          rows: expenses.map((e) => [e.date, e.description, formatAmount(-e.spending)]),
+          lines: expenses.map((_, i) => i + 1),
+          hasHeader: true,
+        },
+        mapping: { ...TEXT_MAPPING },
+        warnings,
+        ambiguousDates: false,
+        dayFirst: options.dayFirst ?? true,
+      };
+    }
+  }
 
   const tabbed = tabbedRows(rawLines);
   if (tabbed) {
