@@ -302,3 +302,28 @@ describe('feeding the import pipeline', () => {
     ]);
   });
 });
+
+describe('Splitwise activity', () => {
+  it('becomes negative rows of the user share', () => {
+    const text = `November 2026View printable summary
+Nov
+01
+
+Food
+you paid
+£97.00you lent Anastasia
+£31.00
+Oct
+25
+
+Disneyland Paris stuff 
+Anastasia W. paid
+£28.89Anastasia lent you
+£28.89`;
+    const parsed = parsePastedText(text, { today });
+    expect(parsed.table.rows).toEqual([
+      ['2026-11-01', 'Food', '-66.00'],
+      ['2026-10-25', 'Disneyland Paris stuff', '-28.89'],
+    ]);
+  });
+});
