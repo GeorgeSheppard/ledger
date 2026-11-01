@@ -12,15 +12,19 @@
  *   £41.20Priya lent you
  *   £41.20
  *
- * The amount that matters for a ledger is the user's own share, returned as spending (positive).
+ * The amount that matters for a ledger is the user's own share, returned in money terms: spending
+ * is negative. An entry whose description contains "refund" is money coming back, so the sign
+ * flips (the magnitude is still the user's own share): "you paid 440, you lent Priya 220" on a
+ * refund is +220, and "Priya paid 100, Priya lent you 50" on a refund is +50. A share of zero is
+ * kept as a 0.00 row so the entry still shows up.
  */
 
 export interface SplitwiseExpense {
   /** ISO date. */
   date: string;
   description: string;
-  /** The user's own share of the cost; always positive. */
-  spending: number;
+  /** The user's own share in money terms: negative for spending, positive for a refund, 0 if none. */
+  amount: number;
 }
 
 export interface SplitwiseParse {
@@ -40,6 +44,7 @@ const AMOUNT = '[£$€]\\s?(\\d[\\d,]*(?:\\.\\d{1,2})?)';
 /** What was paid, then a label such as "you lent Priya", then the lent/borrowed amount. */
 const BODY = new RegExp(`${AMOUNT}\\s*(.*?)\\s*${AMOUNT}`);
 /** Settling up is a transfer between people, not spending. */
+const REFUND = /refund/i;
 const SETTLE = /^(?:payment|settle|settled)\b|\bsettle(?:d)? (?:up|all)\b/i;
 
 const toNumber = (s: string | undefined) => Number((s ?? '').replace(/,/g, ''));
@@ -76,7 +81,6 @@ export function parseSplitwise(text: string): SplitwiseParse {
   let desc: string[] = [];
   let payer: string | null = null;
   let body: string[] = [];
-  let zero = 0;
   let skipped = 0;
   let incomplete = 0;
 
@@ -123,10 +127,12 @@ export function parseSplitwise(text: string): SplitwiseParse {
     // the heading only supplies the year.
     const y = monthHeading !== null && day.month > monthHeading ? year - 1 : year;
     if (spending === null) skipped++;
-    else if (Math.round(spending * 100) <= 0) zero++;
     else {
       const date = `${y}-${String(day.month).padStart(2, '0')}-${String(day.day).padStart(2, '0')}`;
-      expenses.push({ date, description, spending: Math.round(spending * 100) / 100 });
+      const cents = Math.round(spending * 100);
+      // `+ 0` turns -0 into 0.
+      const amount = (REFUND.test(description) ? cents : -cents) / 100 + 0;
+      expenses.push({ date, description, amount });
     }
     desc = [];
     payer = null;
@@ -136,10 +142,6 @@ export function parseSplitwise(text: string): SplitwiseParse {
 
   const warnings: string[] = [];
   const entries = (n: number) => `${n} Splitwise ${n === 1 ? 'entry' : 'entries'}`;
-  if (zero > 0)
-    warnings.push(
-      `${entries(zero)} where you spent nothing (fully lent) ${zero === 1 ? 'was' : 'were'} left out.`
-    );
   if (skipped > 0) {
     warnings.push(
       `${entries(skipped)} (settle-ups, or ones you were not part of) ${skipped === 1 ? 'was' : 'were'} left out.`

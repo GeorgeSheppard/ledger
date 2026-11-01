@@ -327,7 +327,7 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
         kind: 'text',
         table: {
           headers: TEXT_HEADERS,
-          rows: expenses.map((e) => [e.date, e.description, formatAmount(-e.spending)]),
+          rows: expenses.map((e) => [e.date, e.description, formatAmount(e.amount)]),
           lines: expenses.map((_, i) => i + 1),
           hasHeader: true,
         },

@@ -304,7 +304,7 @@ describe('feeding the import pipeline', () => {
 });
 
 describe('Splitwise activity', () => {
-  it('becomes negative rows of the user share', () => {
+  it('becomes rows of the user share: spending negative, refunds positive, zero kept', () => {
     const text = `November 2026View printable summary
 Nov
 01
@@ -319,11 +319,27 @@ Oct
 Weekend cabin trip 
 Priya N. paid
 £41.20Priya lent you
-£41.20`;
+£41.20
+Oct
+18
+
+Cabin flights refund
+you paid
+£440.00you lent Priya
+£220.00
+Oct
+19
+
+Online order
+you paid
+£29.99you lent Priya
+£29.99`;
     const parsed = parsePastedText(text, { today });
     expect(parsed.table.rows).toEqual([
       ['2026-11-01', 'Food', '-56.00'],
       ['2026-10-25', 'Weekend cabin trip', '-41.20'],
+      ['2026-10-18', 'Cabin flights refund', '220.00'],
+      ['2026-10-19', 'Online order', '0.00'],
     ]);
   });
 });

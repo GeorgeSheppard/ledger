@@ -37,13 +37,12 @@ describe('parseSplitwise', () => {
   it('reads the user share of each expense', () => {
     const { expenses, warnings } = parseSplitwise(SAMPLE);
     expect(expenses).toEqual([
-      { date: '2026-11-01', description: 'Food', spending: 56 },
-      { date: '2026-10-25', description: 'Weekend cabin trip', spending: 41.2 },
-      { date: '2026-10-22', description: 'Food', spending: 42 },
+      { date: '2026-11-01', description: 'Food', amount: -56 },
+      { date: '2026-10-25', description: 'Weekend cabin trip', amount: -41.2 },
+      { date: '2026-10-22', description: 'Food', amount: -42 },
+      { date: '2026-10-19', description: 'Online order', amount: 0 },
     ]);
-    expect(warnings).toEqual([
-      '1 Splitwise entry where you spent nothing (fully lent) was left out.',
-    ]);
+    expect(warnings).toEqual([]);
   });
 
   it('is detected from the paste', () => {
@@ -68,8 +67,8 @@ you paid
 $2,000.00you lent 2 people
 $1,333.34`);
     expect(expenses).toEqual([
-      { date: '2026-03-03', description: 'Flights', spending: 400.25 },
-      { date: '2026-03-02', description: 'Rent', spending: 666.66 },
+      { date: '2026-03-03', description: 'Flights', amount: -400.25 },
+      { date: '2026-03-02', description: 'Rent', amount: -666.66 },
     ]);
   });
 
@@ -96,7 +95,7 @@ Coffee
 you paid
 £4.00you lent Bob
 £2.00`);
-    expect(expenses).toEqual([{ date: '2026-05-02', description: 'Coffee', spending: 2 }]);
+    expect(expenses).toEqual([{ date: '2026-05-02', description: 'Coffee', amount: -2 }]);
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain('2 Splitwise entries');
   });
@@ -119,5 +118,96 @@ you paid
 £10.00you lent Bob
 £5.00`);
     expect(expenses.map((e) => e.date)).toEqual(['2026-01-02', '2025-12-31']);
+  });
+
+  it('turns refunds into money in, whoever paid', () => {
+    const { expenses } = parseSplitwise(`October 2026View printable summary
+Oct
+18
+
+Cabin flights refund 
+you paid
+£440.00you lent Priya
+£220.00
+Oct
+17
+
+Hotel REFUND
+Priya N. paid
+£100.00Priya lent you
+£50.00`);
+    expect(expenses.map((e) => e.amount)).toEqual([220, 50]);
+  });
+
+  it('reads a full anonymised paste', () => {
+    const { expenses, warnings } = parseSplitwise(`November 2026View printable summary
+Nov
+01
+
+Food
+you paid
+£97.00you lent Priya
+£31.00
+October 2026View printable summary
+Oct
+25
+
+Cabin trip stuff 
+Priya N. paid
+£28.89Priya lent you
+£28.89
+Oct
+22
+
+Food
+you paid
+£54.00you lent Priya
+£18.00
+Oct
+19
+
+Online order
+you paid
+£29.99you lent Priya
+£29.99
+Oct
+18
+
+Cabin flights refund 
+you paid
+£440.00you lent Priya
+£220.00
+Oct
+12
+
+Food
+Priya N. paid
+£10.00Priya lent you
+£10.00
+Oct
+12
+
+Cabin trip
+Priya N. paid
+£150.00Priya lent you
+£150.00
+Oct
+12
+
+Burgers
+Priya N. paid
+£28.00Priya lent you
+£14.00`);
+    expect(expenses.map((e) => [e.date, e.description, e.amount])).toEqual([
+      ['2026-11-01', 'Food', -66],
+      ['2026-10-25', 'Cabin trip stuff', -28.89],
+      ['2026-10-22', 'Food', -36],
+      ['2026-10-19', 'Online order', 0],
+      ['2026-10-18', 'Cabin flights refund', 220],
+      ['2026-10-12', 'Food', -10],
+      ['2026-10-12', 'Cabin trip', -150],
+      ['2026-10-12', 'Burgers', -14],
+    ]);
+    expect(warnings).toEqual([]);
   });
 });
