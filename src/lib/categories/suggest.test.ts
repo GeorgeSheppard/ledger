@@ -46,4 +46,12 @@ describe('buildCategoryIndex', () => {
     const rows = [tx('X', 'B'), tx('X', 'A')];
     expect(buildCategoryIndex(rows).suggest('X')).toBe('A');
   });
+
+  it('skips disallowed categories and falls back to the next most common', () => {
+    const index = buildCategoryIndex([tx('Gym', 'Old'), tx('Gym', 'Old'), tx('Gym', 'Fitness')]);
+    const notOld = (name: string) => name !== 'Old';
+    expect(index.suggest('Gym')).toBe('Old');
+    expect(index.suggest('Gym', notOld)).toBe('Fitness');
+    expect(index.suggest('Gym', () => false)).toBeUndefined();
+  });
 });

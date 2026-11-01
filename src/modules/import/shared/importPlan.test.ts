@@ -89,4 +89,20 @@ describe('buildImportPlan category suggestions', () => {
     expect(plan.rows[0]?.input?.category).toBe('');
     expect(plan.rows[0]?.categorySource).toBe('edited');
   });
+
+  it('never guesses an archived category, falling back to the next one or none', () => {
+    const past = (category: string) => ({ note: 'Tesco', category, date: '2026-01-01' });
+    const archived = [
+      { name: 'Groceries', color: '#000000', archived: true },
+      { name: 'Household', color: '#000000' },
+    ];
+    const both = buildCategoryIndex([past('Groceries'), past('Groceries'), past('Household')]);
+    expect(buildImportPlan(table, mapping, [], archived, both).rows[0]?.input?.category).toBe(
+      'Household'
+    );
+    const only = buildCategoryIndex([past('groceries')]);
+    const plan = buildImportPlan(table, mapping, [], archived, only);
+    expect(plan.rows[0]?.input?.category).toBe('');
+    expect(plan.rows[0]?.categorySource).toBe('none');
+  });
 });

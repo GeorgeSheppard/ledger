@@ -7,8 +7,11 @@ import type { Transaction } from '../domain/types';
  */
 
 export interface CategoryIndex {
-  /** The most common category for `note`, or `undefined` if no past transaction has it. */
-  suggest(note: string): string | undefined;
+  /**
+   * The most common category for `note`, or `undefined` if no past transaction has it. Categories
+   * for which `allowed` returns false are skipped, so the next most common one is used instead.
+   */
+  suggest(note: string, allowed?: (category: string) => boolean): string | undefined;
 }
 
 export function noteKey(note: string): string {
@@ -41,13 +44,19 @@ export function buildCategoryIndex(
     byNote.set(key, tallies);
   }
 
-  const best = new Map<string, string>();
+  const ranking = new Map<string, string[]>();
   for (const [key, tallies] of byNote) {
     const ranked = [...tallies].sort(
       ([an, a], [bn, b]) =>
         b.count - a.count || b.latest.localeCompare(a.latest) || an.localeCompare(bn)
     );
-    best.set(key, ranked[0]![0]);
+    ranking.set(
+      key,
+      ranked.map(([name]) => name)
+    );
   }
-  return { suggest: (note) => best.get(noteKey(note)) };
+  return {
+    suggest: (note, allowed) =>
+      ranking.get(noteKey(note))?.find((name) => !allowed || allowed(name)),
+  };
 }

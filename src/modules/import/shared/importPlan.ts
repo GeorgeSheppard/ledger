@@ -57,11 +57,14 @@ export function buildImportPlan(
   const counts: Record<PlanRowStatus, number> = { new: 0, existing: 0, invalid: 0 };
   if (problems.length) return { rows: [], problems, toAdd: [], newCategories: [], counts };
 
+  // Archived categories are retired, so a guess never lands on one.
+  const archived = new Set(categories.filter((c) => c.archived).map((c) => c.name.toLowerCase()));
+  const usable = (name: string) => !archived.has(name.trim().toLowerCase());
   const mapped = applyMapping(table, mapping).map((row) => {
     if (!row.input) return row;
     const fromFile = canonicalCategory(row.input.category, categories);
     const edited = overrides[row.line];
-    const guess = fromFile === '' ? suggestions?.suggest(row.input.note) : undefined;
+    const guess = fromFile === '' ? suggestions?.suggest(row.input.note, usable) : undefined;
     const category =
       edited !== undefined ? canonicalCategory(edited, categories) : (guess ?? fromFile);
     const categorySource: PlanRow['categorySource'] =
