@@ -106,7 +106,7 @@ const COLUMNS: { key: SortKey; label: string; align?: 'right' }[] = [
 /**
  * The account's transactions, newest first and grouped by month until a column is sorted.
  * A click selects a row; clicking the row that is the only one selected (or double-clicking) edits
- * it. Ctrl/⌘+click and Shift+click extend the selection, J/K move it, Shift+A selects everything
+ * it. Ctrl/⌘+click and Shift+click extend the selection, J/K or the arrow keys move it, Shift+A selects everything
  * shown and Delete removes the selection. The search box and filter panel narrow the list; the menu
  * at the end of each row has the common "show me…" actions.
  *
@@ -334,7 +334,7 @@ export function TransactionTable({
 
   const editSelected = () => {
     const [only, ...rest] = selectedRows;
-    if (only && rest.length === 0) openNow(only, 'note');
+    if (only && rest.length === 0) openNow(only, 'category');
   };
 
   const select = (transaction: Transaction, modifiers: ClickModifiers) => {
@@ -461,6 +461,8 @@ export function TransactionTable({
   const move = (delta: number) => selectAndReveal(moveSelection(selection, shownIds, delta));
   useShortcut('transactions.down', () => move(1), browsing);
   useShortcut('transactions.up', () => move(-1), browsing);
+  useShortcut('transactions.arrowDown', () => move(1), browsing);
+  useShortcut('transactions.arrowUp', () => move(-1), browsing);
   useShortcut(
     'transactions.selectAll',
     () => setSelection(selectAll(shownIds)),

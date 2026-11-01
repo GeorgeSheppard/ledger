@@ -69,7 +69,14 @@ export const SHORTCUTS = {
   'transactions.new': { keys: 'n', description: 'New transaction', scope: 'transactions' },
   'transactions.down': { keys: 'j', description: 'Next row', scope: 'transactions' },
   'transactions.up': { keys: 'k', description: 'Previous row', scope: 'transactions' },
-  'transactions.edit': { keys: 'enter', description: 'Edit selected row', scope: 'transactions' },
+  // The arrow keys do the same as J and K, so the table can be walked without leaving the keyboard.
+  'transactions.arrowDown': { keys: 'arrowdown', description: 'Next row', scope: 'transactions' },
+  'transactions.arrowUp': { keys: 'arrowup', description: 'Previous row', scope: 'transactions' },
+  'transactions.edit': {
+    keys: 'enter',
+    description: 'Edit the selected row, starting at its category',
+    scope: 'transactions',
+  },
   'transactions.save': {
     keys: 'mod+enter',
     description: 'Save row',
