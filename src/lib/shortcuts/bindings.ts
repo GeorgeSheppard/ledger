@@ -71,7 +71,7 @@ export const SHORTCUTS = {
   'transactions.up': { keys: 'k', description: 'Previous row', scope: 'transactions' },
   'transactions.edit': { keys: 'enter', description: 'Edit selected row', scope: 'transactions' },
   'transactions.save': {
-    keys: 'mod+enter',
+    keys: 'enter',
     description: 'Save row',
     scope: 'transactions',
     allowInInputs: true,
@@ -111,7 +111,7 @@ export const SHORTCUTS = {
     scope: 'paychecks',
   },
   'paychecks.save': {
-    keys: 'mod+enter',
+    keys: 'enter',
     description: 'Save paycheck',
     scope: 'paychecks',
     allowInInputs: true,
@@ -150,7 +150,7 @@ export const SHORTCUTS = {
   // Categories (step 2)
   'categories.new': { keys: 'c', description: 'New category', scope: 'categories' },
   'categories.save': {
-    keys: 'mod+enter',
+    keys: 'enter',
     description: 'Save category',
     scope: 'categories',
     allowInInputs: true,

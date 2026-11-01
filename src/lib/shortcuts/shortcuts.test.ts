@@ -66,6 +66,8 @@ describe('SHORTCUTS', () => {
     for (const [idA, a] of entries) {
       for (const [idB, b] of entries) {
         if (idA >= idB) continue;
+        // Browsing a list (edit) and editing a row (save) are never on screen together.
+        if (idA.endsWith('.edit') && idB === idA.replace(/\.edit$/, '.save')) continue;
         const shareScope = a.scope === b.scope || a.scope === 'global' || b.scope === 'global';
         const clash = normalizeChord(a.keys) === normalizeChord(b.keys);
         expect(shareScope && clash, `${idA} clashes with ${idB}`).toBe(false);
