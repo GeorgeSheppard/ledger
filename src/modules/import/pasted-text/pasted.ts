@@ -332,7 +332,10 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
           hasHeader: true,
         },
         mapping: { ...TEXT_MAPPING },
-        warnings,
+        warnings: [
+          'Splitwise amounts are what is owed: positive when someone owes you, negative when you owe them.',
+          ...warnings,
+        ],
         ambiguousDates: false,
         dayFirst: options.dayFirst ?? true,
       };

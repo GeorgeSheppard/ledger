@@ -12,18 +12,22 @@
  *   £41.20Priya lent you
  *   £41.20
  *
- * The amount that matters for a ledger is the user's own share, returned in money terms: spending
- * is negative. An entry whose description contains "refund" is money coming back, so the sign
- * flips (the magnitude is still the user's own share): "you paid 440, you lent Priya 220" on a
- * refund is +220, and "Priya paid 100, Priya lent you 50" on a refund is +50. A share of zero is
- * kept as a 0.00 row so the entry still shows up.
+ * A Splitwise account tracks IOUs, i.e. spending that is not in the user's other accounts, so each
+ * entry's amount is the change in what is owed, not the user's cost:
+ *
+ *   - "you paid 68, you lent Priya 23" is +23 (Priya owes you 23).
+ *   - "Priya paid 68, Priya lent you 23" is -23 (you owe Priya 23).
+ *
+ * Refunds need no special case: Splitwise writes them from the payer's point of view, so the same
+ * rule gives the right sign. Settle-ups are skipped (their wording is not reliably readable) and
+ * reported in the warnings.
  */
 
 export interface SplitwiseExpense {
   /** ISO date. */
   date: string;
   description: string;
-  /** The user's own share in money terms: negative for spending, positive for a refund, 0 if none. */
+  /** What changes in the IOU balance: positive when someone owes the user, negative when the user owes. */
   amount: number;
 }
 
@@ -44,7 +48,6 @@ const AMOUNT = '[£$€]\\s?(\\d[\\d,]*(?:\\.\\d{1,2})?)';
 /** What was paid, then a label such as "you lent Priya", then the lent/borrowed amount. */
 const BODY = new RegExp(`${AMOUNT}\\s*(.*?)\\s*${AMOUNT}`);
 /** Settling up is a transfer between people, not spending. */
-const REFUND = /refund/i;
 const SETTLE = /^(?:payment|settle|settled)\b|\bsettle(?:d)? (?:up|all)\b/i;
 
 const toNumber = (s: string | undefined) => Number((s ?? '').replace(/,/g, ''));
@@ -62,11 +65,10 @@ export function looksLikeSplitwise(text: string): boolean {
   return /view printable summary/i.test(text) || (/\blent\b/i.test(text) && /\bpaid\n/i.test(text));
 }
 
-/** Spending for one expense, or null when the user took no part or the wording is unknown. */
-function share(payer: string, label: string, paid: number, other: number): number | null {
-  const byYou = /^you$/i.test(payer);
-  if (byYou) return /\byou lent\b/i.test(label) ? paid - other : null;
-  return /\blent you\b|\byou (?:borrowed|owe)\b/i.test(label) ? other : null;
+/** IOU change for one expense, or null when the user took no part or the wording is unknown. */
+function owed(payer: string, label: string, other: number): number | null {
+  if (/^you$/i.test(payer)) return /\byou lent\b/i.test(label) ? other : null;
+  return /\blent you\b|\byou (?:borrowed|owe)\b/i.test(label) ? -other : null;
 }
 
 export function parseSplitwise(text: string): SplitwiseParse {
@@ -120,18 +122,14 @@ export function parseSplitwise(text: string): SplitwiseParse {
     const m = body.join(' ').match(BODY);
     if (!m) continue;
     const description = desc.join(' ');
-    const spending = SETTLE.test(description)
-      ? null
-      : share(payer, m[2] ?? '', toNumber(m[1]), toNumber(m[3]));
+    const change = SETTLE.test(description) ? null : owed(payer, m[2] ?? '', toNumber(m[3]));
     // A year heading may be "November 2026" while the day block says "Oct": the day block wins,
     // the heading only supplies the year.
     const y = monthHeading !== null && day.month > monthHeading ? year - 1 : year;
-    if (spending === null) skipped++;
+    if (change === null) skipped++;
     else {
       const date = `${y}-${String(day.month).padStart(2, '0')}-${String(day.day).padStart(2, '0')}`;
-      const cents = Math.round(spending * 100);
-      // `+ 0` turns -0 into 0.
-      const amount = (REFUND.test(description) ? cents : -cents) / 100 + 0;
+      const amount = Math.round(change * 100) / 100;
       expenses.push({ date, description, amount });
     }
     desc = [];
