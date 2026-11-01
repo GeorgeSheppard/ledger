@@ -7,10 +7,10 @@
  *   Oct
  *   25
  *
- *   Disneyland Paris stuff
- *   Anastasia W. paid
- *   £28.89Anastasia lent you
- *   £28.89
+ *   Weekend cabin trip
+ *   Priya N. paid
+ *   £41.20Priya lent you
+ *   £41.20
  *
  * The amount that matters for a ledger is the user's own share, returned as spending (positive).
  */
@@ -37,7 +37,7 @@ const MONTH_FULL = new RegExp(
 const MONTH_ABBR = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)$/i;
 const PAYER = /^(.+?)\s+paid$/i;
 const AMOUNT = '[£$€]\\s?(\\d[\\d,]*(?:\\.\\d{1,2})?)';
-/** What was paid, then a label such as "you lent Anastasia", then the lent/borrowed amount. */
+/** What was paid, then a label such as "you lent Priya", then the lent/borrowed amount. */
 const BODY = new RegExp(`${AMOUNT}\\s*(.*?)\\s*${AMOUNT}`);
 /** Settling up is a transfer between people, not spending. */
 const SETTLE = /^(?:payment|settle|settled)\b|\bsettle(?:d)? (?:up|all)\b/i;
