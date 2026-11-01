@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { validateCategoryName, withAccounts } from '../../lib/categories/categories';
 import type { Account, Category } from '../../lib/domain/types';
 import { ActionButton } from '../../ui/ActionButton';
@@ -6,6 +6,8 @@ import { ColorPicker } from './ColorPicker';
 import { cn } from '../../ui/cn';
 import { TextInput } from '../../ui/TextInput';
 import { EDITOR_FOOTER, EDITOR_PANEL } from '../accounts/rowStyles';
+import { useShortcut } from '../../state/shortcuts';
+import { FLOATING_SELECTOR } from '../../ui/FloatingPanel';
 
 interface CategoryEditorProps {
   categories: Category[];
@@ -23,7 +25,11 @@ interface CategoryEditorProps {
   onDelete?(): void;
 }
 
-/** Inline editor for a category's name and colour. Enter or ⌘↵ saves, Escape cancels. */
+/**
+ * Inline editor for a category's name and colour. There are no Save or Cancel buttons: Enter,
+ * Escape or clicking away saves a valid change (and just closes when nothing changed or the name
+ * is invalid), and Ctrl+Z reverts it.
+ */
 export function CategoryEditor({
   categories,
   accounts,
@@ -44,23 +50,66 @@ export function CategoryEditor({
   const [limited, setLimited] = useState(!!original?.accounts?.length);
   const [error, setError] = useState<string | null>(null);
 
-  const save = () => {
+  const build = (): Category | string => {
     const problem = validateCategoryName(categories, name, original?.name);
-    if (problem) return setError(problem);
-    if (limited && scoped.length === 0) return setError('Pick at least one account');
+    if (problem) return problem;
+    if (limited && scoped.length === 0) return 'Pick at least one account';
     const base: Category = excluded
       ? { name: name.trim(), color, excluded }
       : { name: name.trim(), color };
-    onSave(withAccounts(base, limited ? scoped : undefined));
+    return withAccounts(base, limited ? scoped : undefined);
   };
+
+  const save = () => {
+    const result = build();
+    if (typeof result === 'string') return setError(result);
+    onSave(result);
+  };
+
+  const changed = (result: Category) =>
+    !original ||
+    result.name !== original.name ||
+    result.color !== original.color ||
+    !!result.excluded !== !!original.excluded ||
+    (result.accounts ?? []).join('\n') !== (original.accounts ?? []).join('\n');
+
+  /** Escape and clicking away: keep a valid change, otherwise just close. */
+  const finish = () => {
+    if (saving) return;
+    const result = build();
+    if (typeof result !== 'string' && changed(result)) onSave(result);
+    else onCancel();
+  };
+  const finishRef = useRef(finish);
+  useEffect(() => {
+    finishRef.current = finish;
+  });
+  useShortcut('categories.cancel', finish);
+  useShortcut('categories.save', save);
+
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    const away = (event: PointerEvent) => {
+      const target = event.target as HTMLElement;
+      if (formRef.current?.contains(target) || target.closest(`${FLOATING_SELECTOR}, dialog`))
+        return;
+      finishRef.current();
+    };
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
+  }, []);
 
   const renaming = original && name.trim() && name.trim() !== original.name && usage > 0;
 
   return (
     <form
+      ref={formRef}
       className={EDITOR_PANEL}
       aria-label={original ? `Edit ${original.name}` : 'New category'}
-      onSubmit={(event) => event.preventDefault()}
+      onSubmit={(event) => {
+        event.preventDefault();
+        save();
+      }}
     >
       <div className="flex flex-wrap items-center gap-3 p-3">
         <span
@@ -172,22 +221,8 @@ export function CategoryEditor({
           {error ??
             (renaming
               ? `Renaming updates ${usage} ${usage === 1 ? 'transaction' : 'transactions'} in your sheet.`
-              : 'Colours are used in charts and category chips.')}
+              : 'Colours are used in charts and category chips. Esc or clicking away saves; Ctrl+Z undoes.')}
         </p>
-        <div className="flex gap-2">
-          <ActionButton shortcut="categories.cancel" variant="ghost" onAction={onCancel}>
-            Cancel
-          </ActionButton>
-          <ActionButton
-            type="submit"
-            shortcut="categories.save"
-            variant="primary"
-            disabled={saving}
-            onAction={save}
-          >
-            {saving ? 'Saving…' : original ? 'Save' : 'Add'}
-          </ActionButton>
-        </div>
       </div>
     </form>
   );

@@ -227,6 +227,16 @@ export function PaycheckEditor({ paycheck, isNew, list, onSave, onCancel }: Payc
     onSave(tidyPaycheck(current));
   };
 
+  // No Save or Cancel buttons: Escape, clicking the backdrop or Enter keeps a valid change and
+  // closes, and Ctrl+Z reverts it. An unchanged or invalid draft is simply closed.
+  const initial = useRef(JSON.stringify(draft));
+  const finish = () => {
+    if (!problem && JSON.stringify(draft) !== initial.current) onSave(tidyPaycheck(current));
+    else onCancel();
+  };
+  useShortcut('paychecks.cancel', finish);
+  useShortcut('paychecks.save', submit);
+
   const addLine = (kind: LineKind) =>
     setDraft((d) => ({ ...d, [kind]: [...d[kind], { ...newLine(d[kind]), amount: '' }] }));
   const setLine = (kind: LineKind, lineId: string, patch: Partial<DraftLine>) =>
@@ -269,6 +279,9 @@ export function PaycheckEditor({ paycheck, isNew, list, onSave, onCancel }: Payc
       aria-label={isNew ? 'New paycheck' : 'Edit paycheck'}
       // Escape is handled by the cancel shortcut, so the dialog never closes behind React's back.
       onCancel={(event) => event.preventDefault()}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) finish();
+      }}
       className="m-auto max-h-[90dvh] w-[min(560px,calc(100vw-32px))] rounded-xl border border-line bg-surface p-6 text-fg outline-none backdrop:bg-black/40"
     >
       <form
@@ -348,14 +361,7 @@ export function PaycheckEditor({ paycheck, isNew, list, onSave, onCancel }: Payc
           </p>
         )}
 
-        <div className="flex justify-end gap-2">
-          <ActionButton shortcut="paychecks.cancel" variant="ghost" onAction={onCancel}>
-            Cancel
-          </ActionButton>
-          <ActionButton shortcut="paychecks.save" variant="primary" onAction={submit}>
-            {isNew ? 'Add paycheck' : 'Done'}
-          </ActionButton>
-        </div>
+        <p className="text-xs text-muted">Esc or clicking outside saves; Ctrl+Z undoes.</p>
       </form>
     </dialog>
   );
