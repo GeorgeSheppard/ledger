@@ -218,14 +218,17 @@ viewport. `pnpm screenshots <story-id>` runs the play functions and exits 1 when
     `Ledger_Metadata`; the next save of any change writes `Ledger_Metadata` and deletes `_Categories` in the same
     batch (the `.xlsx` writer does the same).
 - **Inverted accounts.** A credit card or loan is recorded the way its statement reads: purchases and
-  interest are positive, payments negative, so a card's CSV imports unchanged. Marking the account
-  inverted (the checkbox in its page header, `LedgerRepository.setAccountInverted`) makes Ledger flip
-  the sign of its amounts and running totals wherever it counts money (`src/lib/accounts/inverted.ts`):
-  the accounts list and its total, the account page's balance and in/out summary, net worth, the
-  balances graph, income and spending, and the Sankey. A purchase is money out and the balance owed
-  is a negative contribution to net worth; paying the card from a bank account pairs up with the
-  card's payment row as a transfer. The tab, its Total column and the transaction table stay as the
-  sheet has them.
+  interest are positive, payments negative, so a card's CSV can be pasted into the sheet unchanged.
+  The sheet keeps it that way (plain rows, usable in Excel), and the account carries an `inverted`
+  flag in `Ledger_Metadata`. **The flip happens once, at the edge.** `LedgerStore` runs
+  `toMoneyTerms` on everything it reads (the sheet, a file, an older browser copy) and `toSheetTerms`
+  on everything it writes or downloads (`src/lib/accounts/inverted.ts`), so inside the app one
+  convention holds: positive is money in, negative is money out, running totals included. Nothing
+  else reads `Account.inverted`: filters, summaries, graphs, the dashboard, balances, transfer
+  matching and the editor all just use the amount. A purchase on a card shows as negative and the
+  balance owed as a negative balance. Ticking the setting negates that account's rows in the working
+  copy (the sheet itself does not change), and import starts a card's CSV with "flip signs" on.
+  Browser copies carry `terms: 'money'`; ones without it are converted when read.
 - `Paychecks` tab: a plain table, one row per payslip line, so Excel can pivot and chart it:
   `Date | Tax code | Type | Name | Amount`. One payslip per date: its lines share the date, and
   `Tax code` (kept with the paycheck, never used in any sum, repeated on each line) is optional.

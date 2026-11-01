@@ -1,43 +1,38 @@
-import type { Account, Transaction } from '../domain/types';
-import type { AccountLedger } from '../metrics/netWorth';
+import type { Account, TransactionInput } from '../domain/types';
+import type { LedgerData } from '../store/ledgerData';
 
 /**
- * Credit cards and loans. A tab marked `inverted` records amounts from the account's own side:
- * a purchase or interest charge is positive (the balance owed grows), a payment is negative. That
- * is how card statements and loan CSVs read, so they can be imported unchanged.
+ * Credit cards and loans. A tab marked `inverted` is written from the account's own side: a
+ * purchase or interest charge is positive (the balance owed grows), a payment is negative. That is
+ * how card statements and loan CSVs read, and it is how the sheet keeps them, so the sheet stays
+ * plain and usable in Excel.
  *
- * Wherever Ledger counts what the user has (balances in the accounts list, net worth, the balances
- * graph, income and spending, the money-flow diagram) it flips the sign of an inverted account's
- * amounts and running totals, so a purchase is money out and the balance owed is a negative
- * contribution to net worth. The tab itself, its Total column and the transaction table stay as the
- * sheet has them. Payments between a bank account and a card pair up as transfers, as before.
+ * Inside Ledger there is only one convention: positive is money in, negative is money out. The
+ * flip happens once, at the edge of the app. `LedgerStore` runs `toMoneyTerms` on whatever it reads
+ * (sheet, file or browser copy) and `toSheetTerms` on whatever it writes. Everything between,
+ * filters, totals, graphs, balances, imports, never looks at `Account.inverted`.
  */
 
-const signed = new WeakMap<readonly Transaction[], Transaction[]>();
-
-/** The transactions as the user's money sees them: negated for an inverted account, else unchanged. */
-export function asMoney(account: Account, transactions: Transaction[]): Transaction[] {
-  if (!account.inverted) return transactions;
-  let flipped = signed.get(transactions);
-  if (!flipped) {
-    flipped = transactions.map((t) => ({ ...t, amount: negate(t.amount), total: negate(t.total) }));
-    signed.set(transactions, flipped);
-  }
-  return flipped;
-}
-
-/** Every account with its transactions in money terms. */
-export function moneyLedgers(
-  accounts: readonly Account[],
-  transactionsByAccount: Readonly<Record<number, Transaction[]>>
-): AccountLedger[] {
-  return accounts.map((account) => ({
-    account,
-    transactions: asMoney(account, transactionsByAccount[account.id] ?? []),
-  }));
-}
-
 /** `-x`, but `0` rather than `-0`. */
-function negate(amount: number): number {
+export function negate(amount: number): number {
   return amount === 0 ? 0 : -amount;
 }
+
+function flipRows(rows: readonly TransactionInput[]): TransactionInput[] {
+  return rows.map((r) => ({ ...r, amount: negate(r.amount) }));
+}
+
+/** Negates the amounts of every inverted account's rows. Other data is shared with the input. */
+function flipInverted(data: LedgerData): LedgerData {
+  const inverted = data.accounts.filter((a: Account) => a.inverted);
+  if (inverted.length === 0) return data;
+  const rows = { ...data.rows };
+  for (const account of inverted) rows[account.id] = flipRows(data.rows[account.id] ?? []);
+  return { ...data, rows };
+}
+
+/** Sheet to app: an inverted account's amounts negated, so every amount reads as money in or out. */
+export const toMoneyTerms = flipInverted;
+
+/** App to sheet: the exact inverse of `toMoneyTerms`, so a round trip changes nothing. */
+export const toSheetTerms = flipInverted;

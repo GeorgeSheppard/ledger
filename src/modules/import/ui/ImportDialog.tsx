@@ -27,7 +27,7 @@ interface ImportDialogProps {
  */
 export function ImportDialog({ account, transactions, categories, onClose }: ImportDialogProps) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const importer = useImport(account.id, transactions, categories);
+  const importer = useImport(account.id, transactions, categories, !!account.inverted);
   const { file, mapping, plan, result, pasted } = importer;
   const [pasting, setPasting] = useState(false);
 

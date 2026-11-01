@@ -1,4 +1,5 @@
 import { CommandStack } from '../commands/commandStack';
+import { toMoneyTerms, toSheetTerms } from '../accounts/inverted';
 import type { LedgerRepository } from '../data/repository';
 import type { Account, Category, Transaction, TransactionInput } from '../domain/types';
 import { noCache, type LedgerCache } from './cache';
@@ -79,11 +80,16 @@ export class LedgerStore implements LedgerRepository {
     now = Date.now,
     onProgress,
   }: OpenOptions) {
-    const fresh = await remote.load(onProgress);
+    const loaded = await remote.load(onProgress);
+    const fresh = { ...loaded, data: toMoneyTerms(loaded.data) };
     const cached = await cache.get(spreadsheetId).catch(() => null);
     let current = fresh.data;
-    if (cached && !sameData(cached.current, cached.saved.data))
-      current = rebase(fresh.data, cached.saved.data, cached.current);
+    if (cached) {
+      const old = cached.terms !== 'money';
+      const saved = old ? toMoneyTerms(cached.saved.data) : cached.saved.data;
+      const mine = old ? toMoneyTerms(cached.current) : cached.current;
+      if (!sameData(mine, saved)) current = rebase(fresh.data, saved, mine);
+    }
     const store = new LedgerStore(
       spreadsheetId,
       remote,
@@ -138,7 +144,11 @@ export class LedgerStore implements LedgerRepository {
     if (sameData(next, this.saved.data)) return;
     const run = (async () => {
       try {
-        this.saved = await this.remote.save(this.saved, next);
+        const written = await this.remote.save(
+          { ...this.saved, data: toSheetTerms(this.saved.data) },
+          toSheetTerms(next)
+        );
+        this.saved = { ...written, data: toMoneyTerms(written.data) };
         this.lastError = null;
         this.savedAt = this.now();
       } catch (error) {
@@ -167,7 +177,7 @@ export class LedgerStore implements LedgerRepository {
   async download(): Promise<DownloadedFile> {
     const build = this.remote.download;
     if (!build) throw new Error('This spreadsheet is saved to Google, not downloaded.');
-    const file = await build.call(this.remote, this.current);
+    const file = await build.call(this.remote, toSheetTerms(this.current));
     await this.save();
     return file;
   }
@@ -210,7 +220,7 @@ export class LedgerStore implements LedgerRepository {
   async setAccountInverted(accountId: number, inverted: boolean): Promise<void> {
     this.apply(
       edit.setAccountInverted(this.current, accountId, inverted),
-      inverted ? 'Flip amount signs' : 'Stop flipping amount signs'
+      inverted ? 'Mark account as card or loan' : 'Mark account as ordinary'
     );
   }
 
@@ -299,7 +309,7 @@ export class LedgerStore implements LedgerRepository {
   }
 
   private persist() {
-    const value = { saved: this.saved, current: this.current };
+    const value = { saved: this.saved, current: this.current, terms: 'money' as const };
     this.cacheWrite = this.cacheWrite
       .then(() => this.cache.put(this.spreadsheetId, value))
       .catch((error: unknown) =>

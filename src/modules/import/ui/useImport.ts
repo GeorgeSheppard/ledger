@@ -33,7 +33,13 @@ export interface ImportResult {
 }
 
 /** `existing` and `categories` are what the account page already shows, so nothing is re-read. */
-export function useImport(accountId: number, existing: Transaction[], categories: Category[]) {
+export function useImport(
+  accountId: number,
+  existing: Transaction[],
+  categories: Category[],
+  /** A card or loan. Its bank CSVs write a purchase as positive, so those signs are flipped to start with. */
+  inverted = false
+) {
   const mutate = useLedgerMutation();
 
   const [parsed, setParsed] = useState<ParsedImport | null>(null);
@@ -63,13 +69,13 @@ export function useImport(accountId: number, existing: Transaction[], categories
         const next = importer.parse(input, options);
         setParsed(next);
         setSource({ importer, input });
-        setMapping(next.mapping);
+        setMapping(inverted && importer === csvImporter ? flipped(next.mapping) : next.mapping);
       } catch (e) {
         clear();
         setError(e instanceof Error ? e.message : String(e));
       }
     },
-    [clear]
+    [clear, inverted]
   );
 
   const loadFile = useCallback(
@@ -100,9 +106,10 @@ export function useImport(accountId: number, existing: Transaction[], categories
       if (!parsed) return;
       const table = toTable(parsed.grid, hasHeader);
       setParsed({ ...parsed, table });
-      setMapping(guessMapping(table));
+      const guess = guessMapping(table);
+      setMapping(inverted && source?.importer === csvImporter ? flipped(guess) : guess);
     },
-    [parsed]
+    [parsed, source, inverted]
   );
 
   const file = parsed && { name: parsed.name, table: parsed.table };
@@ -161,4 +168,8 @@ export function useImport(accountId: number, existing: Transaction[], categories
     reset,
     confirm,
   };
+}
+
+function flipped(mapping: ColumnMapping): ColumnMapping {
+  return { ...mapping, invertAmounts: true };
 }

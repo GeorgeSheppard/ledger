@@ -19,8 +19,9 @@ export function AccountSettings({ account, onInvertedChange, onClose }: AccountS
       aria-label={`${account.name} settings`}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Credit card or loan: those tabs record amounts from the account's own side (a purchase is
-          positive), so Ledger flips the sign when it counts the money. */}
+      {/* Credit card or loan: the sheet records amounts from the account's own side (a purchase is
+          positive). Ledger flips them as it reads and writes the tab, so inside the app a purchase
+          is always negative, like money out of any account. */}
       <label className="flex w-fit cursor-pointer items-start gap-2 text-sm">
         <input
           type="checkbox"
@@ -32,7 +33,7 @@ export function AccountSettings({ account, onInvertedChange, onClose }: AccountS
           <span className="font-medium">Credit card or loan</span>
           <span className="block text-xs text-muted">
             {inverted
-              ? 'Amounts in the sheet are from the account’s side: a purchase is positive. Ledger counts them as money out and the balance as what you owe.'
+              ? 'The sheet writes this tab from the account’s side: a purchase is positive. Ledger shows a purchase as money out and the balance as what you owe, and leaves the sheet as it is.'
               : 'Tick this if purchases are positive in this tab, so the balance counts against your net worth.'}
           </span>
         </span>

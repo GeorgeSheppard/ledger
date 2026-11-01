@@ -1,16 +1,13 @@
-import type { Account, Transaction } from '../domain/types';
+import type { Transaction } from '../domain/types';
 import { roundCents } from './amount';
 import type { FilteredTotals } from './filters';
 
-/** What one row contributes to money in or out: signed as the user's money, 0 if excluded. */
+/** What one row contributes to money in or out: its amount, or 0 if excluded. */
 export function moneyOfRow(
   transaction: Transaction,
-  accounts: readonly Account[],
   excluded: ReadonlySet<string> = new Set()
 ): number {
-  if (excluded.has(transaction.id)) return 0;
-  const inverted = accounts.some((a) => a.id === transaction.accountId && a.inverted);
-  return inverted ? -transaction.amount : transaction.amount;
+  return excluded.has(transaction.id) ? 0 : transaction.amount;
 }
 
 export interface CashFlowTotals extends FilteredTotals {
@@ -19,14 +16,12 @@ export interface CashFlowTotals extends FilteredTotals {
 }
 
 /**
- * Money in and out of `transactions` as the user's money sees it: an inverted account (credit card,
- * loan) has its signs flipped, and rows in `excluded` (see `excludedFromCashFlow`) are left out, so
+ * Money in and out of `transactions`. Rows in `excluded` (see `excludedFromCashFlow`) are left out, so
  * moving money between accounts or paying off a card does not count as earning or spending.
  * `count` is every row given; `leftOut` how many of them were skipped.
  */
 export function cashFlowTotals(
   transactions: readonly Transaction[],
-  accounts: readonly Account[],
   excluded: ReadonlySet<string> = new Set()
 ): CashFlowTotals {
   let moneyIn = 0;
@@ -34,7 +29,7 @@ export function cashFlowTotals(
   let leftOut = 0;
   for (const t of transactions) {
     if (excluded.has(t.id)) leftOut++;
-    const amount = moneyOfRow(t, accounts, excluded);
+    const amount = moneyOfRow(t, excluded);
     if (amount > 0) moneyIn += amount;
     else moneyOut += amount;
   }

@@ -192,18 +192,26 @@ export function renameAccount(data: LedgerData, accountId: number, name: string)
   };
 }
 
-/** Marks an account as a credit card or loan (or not). Off is stored as no flag at all. */
+/**
+ * Marks an account as a credit card or loan (or not). Off is stored as no flag at all. The flag says
+ * how the sheet writes the tab, so the tab must stay as it is: the working copy holds money terms,
+ * and its amounts are negated to match, which the save then undoes again.
+ */
 export function setAccountInverted(
   data: LedgerData,
   accountId: number,
   inverted: boolean
 ): LedgerData {
-  accountRows(data, accountId);
+  const rows = accountRows(data, accountId);
+  const account = data.accounts.find((a) => a.id === accountId)!;
+  if (!!account.inverted === inverted) return data;
   return {
     ...data,
-    accounts: data.accounts.map((a) => {
-      return a.id === accountId && !!a.inverted !== inverted ? setFlag(a, inverted) : a;
-    }),
+    accounts: data.accounts.map((a) => (a.id === accountId ? setFlag(a, inverted) : a)),
+    rows: {
+      ...data.rows,
+      [accountId]: rows.map((r) => ({ ...r, amount: r.amount === 0 ? 0 : -r.amount })),
+    },
   };
 }
 

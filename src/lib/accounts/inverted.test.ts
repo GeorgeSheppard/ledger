@@ -1,68 +1,115 @@
 import { describe, expect, it } from 'vitest';
-import type { Account, Transaction } from '../domain/types';
 import { periodCashFlow } from '../metrics/dashboard';
-import { netWorthByMonth } from '../metrics/netWorth';
 import { monthPeriod } from '../metrics/period';
-import { findTransfers } from '../metrics/transfers';
-import { toTransactions } from '../store/ledgerData';
-import { asMoney, moneyLedgers } from './inverted';
+import { MemoryCache } from '../store/cache';
+import { toSnapshot, type LedgerData } from '../store/ledgerData';
+import { LedgerStore } from '../store/ledgerStore';
+import { MemoryRemote } from '../store/remote';
+import { filterTransactions, noFilters } from '../transactions/filters';
+import { toMoneyTerms, toSheetTerms } from './inverted';
 
-const bank: Account = { id: 1, name: 'Current' };
-const card: Account = { id: 2, name: 'Visa', inverted: true };
+/** A current account and a credit card, as the sheet has them: the card writes purchases positive. */
+function sheet(): LedgerData {
+  return {
+    accounts: [
+      { id: 1, name: 'Current' },
+      { id: 2, name: 'Visa', inverted: true },
+    ],
+    rows: {
+      1: [
+        { date: '2026-03-01', category: 'Salary', amount: 2000, note: '' },
+        { date: '2026-03-10', category: 'Card payment', amount: -80, note: '' },
+      ],
+      2: [
+        { date: '2026-03-05', category: 'Groceries', amount: 50, note: 'Purchase' },
+        { date: '2026-03-06', category: 'Refund', amount: -20, note: 'Refund' },
+        { date: '2026-03-10', category: 'Card payment', amount: -80, note: 'Payment' },
+        { date: '2026-03-11', category: '', amount: 0, note: 'Zero' },
+      ],
+    },
+    categories: [],
+    paychecks: null,
+  };
+}
 
-const bankTx = toTransactions(1, [
-  { date: '2026-01-01', category: 'Salary', amount: 1000, note: '' },
-  { date: '2026-02-10', category: '', amount: -200, note: 'Visa payment' },
-]);
-// Purchases are positive on a card; the payment brings the balance owed down.
-const cardTx = toTransactions(2, [
-  { date: '2026-01-15', category: 'Food', amount: 200, note: 'Shop' },
-  { date: '2026-02-10', category: '', amount: -200, note: 'Payment' },
-  { date: '2026-02-20', category: 'Food', amount: 50, note: 'Shop' },
-]);
+async function open(remote = new MemoryRemote(sheet())) {
+  const store = await LedgerStore.open({ spreadsheetId: 's', remote, cache: new MemoryCache() });
+  return { store, remote };
+}
 
-describe('asMoney', () => {
-  it('flips amounts and running totals of an inverted account', () => {
-    const flipped = asMoney(card, cardTx);
-    expect(flipped.map((t) => t.amount)).toEqual([-200, 200, -50]);
-    expect(flipped.map((t) => t.total)).toEqual([-200, 0, -50]);
+describe('inverted accounts', () => {
+  it('flips only inverted accounts, and flipping back restores the sheet', () => {
+    const money = toMoneyTerms(sheet());
+    expect(money.rows[1]).toEqual(sheet().rows[1]);
+    expect(money.rows[2]!.map((r) => r.amount)).toEqual([-50, 20, 80, 0]);
+    expect(Object.is(money.rows[2]![3]!.amount, 0)).toBe(true);
+    expect(toSheetTerms(money)).toEqual(sheet());
   });
 
-  it('returns the same array for a normal account, and caches for an inverted one', () => {
-    expect(asMoney(bank, bankTx)).toBe(bankTx);
-    expect(asMoney(card, cardTx)).toBe(asMoney(card, cardTx));
+  it('loads in money terms and saves the sheet its own signs back', async () => {
+    const { store, remote } = await open();
+    const snap = store.getSnapshot();
+    expect(snap.transactionsByAccount[2]!.map((t) => t.amount)).toEqual([-50, 20, 80, 0]);
+    // The running Total follows money terms: the card shows what is owed as negative.
+    expect(snap.transactionsByAccount[2]!.at(-1)!.total).toBe(50);
+
+    await store.addTransactions(2, [
+      { date: '2026-03-12', category: 'Fuel', amount: -30, note: '' },
+    ]);
+    await store.save();
+    expect(remote.data.rows[2]!.map((r) => r.amount)).toEqual([50, -20, -80, 0, 30]);
+    expect(remote.data.rows[1]).toEqual(sheet().rows[1]);
   });
 
-  it('does not produce negative zero', () => {
-    const [t] = asMoney(
-      card,
-      toTransactions(2, [{ date: '2026-01-01', category: '', amount: 0, note: '' }])
-    );
-    expect(Object.is(t!.amount, -0)).toBe(false);
-  });
-});
-
-describe('with an inverted account', () => {
-  const byAccount: Record<number, Transaction[]> = { 1: bankTx, 2: cardTx };
-
-  it('counts the balance owed against net worth', () => {
-    const feb = netWorthByMonth(moneyLedgers([bank, card], byAccount), ['2026-02'])[0]!;
-    expect(feb.byAccount).toEqual({ 1: 800, 2: -50 });
-    expect(feb.total).toBe(750);
+  it('marking an account a card keeps the sheet as it is', async () => {
+    const data = sheet();
+    data.accounts[1] = { id: 2, name: 'Visa' };
+    data.rows[2] = sheet().rows[2]!.map((r) => ({ ...r, amount: r.amount === 0 ? 0 : -r.amount })); // already money terms
+    const { store, remote } = await open(new MemoryRemote(data));
+    const before = remote.data.rows[2];
+    await store.setAccountInverted(2, true);
+    expect(store.getSnapshot().transactionsByAccount[2]!.map((t) => t.amount)).toEqual([
+      50, -20, -80, 0,
+    ]);
+    await store.save();
+    expect(remote.data.rows[2]).toEqual(before);
+    expect(remote.data.accounts[1]!.inverted).toBe(true);
   });
 
-  it('counts purchases as spending and does not count the card payment as spending', () => {
-    const ledgers = moneyLedgers([bank, card], byAccount);
-    const flows = ['2026-01', '2026-02'].map((m) =>
-      periodCashFlow(ledgers, [1, 2], monthPeriod(m))
-    );
-    expect(flows.map((f) => f.spending)).toEqual([200, 50]);
-    expect(flows.map((f) => f.income)).toEqual([1000, 0]);
+  it('reads an old browser copy (sheet signs, no marker) without mixing conventions', async () => {
+    const cache = new MemoryCache();
+    const remote = new MemoryRemote(sheet());
+    const edited = sheet();
+    edited.rows[2] = [
+      ...edited.rows[2]!,
+      { date: '2026-03-12', category: '', amount: 30, note: 'Old' },
+    ];
+    await cache.put('s', { saved: { ...(await remote.load()) }, current: edited });
+    const store = await LedgerStore.open({ spreadsheetId: 's', remote, cache });
+    expect(store.getSnapshot().transactionsByAccount[2]!.at(-1)!.amount).toBe(-30);
+    await store.save();
+    expect(remote.data.rows[2]!.at(-1)!.amount).toBe(30);
   });
 
-  it('pairs the payment with the bank withdrawal as a transfer', () => {
-    const ledgers = moneyLedgers([bank, card], byAccount);
-    const paired = findTransfers(ledgers.flatMap((l) => l.transactions));
-    expect(paired).toEqual(new Set(['1:3', '2:3']));
+  it('the Money in and Money out filters work on a card', async () => {
+    const { store } = await open();
+    const rows = store.getSnapshot().transactionsByAccount[2]!;
+    const notes = (sign: 'in' | 'out') =>
+      filterTransactions(rows, { ...noFilters, sign }).map((t) => t.note);
+    expect(notes('out')).toEqual(['Purchase']);
+    expect(notes('in')).toEqual(['Refund', 'Payment']);
+  });
+
+  it('the dashboard counts card purchases as spending, not income, and the payment as a transfer', async () => {
+    const { store } = await open();
+    const snap = store.getSnapshot();
+    const ledgers = snap.accounts.map((account) => ({
+      account,
+      transactions: snap.transactionsByAccount[account.id] ?? [],
+    }));
+    const flow = periodCashFlow(ledgers, [1, 2], monthPeriod('2026-03'));
+    expect(flow.income).toBe(2020); // salary and the refund, exactly as on a current account
+    expect(flow.spending).toBe(50); // the purchase; the 80 card payment is a transfer, not spending
+    expect(toSnapshot(toMoneyTerms(sheet()), []).transactionsByAccount[2]).toHaveLength(4);
   });
 });

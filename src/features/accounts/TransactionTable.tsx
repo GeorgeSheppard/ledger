@@ -148,15 +148,12 @@ export function TransactionTable({
   const grouped = sort === null;
   const groups = useMemo(() => {
     if (!grouped) return [];
-    return groupByMonth(shown, (t) => moneyOfRow(t, accounts, excluded));
-  }, [grouped, shown, accounts, excluded]);
+    return groupByMonth(shown, (t) => moneyOfRow(t, excluded));
+  }, [grouped, shown, excluded]);
   const shownIds = useMemo(() => shown.map((t) => t.id), [shown]);
   const categoryNames = useMemo(() => categoriesInUse(transactions), [transactions]);
   const filtered = hasFilters(filters);
-  const filteredTotals = useMemo(
-    () => cashFlowTotals(shown, accounts, excluded),
-    [shown, accounts, excluded]
-  );
+  const filteredTotals = useMemo(() => cashFlowTotals(shown, excluded), [shown, excluded]);
 
   // Rows that were deleted or filtered out leave the selection.
   const selection = useMemo(() => pruneSelection(chosen, shownIds), [chosen, shownIds]);

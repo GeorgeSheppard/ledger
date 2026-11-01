@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import type { Account, Category, Transaction, TransactionInput } from '../../lib/domain/types';
-import { asMoney, moneyLedgers } from '../../lib/accounts/inverted';
 import { ignoredCategoryNames } from '../../lib/categories/categories';
 import { excludedFromCashFlow } from '../../lib/metrics/transfers';
 import { useLedger, useLedgerMutation, type QueryState } from '../../state/ledgerData';
@@ -25,8 +24,7 @@ export interface AccountOverview {
 }
 
 /**
- * Every account with its transactions in money terms (an inverted account's signs flipped, see
- * `lib/accounts/inverted.ts`), for the accounts summary page. Always ready.
+ * Every account with its transactions, for the accounts summary page. Always ready.
  */
 export function useAccountOverview(): QueryState<AccountOverview[]> {
   const { accounts, transactionsByAccount } = useLedger();
@@ -35,7 +33,7 @@ export function useAccountOverview(): QueryState<AccountOverview[]> {
       status: 'ready',
       data: accounts.map((account) => ({
         account,
-        transactions: asMoney(account, transactionsByAccount[account.id] ?? NO_TRANSACTIONS),
+        transactions: transactionsByAccount[account.id] ?? NO_TRANSACTIONS,
       })),
     }),
     [accounts, transactionsByAccount]
@@ -52,7 +50,7 @@ export function useCashFlowExclusions(): ReadonlySet<string> {
   return useMemo(
     () =>
       excludedFromCashFlow(
-        moneyLedgers(accounts, transactionsByAccount).flatMap((l) => l.transactions),
+        accounts.flatMap((a) => transactionsByAccount[a.id] ?? NO_TRANSACTIONS),
         ignoredCategoryNames(categories)
       ),
     [accounts, categories, transactionsByAccount]
