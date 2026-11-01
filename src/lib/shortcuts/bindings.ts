@@ -83,16 +83,11 @@ export const SHORTCUTS = {
     allowInInputs: true,
   },
   'transactions.delete': {
-    keys: 'mod+backspace',
-    description: 'Delete selected rows',
-    scope: 'transactions',
-  },
-  // The Delete key (and Backspace, which is what Delete is called on a Mac) do the same.
-  'transactions.deleteKey': {
     keys: 'delete',
     description: 'Delete selected rows',
     scope: 'transactions',
   },
+  // Backspace is what Mac keyboards call Delete, so it does the same.
   'transactions.deleteBackspace': {
     keys: 'backspace',
     description: 'Delete selected rows',
@@ -111,7 +106,7 @@ export const SHORTCUTS = {
   'paychecks.up': { keys: 'k', description: 'Previous paycheck', scope: 'paychecks' },
   'paychecks.edit': { keys: 'enter', description: 'Edit paycheck', scope: 'paychecks' },
   'paychecks.delete': {
-    keys: 'mod+backspace',
+    keys: 'delete',
     description: 'Delete paycheck',
     scope: 'paychecks',
   },
@@ -167,7 +162,7 @@ export const SHORTCUTS = {
     allowInInputs: true,
   },
   'categories.delete': {
-    keys: 'mod+backspace',
+    keys: 'delete',
     description: 'Delete category',
     scope: 'categories',
   },

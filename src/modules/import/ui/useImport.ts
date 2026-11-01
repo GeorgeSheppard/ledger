@@ -8,9 +8,15 @@ import {
   type Importer,
   type ParsedImport,
 } from '..';
-import { buildImportPlan, withNewCategories, type ImportPlan } from '../shared/importPlan';
+import { buildCategoryIndex } from '../../../lib/categories/suggest';
+import {
+  buildImportPlan,
+  type CategoryOverrides,
+  withNewCategories,
+  type ImportPlan,
+} from '../shared/importPlan';
 import { guessMapping, toTable, type ColumnMapping } from '../shared/mapping';
-import { useLedgerMutation } from '../../../state/ledgerData';
+import { useLedger, useLedgerMutation } from '../../../state/ledgerData';
 
 /**
  * State for importing into one account: what an importer read, its column mapping, and the plan
@@ -33,13 +39,15 @@ export interface ImportResult {
 }
 
 /** `existing` and `categories` are what the account page already shows, so nothing is re-read. */
-export function useImport(
-  accountId: number,
-  existing: Transaction[],
-  categories: Category[],
-  inverted = false
-) {
+export function useImport(accountId: number, existing: Transaction[], categories: Category[]) {
   const mutate = useLedgerMutation();
+  const { transactionsByAccount } = useLedger();
+  // Past transactions from every account, so a shop seen in one account is known in the others.
+  const suggestions = useMemo(
+    () => buildCategoryIndex(Object.values(transactionsByAccount).flat()),
+    [transactionsByAccount]
+  );
+  const [overrides, setOverrides] = useState<CategoryOverrides>({});
 
   const [parsed, setParsed] = useState<ParsedImport | null>(null);
   const [source, setSource] = useState<{ importer: Importer; input: ImportInput } | null>(null);
@@ -50,13 +58,14 @@ export function useImport(
 
   const plan: ImportPlan | null = useMemo(() => {
     if (!parsed || !mapping) return null;
-    return buildImportPlan(parsed.table, mapping, existing, categories);
-  }, [parsed, mapping, existing, categories]);
+    return buildImportPlan(parsed.table, mapping, existing, categories, suggestions, overrides);
+  }, [parsed, mapping, existing, categories, suggestions, overrides]);
 
   const clear = useCallback(() => {
     setParsed(null);
     setSource(null);
     setMapping(null);
+    setOverrides({});
   }, []);
 
   /** Reads `input` with any importer. Sets `error` and clears the screen when nothing was read. */
@@ -69,6 +78,7 @@ export function useImport(
         setParsed(next);
         setSource({ importer, input });
         setMapping(next.mapping);
+        setOverrides({});
       } catch (e) {
         clear();
         setError(e instanceof Error ? e.message : String(e));
@@ -95,8 +105,8 @@ export function useImport(
   /** Reads text pasted from a bank's website. `dayFirst` overrides the detected date order. */
   const loadText = useCallback(
     (text: string, dayFirst?: boolean) =>
-      load(pastedTextImporter, { name: 'Pasted text', text }, { dayFirst, inverted }),
-    [load, inverted]
+      load(pastedTextImporter, { name: 'Pasted text', text }, { dayFirst }),
+    [load]
   );
 
   /** Re-reads the rows with or without a header row and re-guesses the mapping. */
@@ -106,6 +116,7 @@ export function useImport(
       const table = toTable(parsed.grid, hasHeader);
       setParsed({ ...parsed, table });
       setMapping(guessMapping(table));
+      setOverrides({});
     },
     [parsed]
   );
@@ -155,6 +166,9 @@ export function useImport(
     file,
     mapping,
     setMapping,
+    /** Sets the category of the preview row on `line`, replacing the guess. */
+    setCategory: (line: number, category: string) =>
+      setOverrides((o) => ({ ...o, [line]: category })),
     setHasHeader,
     plan,
     error,

@@ -1,3 +1,4 @@
+import type { CategoryIndex } from '../../../lib/categories/suggest';
 import type { Category, Transaction, TransactionInput } from '../../../lib/domain/types';
 import { applyMapping, mappingProblems, type ColumnMapping, type CsvTable } from './mapping';
 import { reconcile } from './reconcile';
@@ -15,7 +16,15 @@ export interface PlanRow {
   status: PlanRowStatus;
   input?: TransactionInput;
   error?: string;
+  /**
+   * Where `input.category` came from: the file, a guess from past transactions with the same
+   * note, or the user's choice in the preview. `none` when it is blank.
+   */
+  categorySource?: 'file' | 'suggested' | 'edited' | 'none';
 }
+
+/** Categories the user picked in the preview, by `PlanRow.line`. */
+export type CategoryOverrides = Readonly<Record<number, string>>;
 
 export interface ImportPlan {
   rows: PlanRow[];
@@ -39,20 +48,26 @@ export function buildImportPlan(
   table: CsvTable,
   mapping: ColumnMapping,
   existing: readonly Transaction[],
-  categories: readonly Category[]
+  categories: readonly Category[],
+  /** Fills blank categories from past transactions with the same note. */
+  suggestions?: CategoryIndex,
+  overrides: CategoryOverrides = {}
 ): ImportPlan {
   const problems = mappingProblems(mapping);
   const counts: Record<PlanRowStatus, number> = { new: 0, existing: 0, invalid: 0 };
   if (problems.length) return { rows: [], problems, toAdd: [], newCategories: [], counts };
 
-  const mapped = applyMapping(table, mapping).map((row) =>
-    row.input
-      ? {
-          ...row,
-          input: { ...row.input, category: canonicalCategory(row.input.category, categories) },
-        }
-      : row
-  );
+  const mapped = applyMapping(table, mapping).map((row) => {
+    if (!row.input) return row;
+    const fromFile = canonicalCategory(row.input.category, categories);
+    const edited = overrides[row.line];
+    const guess = fromFile === '' ? suggestions?.suggest(row.input.note) : undefined;
+    const category =
+      edited !== undefined ? canonicalCategory(edited, categories) : (guess ?? fromFile);
+    const categorySource: PlanRow['categorySource'] =
+      edited !== undefined ? 'edited' : guess ? 'suggested' : category ? 'file' : 'none';
+    return { ...row, input: { ...row.input, category }, categorySource };
+  });
   const valid = mapped.filter((r) => r.input);
   const statuses = reconcile(
     valid.map((r) => r.input!),
@@ -61,7 +76,13 @@ export function buildImportPlan(
   let next = 0;
   const rows: PlanRow[] = mapped.map((r) =>
     r.input
-      ? { line: r.line, cells: r.cells, input: r.input, status: statuses[next++] ?? 'new' }
+      ? {
+          line: r.line,
+          cells: r.cells,
+          input: r.input,
+          categorySource: r.categorySource,
+          status: statuses[next++] ?? 'new',
+        }
       : { line: r.line, cells: r.cells, error: r.error, status: 'invalid' }
   );
   for (const r of rows) counts[r.status]++;

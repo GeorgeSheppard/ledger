@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import type { Account } from '../../../lib/domain/types';
-import { toAccountSide } from '../../../lib/accounts/inverted';
+import type { Category } from '../../../lib/domain/types';
 import type { ImportPlan, PlanRowStatus } from '../shared/importPlan';
 import { useShortcut } from '../../../state/shortcuts';
 import { Badge } from '../../../ui/Badge';
 import { Card } from '../../../ui/Card';
 import { cn } from '../../../ui/cn';
 import { Kbd } from '../../../ui/Kbd';
+import { Select } from '../../../ui/Select';
 import { formatAmount, formatDate } from './format';
 
 type Filter = 'all' | PlanRowStatus;
@@ -29,8 +29,23 @@ const CELL = 'border-b border-line px-3 py-2 align-top';
 /** Rendering thousands of rows at once is slow and nobody scrolls that far. */
 const ROW_LIMIT = 500;
 
+/** Active category names, plus `current` when it is not among them (for example one from the file). */
+function categoryOptions(categories: readonly Category[], current: string): string[] {
+  const names = categories.filter((c) => !c.archived).map((c) => c.name);
+  return current && !names.includes(current) ? [...names, current] : names;
+}
+
 /** Every row of the file with what will happen to it. `f` cycles the filter. */
-export function ImportPreview({ plan, account }: { plan: ImportPlan; account: Account }) {
+export function ImportPreview({
+  plan,
+  categories,
+  onCategoryChange,
+}: {
+  plan: ImportPlan;
+  /** Offered in each new row's category dropdown. */
+  categories: readonly Category[];
+  onCategoryChange(line: number, category: string): void;
+}) {
   const [filter, setFilter] = useState<Filter>('all');
   useShortcut('import.filter', () =>
     setFilter(
@@ -72,12 +87,7 @@ export function ImportPreview({ plan, account }: { plan: ImportPlan; account: Ac
               <th className={cn(CELL, 'font-semibold')}>Date</th>
               <th className={cn(CELL, 'font-semibold')}>Note</th>
               <th className={cn(CELL, 'font-semibold')}>Category</th>
-              <th className={cn(CELL, 'text-right font-semibold')}>
-                Amount
-                {account.inverted && (
-                  <span className="block text-xs font-normal">+ is money you spend</span>
-                )}
-              </th>
+              <th className={cn(CELL, 'text-right font-semibold')}>Amount</th>
               <th className={cn(CELL, 'font-semibold')}>Status</th>
             </tr>
           </thead>
@@ -91,14 +101,41 @@ export function ImportPreview({ plan, account }: { plan: ImportPlan; account: Ac
                   <>
                     <td className={cn(CELL, 'whitespace-nowrap')}>{formatDate(row.input.date)}</td>
                     <td className={cn(CELL, 'max-w-[32ch]')}>{row.input.note}</td>
-                    <td className={CELL}>{row.input.category}</td>
+                    <td className={CELL}>
+                      {row.status === 'new' ? (
+                        <div className="flex items-center gap-2">
+                          <Select
+                            aria-label={`Category for line ${row.line}`}
+                            value={row.input.category}
+                            onChange={(e) => onCategoryChange(row.line, e.target.value)}
+                          >
+                            <option value="">Uncategorised</option>
+                            {categoryOptions(categories, row.input.category).map((name) => (
+                              <option key={name} value={name}>
+                                {name}
+                              </option>
+                            ))}
+                          </Select>
+                          {row.categorySource === 'suggested' && (
+                            <span
+                              className="text-xs text-muted"
+                              title="Guessed from past transactions with the same note"
+                            >
+                              suggested
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        row.input.category
+                      )}
+                    </td>
                     <td
                       className={cn(
                         CELL,
                         'text-right whitespace-nowrap tabular-nums',
                         row.status === 'existing'
                           ? 'text-muted'
-                          : toAccountSide(account, row.input.amount) < 0
+                          : row.input.amount < 0
                             ? 'text-negative'
                             : 'text-positive'
                       )}

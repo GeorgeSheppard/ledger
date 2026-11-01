@@ -1,4 +1,5 @@
 import type { IsoDate } from '../../../lib/domain/types';
+import { looksLikeSplitwise, parseSplitwise } from '../../../lib/splitwise/splitwise';
 import { guessMapping, toTable, type ColumnMapping, type CsvTable } from '../shared/mapping';
 import { parseAmount, parseDate } from '../shared/values';
 
@@ -31,12 +32,6 @@ export interface PasteOptions {
   today?: IsoDate;
   /** Read `03/04/2026` as 3 April. Detected from the text when not given, defaulting to true. */
   dayFirst?: boolean;
-  /**
-   * The account is a card or loan, whose tab records spending as positive. Signs the parser works
-   * out itself (from the running balance, income words, or the money-out default) are written that
-   * way. Signs printed in the text are kept as they are.
-   */
-  inverted?: boolean;
 }
 
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
@@ -322,6 +317,25 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
   const today = options.today ?? new Date().toISOString().slice(0, 10);
   const rawLines = text.split(/\r\n|\r|\n/);
 
+  if (looksLikeSplitwise(text)) {
+    const { expenses, warnings } = parseSplitwise(text);
+    if (expenses.length > 0) {
+      return {
+        kind: 'text',
+        table: {
+          headers: TEXT_HEADERS,
+          rows: expenses.map((e) => [e.date, e.description, formatAmount(-e.spending)]),
+          lines: expenses.map((_, i) => i + 1),
+          hasHeader: true,
+        },
+        mapping: { ...TEXT_MAPPING },
+        warnings,
+        ambiguousDates: false,
+        dayFirst: options.dayFirst ?? true,
+      };
+    }
+  }
+
   const tabbed = tabbedRows(rawLines);
   if (tabbed) {
     const table = toTable(tabbed);
@@ -416,18 +430,17 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
       sources.explicit++;
       return d.amount.value;
     }
-    const own = (money: number) => (options.inverted ? -money : money);
     const neighbour = order === 'oldest-first' ? drafts[i - 1] : drafts[i + 1];
     if (order && d.balance !== null && neighbour?.balance != null) {
       sources.balance++;
-      return own(d.balance >= neighbour.balance ? magnitude : -magnitude);
+      return d.balance >= neighbour.balance ? magnitude : -magnitude;
     }
     if (INCOME_WORDS.test(d.note)) {
       sources.keyword++;
-      return own(magnitude);
+      return magnitude;
     }
     sources.assumed++;
-    return own(-magnitude);
+    return -magnitude;
   });
 
   if (drafts.length === 0) {
@@ -436,9 +449,7 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
     warnings.push(
       `${sources.assumed} amount${sources.assumed === 1 ? ' has' : 's have'} no sign, so ${
         sources.assumed === 1 ? 'it is' : 'they are'
-      } treated as ${
-        options.inverted ? 'spending' : 'money out'
-      }. Use the flip signs option if that is the wrong way round.`
+      } treated as money out. Use the invert option if that is the wrong way round.`
     );
   }
   if (unused > 0) {

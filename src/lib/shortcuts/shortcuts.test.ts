@@ -49,6 +49,17 @@ describe('keys', () => {
 });
 
 describe('SHORTCUTS', () => {
+  it('uses the Delete key, not Ctrl+Backspace, for every delete action', () => {
+    expect(formatKeys('delete', false)).toEqual([{ label: 'Del' }]);
+    for (const id of ['transactions.delete', 'paychecks.delete', 'categories.delete'] as const) {
+      expect(SHORTCUTS[id].keys).toBe('delete');
+      expect('allowInInputs' in SHORTCUTS[id]).toBe(false); // never fires while typing
+    }
+    expect(Object.values(SHORTCUTS).some((b) => (b.keys as string) === 'mod+backspace')).toBe(
+      false
+    );
+  });
+
   const entries = Object.entries(SHORTCUTS) as [string, ShortcutBinding][];
 
   it('has no clashing keys', () => {

@@ -27,7 +27,7 @@ interface ImportDialogProps {
  */
 export function ImportDialog({ account, transactions, categories, onClose }: ImportDialogProps) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const importer = useImport(account.id, transactions, categories, !!account.inverted);
+  const importer = useImport(account.id, transactions, categories);
   const { file, mapping, plan, result, pasted } = importer;
   const [pasting, setPasting] = useState(false);
 
@@ -114,7 +114,6 @@ export function ImportDialog({ account, transactions, categories, onClose }: Imp
               mapping={mapping}
               onMappingChange={importer.setMapping}
               onHasHeaderChange={importer.setHasHeader}
-              inverted={!!account.inverted}
             />
 
             {plan?.problems.map((problem) => (
@@ -122,7 +121,13 @@ export function ImportDialog({ account, transactions, categories, onClose }: Imp
                 {problem}
               </p>
             ))}
-            {plan && plan.problems.length === 0 && <ImportPreview plan={plan} account={account} />}
+            {plan && plan.problems.length === 0 && (
+              <ImportPreview
+                plan={plan}
+                categories={categories}
+                onCategoryChange={importer.setCategory}
+              />
+            )}
 
             <footer className="sticky bottom-0 -mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-line bg-canvas px-6 py-3">
               <p className="flex-1 text-sm text-muted">

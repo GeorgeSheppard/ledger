@@ -11,7 +11,7 @@ import { parsePastedText } from './pasted';
 const today = '2026-10-18';
 
 /** Date, note and amount of each parsed row. */
-function rowsOf(text: string, options: { dayFirst?: boolean; inverted?: boolean } = {}) {
+function rowsOf(text: string, options: { dayFirst?: boolean } = {}) {
   const parsed = parsePastedText(text, { today, ...options });
   return parsed.table.rows.map(([date, note, amount]) => [date, note, Number(amount)]);
 }
@@ -112,31 +112,6 @@ Download CSV`;
       ['2026-10-12', 'COOP', -8.2],
       ['2026-10-13', 'TFL', -2.8],
     ]);
-  });
-});
-
-describe('card and loan accounts', () => {
-  const text = `
-04/10/2026 RENT 800.00 316.50
-03/10/2026 FRIEND PAID YOU BACK 20.00 1,116.50
-02/10/2026 GREGGS 3.50 1,096.50`;
-
-  it('writes signs it works out itself with spending positive', () => {
-    expect(rowsOf(text, { inverted: true })).toEqual([
-      ['2026-10-04', 'RENT', 800],
-      ['2026-10-03', 'FRIEND PAID YOU BACK', -20],
-      ['2026-10-02', 'GREGGS', 3.5],
-    ]);
-  });
-
-  it('keeps signs printed in the text as they are', () => {
-    const signed = '10/13/2026 STARBUCKS -5.75 1.00\n10/12/2026 REFUND +3.00 6.75';
-    expect(rowsOf(signed, { inverted: true })).toEqual(rowsOf(signed));
-  });
-
-  it('says unsigned amounts are treated as spending', () => {
-    const parsed = parsePastedText('02/10/2026 GREGGS 3.50', { today, inverted: true });
-    expect(parsed.warnings.join(' ')).toContain('treated as spending');
   });
 });
 
@@ -265,7 +240,7 @@ Privacy  Terms  Contact us`;
     const parsed = parsePastedText('12 Oct 2026 COFFEE 3.00\n13 Oct 2026 TEA 2.00', { today });
     expect(parsed.table.rows.map((r) => r[2])).toEqual(['-3.00', '-2.00']);
     expect(parsed.warnings).toEqual([
-      '2 amounts have no sign, so they are treated as money out. Use the flip signs option if that is the wrong way round.',
+      '2 amounts have no sign, so they are treated as money out. Use the invert option if that is the wrong way round.',
     ]);
   });
 
@@ -324,6 +299,31 @@ describe('feeding the import pipeline', () => {
     expect(rows.map((r) => r.input)).toEqual([
       { date: '2026-10-12', amount: -23.45, note: 'TESCO', category: '' },
       { date: '2026-10-13', amount: -2.8, note: 'TFL', category: '' },
+    ]);
+  });
+});
+
+describe('Splitwise activity', () => {
+  it('becomes negative rows of the user share', () => {
+    const text = `November 2026View printable summary
+Nov
+01
+
+Food
+you paid
+£97.00you lent Anastasia
+£31.00
+Oct
+25
+
+Disneyland Paris stuff 
+Anastasia W. paid
+£28.89Anastasia lent you
+£28.89`;
+    const parsed = parsePastedText(text, { today });
+    expect(parsed.table.rows).toEqual([
+      ['2026-11-01', 'Food', '-66.00'],
+      ['2026-10-25', 'Disneyland Paris stuff', '-28.89'],
     ]);
   });
 });

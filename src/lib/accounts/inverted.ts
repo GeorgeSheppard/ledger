@@ -26,14 +26,6 @@ export function asMoney(account: Account, transactions: Transaction[]): Transact
   return flipped;
 }
 
-/**
- * An amount in money terms (positive is money in) written the way `account`'s tab records it:
- * negated for an inverted account, else unchanged. The inverse of the flip `asMoney` applies.
- */
-export function toAccountSide(account: Pick<Account, 'inverted'>, amount: number): number {
-  return account.inverted ? negate(amount) : amount;
-}
-
 /** Every account with its transactions in money terms. */
 export function moneyLedgers(
   accounts: readonly Account[],

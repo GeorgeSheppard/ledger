@@ -9,8 +9,6 @@ export interface ImportInput {
 export interface ImportOptions {
   /** Read numeric dates such as 03/04/2026 day first. Importers that can detect it do so when unset. */
   dayFirst?: boolean;
-  /** Importing into a card or loan, whose tab records spending as positive. */
-  inverted?: boolean;
 }
 
 /**
