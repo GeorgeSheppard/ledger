@@ -23,7 +23,7 @@ interface CategoryEditorProps {
   onDelete?(): void;
 }
 
-/** Inline editor for a category's name and colour. Enter or ⌘↵ saves, Escape cancels. */
+/** Inline editor for a category's name and colour. Enter saves, Escape cancels. */
 export function CategoryEditor({
   categories,
   accounts,

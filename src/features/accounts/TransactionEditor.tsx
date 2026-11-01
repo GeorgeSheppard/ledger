@@ -28,7 +28,7 @@ interface TransactionEditorProps {
   onCreateCategory(name: string): Promise<void>;
 }
 
-/** A transaction row turned into inputs. Enter or ⌘↵ saves, Escape cancels. */
+/** A transaction row turned into inputs. Enter saves, Escape cancels. */
 export function TransactionEditor({
   draft,
   errors,
