@@ -116,7 +116,7 @@ describe('rowsToCategories', () => {
 });
 
 describe('_Metadata', () => {
-  it('reads categories and inverted accounts, skipping rows it does not know', () => {
+  it('reads categories, skipping rows it does not know (such as the old inverted-account rows)', () => {
     expect(
       parseMetadata([
         ['category', 'Rent', 'color', '#D9534F'],
@@ -135,7 +135,6 @@ describe('_Metadata', () => {
         { name: 'Rent', color: '#D9534F' },
         { name: 'Food', color: '' },
       ],
-      invertedAccounts: ['Visa', 'Loan'],
     });
   });
 
@@ -153,7 +152,7 @@ describe('_Metadata', () => {
       { name: 'Food', color: '#4f7cff' },
       { name: 'Gifts', color: '', excluded: true },
     ]);
-    expect(metadataEntries(categories, []).filter((e) => e.setting === 'excluded')).toEqual([
+    expect(metadataEntries(categories).filter((e) => e.setting === 'excluded')).toEqual([
       { type: 'category', name: 'Transfers', setting: 'excluded', value: true },
       { type: 'category', name: 'Gifts', setting: 'excluded', value: true },
     ]);
@@ -170,7 +169,7 @@ describe('_Metadata', () => {
       { name: 'Gym', color: '#4f7cff', archived: true },
       { name: 'Food', color: '#d9534f' },
     ]);
-    expect(metadataEntries(categories, []).filter((e) => e.setting === 'archived')).toEqual([
+    expect(metadataEntries(categories).filter((e) => e.setting === 'archived')).toEqual([
       { type: 'category', name: 'Gym', setting: 'archived', value: true },
     ]);
   });
@@ -191,25 +190,16 @@ describe('_Metadata', () => {
       { name: 'Food', color: '#4f7cff' },
       { name: 'Fees', color: '', accounts: ['Current'] },
     ]);
-    expect(metadataEntries(categories, []).filter((e) => e.setting === 'account')).toEqual([
+    expect(metadataEntries(categories).filter((e) => e.setting === 'account')).toEqual([
       { type: 'category', name: 'Interest', setting: 'account', value: 'Savings' },
       { type: 'category', name: 'Interest', setting: 'account', value: 'ISA' },
       { type: 'category', name: 'Fees', setting: 'account', value: 'Current' },
     ]);
   });
 
-  it('writes only the settings that differ from the default, categories first', () => {
-    expect(
-      metadataEntries(
-        [{ name: 'Food', color: '#4f7cff' }],
-        [
-          { id: 1, name: 'Current' },
-          { id: 2, name: 'Visa', inverted: true },
-        ]
-      )
-    ).toEqual([
+  it('writes only the settings that differ from the default', () => {
+    expect(metadataEntries([{ name: 'Food', color: '#4f7cff' }])).toEqual([
       { type: 'category', name: 'Food', setting: 'color', value: '#4f7cff' },
-      { type: 'account', name: 'Visa', setting: 'inverted', value: true },
     ]);
   });
 });

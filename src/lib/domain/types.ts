@@ -29,8 +29,8 @@ export const ACCOUNT_COLUMNS = ['Date', 'Category', 'Amount', 'Note', 'Total'] a
 export const RESERVED_TAB_PREFIXES = ['_', 'Ledger_'] as const;
 
 /**
- * Tab that holds the settings the app keeps about the spreadsheet: the categories and per-account
- * options such as `inverted` (columns: Type, Name, Setting, Value).
+ * Tab that holds the settings the app keeps about the spreadsheet: the categories and their
+ * options (columns: Type, Name, Setting, Value).
  */
 export const METADATA_TAB = 'Ledger_Metadata';
 

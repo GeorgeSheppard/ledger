@@ -20,7 +20,7 @@ describe('google ingest', () => {
     const { data, skippedTabs, layout } = await open(fakeSheet()).load();
     expect(data.accounts).toEqual([
       { id: 10, name: 'Current' },
-      { id: 20, name: 'Savings', inverted: true },
+      { id: 20, name: 'Savings' },
     ]);
     expect(data.rows[10]).toEqual([
       { date: '2026-04-01', category: 'Salary', amount: 1000, note: 'Pay' },
@@ -57,7 +57,6 @@ describe('google ingest', () => {
   it('still reads categories from an old _Categories tab', async () => {
     const { data, layout } = await open(fakeSheet({ legacy: true })).load();
     expect(data.categories).toEqual([{ name: 'Food', color: '#4f7cff' }]);
-    expect(data.accounts.some((a) => a.inverted)).toBe(false);
     expect(layout).toMatchObject({ categoriesSheetId: 99 });
     expect(layout.metadataSheetId).toBeUndefined();
   });

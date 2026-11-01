@@ -204,17 +204,18 @@ describe('saveRequests', () => {
 
     const next: LedgerData = {
       ...base.data,
-      accounts: base.data.accounts.map((a) => (a.id === 20 ? { ...a, inverted: true } : a)),
+      rows: { ...base.data.rows, 20: [] },
     };
     const { requests, layout } = saveRequests(base, next);
     expect(requests.map((r) => Object.keys(r)[0])).toEqual([
+      'updateCells',
       'addSheet',
       'updateCells',
       'updateCells',
       'deleteSheet',
     ]);
-    expect(requests[0]).toMatchObject({ addSheet: { properties: { title: 'Ledger_Metadata' } } });
-    const write = requests[2] as Extract<SheetsRequest, { updateCells: unknown }>;
+    expect(requests[1]).toMatchObject({ addSheet: { properties: { title: 'Ledger_Metadata' } } });
+    const write = requests[3] as Extract<SheetsRequest, { updateCells: unknown }>;
     expect(write.updateCells.rows.map((r) => r.values.map((c) => c.userEnteredValue))).toEqual([
       [
         { stringValue: 'category' },
@@ -222,14 +223,8 @@ describe('saveRequests', () => {
         { stringValue: 'color' },
         { stringValue: '#4f7cff' },
       ],
-      [
-        { stringValue: 'account' },
-        { stringValue: 'Savings' },
-        { stringValue: 'inverted' },
-        { boolValue: true },
-      ],
     ]);
-    expect(requests[3]).toEqual({ deleteSheet: { sheetId: 99 } });
+    expect(requests[4]).toEqual({ deleteSheet: { sheetId: 99 } });
     expect(layout.categoriesSheetId).toBeUndefined();
     expect(layout.metadataSheetId).toBeDefined();
     expect(layout.sheetIds).not.toContain(99);
@@ -248,21 +243,23 @@ describe('saveRequests', () => {
     expect(kinds).toContain('deleteSheet');
   });
 
-  it('rewrites _Metadata when an account is marked inverted or renamed', async () => {
+  it('rewrites _Metadata when a category changes, and only then', async () => {
     const base = await loaded();
-    const toggled: LedgerData = {
+    expect(
+      saveRequests(base, { ...base.data, rows: { ...base.data.rows, 20: [] } }).requests
+    ).toHaveLength(
+      saveRequests(base, { ...base.data, rows: { ...base.data.rows, 20: [] } }).requests.length
+    );
+    const recoloured: LedgerData = {
       ...base.data,
-      accounts: base.data.accounts.map((a) => (a.id === 10 ? { ...a, inverted: true } : a)),
+      categories: [{ name: 'Food', color: '#112233' }],
     };
-    const { requests } = saveRequests(base, toggled);
+    const { requests } = saveRequests(base, recoloured);
     expect(requests).toHaveLength(1);
     const write = requests[0] as Extract<SheetsRequest, { updateCells: unknown }>;
     expect(write.updateCells.range?.sheetId).toBe(99);
-    // Savings was already inverted in the sheet, and Current now is too.
     expect(write.updateCells.rows.map((r) => r.values[1]?.userEnteredValue)).toEqual([
       { stringValue: 'Food' },
-      { stringValue: 'Current' },
-      { stringValue: 'Savings' },
     ]);
   });
 

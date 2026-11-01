@@ -74,8 +74,6 @@ export function useAccountActions() {
     createAccount: (name: string) => mutate((r) => r.createAccount(name.trim())),
     renameAccount: (accountId: number, name: string) =>
       mutate((r) => r.renameAccount(accountId, name.trim())),
-    setAccountInverted: (accountId: number, inverted: boolean) =>
-      mutate((r) => r.setAccountInverted(accountId, inverted)),
     addTransaction: async (accountId: number, input: TransactionInput) => {
       const [added] = await mutate((r) => r.addTransactions(accountId, [input]));
       return added;

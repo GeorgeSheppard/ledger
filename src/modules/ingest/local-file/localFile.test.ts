@@ -163,7 +163,7 @@ describe('writing a workbook', () => {
     expect(written.getWorksheet('Ledger_Metadata')).toBeDefined();
   });
 
-  it('round-trips inverted accounts through _Metadata and drops an old _Categories tab', async () => {
+  it('moves categories from an old _Categories tab into Ledger_Metadata', async () => {
     const book = new ExcelJS.Workbook();
     await book.xlsx.load(await userWorkbook());
     book.addWorksheet('_Categories').addRows([
@@ -175,8 +175,8 @@ describe('writing a workbook', () => {
     const state = ledgerFromTabs(await readWorkbookTabs(original));
     const remote = fileRemote('mine', state, original);
     const store = await LedgerStore.open({ spreadsheetId: 'file', remote });
-    const [bank] = await store.listAccounts();
-    await store.setAccountInverted(bank!.id, true);
+    await store.renameCategory('Rent', 'Rent');
+    await store.saveCategories([{ name: 'Rent', color: '#d9534f' }]);
     const file = await store.download();
 
     const written = new ExcelJS.Workbook();
@@ -191,7 +191,6 @@ describe('writing a workbook', () => {
     ]);
 
     const reread = ledgerFromTabs(await readWorkbookTabs(file.bytes));
-    expect(reread.data.accounts.find((a) => a.name === bank!.name)?.inverted).toBe(true);
     expect(reread.data.categories).toEqual(await store.listCategories());
     expect(reread.data.categories[0]).toEqual({ name: 'Rent', color: '#d9534f' });
   });

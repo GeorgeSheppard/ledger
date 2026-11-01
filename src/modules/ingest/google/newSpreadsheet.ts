@@ -47,10 +47,7 @@ export function newSpreadsheetBody(
           {
             startRow: 0,
             startColumn: 0,
-            rowData: [
-              headerRow(METADATA_COLUMNS),
-              ...metadataEntries(categories, []).map(metadataRow),
-            ],
+            rowData: [headerRow(METADATA_COLUMNS), ...metadataEntries(categories).map(metadataRow)],
           },
         ],
       },

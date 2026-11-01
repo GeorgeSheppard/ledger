@@ -34,38 +34,13 @@ describe('LedgerStore', () => {
   it('forgets every working copy when the cache is cleared', async () => {
     const cache = new MemoryCache();
     const { store, remote } = await open(fixtureData(), cache);
-    await store.setAccountInverted(2, true);
+    await store.addTransactions(1, [input('2026-02-01', 5)]);
     await store.flushCache();
     expect(cache.entries.size).toBe(1);
 
     await cache.clear();
     const reopened = await open(remote.data, cache);
     expect(reopened.store.hasUnsavedChanges).toBe(false);
-  });
-
-  it('marks an account as a credit card, keeps it across a reload, and clears it again', async () => {
-    const cache = new MemoryCache();
-    const { store, remote } = await open(fixtureData(), cache);
-    await store.setAccountInverted(2, true);
-    expect(store.getSnapshot().accounts[1]).toMatchObject({ id: 2, inverted: true });
-    expect(store.hasUnsavedChanges).toBe(true);
-    await store.flushCache();
-
-    // Closed before saving: the unsaved flag is replayed on the fresh copy.
-    const reopened = await open(remote.data, cache);
-    expect(reopened.store.getSnapshot().accounts[1]?.inverted).toBe(true);
-
-    await store.save();
-    expect(remote.data.accounts[1]?.inverted).toBe(true);
-    await store.setAccountInverted(2, false);
-    expect('inverted' in store.getSnapshot().accounts[1]!).toBe(false);
-    await store.save();
-    expect(remote.saves).toBe(2);
-  });
-
-  it('rejects an unknown account', async () => {
-    const { store } = await open();
-    await expect(store.setAccountInverted(99, true)).rejects.toThrow('Unknown account 99');
   });
 
   it('loads once and serves every read from memory', async () => {
@@ -226,14 +201,14 @@ describe('LedgerStore', () => {
 
     it('undoes edits one at a time, newest first, and drops redo after a new edit', async () => {
       const { store } = await open();
-      await store.setAccountInverted(2, true);
+      const original = store.getSnapshot().accounts[1]!.name;
+      await store.renameAccount(2, 'First');
       await store.renameAccount(2, 'Renamed');
       store.history.undo();
-      expect(store.getSnapshot().accounts[1]).toMatchObject({ inverted: true });
-      expect(store.getSnapshot().accounts[1]?.name).not.toBe('Renamed');
+      expect(store.getSnapshot().accounts[1]?.name).toBe('First');
       store.history.undo();
-      expect(store.getSnapshot().accounts[1]?.inverted).toBeFalsy();
-      await store.setAccountInverted(2, true);
+      expect(store.getSnapshot().accounts[1]?.name).toBe(original);
+      await store.renameAccount(2, 'Another');
       expect(store.history.getState().redoLabel).toBeNull();
     });
 

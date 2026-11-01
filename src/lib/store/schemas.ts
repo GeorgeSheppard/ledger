@@ -63,9 +63,4 @@ export const remoteStateSchema = z.object({
 export const cachedLedgerSchema = z.object({
   saved: remoteStateSchema,
   current: ledgerDataSchema,
-  /**
-   * Copies kept before inverted accounts were normalised hold the sheet's own signs and have no
-   * `terms`; the store converts them when it reads them. Every copy written now says `money`.
-   */
-  terms: z.literal('money').optional(),
 });

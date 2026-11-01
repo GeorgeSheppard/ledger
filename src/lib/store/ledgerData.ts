@@ -192,29 +192,6 @@ export function renameAccount(data: LedgerData, accountId: number, name: string)
   };
 }
 
-/**
- * Marks an account as a credit card or loan (or not). Off is stored as no flag at all. The flag says
- * how the sheet writes the tab, so the tab must stay as it is: the working copy holds money terms,
- * and its amounts are negated to match, which the save then undoes again.
- */
-export function setAccountInverted(
-  data: LedgerData,
-  accountId: number,
-  inverted: boolean
-): LedgerData {
-  const rows = accountRows(data, accountId);
-  const account = data.accounts.find((a) => a.id === accountId)!;
-  if (!!account.inverted === inverted) return data;
-  return {
-    ...data,
-    accounts: data.accounts.map((a) => (a.id === accountId ? setFlag(a, inverted) : a)),
-    rows: {
-      ...data.rows,
-      [accountId]: rows.map((r) => ({ ...r, amount: r.amount === 0 ? 0 : -r.amount })),
-    },
-  };
-}
-
 export function addTransactions(
   data: LedgerData,
   accountId: number,
@@ -338,12 +315,6 @@ export function sameRows(a: readonly TransactionInput[], b: readonly Transaction
   );
 }
 
-function setFlag(account: Account, inverted: boolean | undefined): Account {
-  const rest = { ...account };
-  delete rest.inverted;
-  return inverted ? { ...rest, inverted } : rest;
-}
-
 export function sameCategories(a: readonly Category[], b: readonly Category[]): boolean {
   return (
     a.length === b.length &&
@@ -374,7 +345,6 @@ export function sameData(a: LedgerData, b: LedgerData): boolean {
       return (
         acc.id === other.id &&
         acc.name === other.name &&
-        !!acc.inverted === !!other.inverted &&
         sameRows(a.rows[acc.id] ?? [], b.rows[other.id] ?? [])
       );
     }) &&
@@ -404,10 +374,8 @@ export function rebase(fresh: LedgerData, base: LedgerData, local: LedgerData): 
       continue;
     }
     const nameChanged = mine.name !== before.name;
-    const invertedChanged = !!mine.inverted !== !!before.inverted;
     const rowsChanged = !sameRows(local.rows[mine.id] ?? [], base.rows[before.id] ?? []);
-    let merged = nameChanged ? { ...account, name: mine.name } : account;
-    if (invertedChanged) merged = setFlag(merged, mine.inverted);
+    const merged = nameChanged ? { ...account, name: mine.name } : account;
     accounts.push(merged);
     rows[account.id] = rowsChanged ? (local.rows[mine.id] ?? []) : freshRows;
   }
