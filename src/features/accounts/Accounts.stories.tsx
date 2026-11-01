@@ -272,10 +272,7 @@ function OpenCreditCard() {
   return card ? <Navigate to={paths.account(card.id)} replace /> : null;
 }
 
-/**
- * A credit card tab: purchases are positive in the sheet, and the account is marked as a credit
- * card or loan, so the balance counts as money owed.
- */
+/** A credit card tab: purchases are negative like any money out, so the balance is what is owed. */
 export const CreditCard: Story = {
   render: () => (
     <Connected shell creditCard route="/open-card">
