@@ -5,6 +5,7 @@ import { Card } from '../../../ui/Card';
 import { Select } from '../../../ui/Select';
 import { DropZone } from './DropZone';
 import { ImportPreview } from './ImportPreview';
+import { InvertToggle } from './InvertToggle';
 import { MappingEditor } from './MappingEditor';
 import { PasteBox } from './PasteBox';
 import { useImport } from './useImport';
@@ -103,6 +104,14 @@ export function ImportDialog({ account, transactions, categories, onClose }: Imp
               onMappingChange={importer.setMapping}
               onHasHeaderChange={importer.setHasHeader}
             />
+
+            {plan && plan.problems.length === 0 && (
+              <InvertToggle
+                inverted={mapping.invertAmounts}
+                onChange={(invertAmounts) => importer.setMapping({ ...mapping, invertAmounts })}
+                toAdd={plan.toAdd}
+              />
+            )}
 
             {plan?.problems.map((problem) => (
               <p key={problem} className="text-sm text-negative">

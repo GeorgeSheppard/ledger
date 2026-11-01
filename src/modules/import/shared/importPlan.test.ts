@@ -43,6 +43,18 @@ describe('buildImportPlan', () => {
     expect(plan.newCategories).toEqual(['Eating out']);
   });
 
+  it('inverts every incoming amount with invertAmounts, so the totals flip', () => {
+    const mapping = guessMapping(table);
+    const plain = buildImportPlan(table, mapping, existing, categories);
+    const flipped = buildImportPlan(table, { ...mapping, invertAmounts: true }, [], categories);
+    const sum = (rows: { amount: number }[]) => rows.reduce((n, r) => n + r.amount, 0);
+    expect(plain.toAdd.map((r) => r.amount)).toEqual([-20, -4.2]);
+    expect(flipped.toAdd.map((r) => r.amount)).toEqual([12.4, 20, 4.2]);
+    expect(sum(flipped.toAdd)).toBeCloseTo(36.6);
+    // The duplicate check compares the flipped amounts, so a flipped Tesco no longer matches.
+    expect(flipped.counts.existing).toBe(0);
+  });
+
   it('returns only the problems when the mapping is unusable', () => {
     const plan = buildImportPlan(table, { ...guessMapping(table), date: null }, existing, []);
     expect(plan.rows).toEqual([]);

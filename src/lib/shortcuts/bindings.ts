@@ -185,7 +185,7 @@ export const SHORTCUTS = {
   'import.paste': { keys: 'p', description: 'Paste text from your bank', scope: 'import' },
   'import.readPaste': { keys: 'r', description: 'Read the pasted text', scope: 'import' },
   'import.mapping': { keys: 'm', description: 'Edit column mapping', scope: 'import' },
-  'import.invert': { keys: 'i', description: 'Flip amount signs', scope: 'import' },
+  'import.invert': { keys: 'i', description: 'Invert amounts', scope: 'import' },
   'import.filter': { keys: 'f', description: 'Cycle preview filter', scope: 'import' },
   'import.reset': {
     keys: 'x',
