@@ -327,3 +327,35 @@ Priya N. paid
     ]);
   });
 });
+
+describe('date headings that carry the day balance', () => {
+  it('does not import the balance beside a date as a transaction', () => {
+    const text = `1. Mon 19 Oct£1,000.00
+   1. Int'l 1234567890
+Example* Service
+London
+−£18.00
+2. Sat 17 Oct£1,018.00
+   1. A Person
+Corner Cafe
+−£33.00`;
+    const parsed = parsePastedText(text, { today: '2026-10-25' });
+    expect(parsed.table.rows).toEqual([
+      ['2026-10-19', "Example* Service London (Int'l 1234567890)", '-18.00'],
+      ['2026-10-17', 'Corner Cafe (A Person)', '-33.00'],
+    ]);
+    expect(parsed.warnings).toEqual([]);
+  });
+
+  it('uses the day balance to sign unsigned amounts', () => {
+    const text = `Mon 19 Oct£1,000.00
+Example
+18.00
+Sat 17 Oct£1,018.00
+Corner Cafe
+33.00`;
+    expect(
+      parsePastedText(text, { today: '2026-10-25' }).table.rows.map((r) => Number(r[2]))
+    ).toEqual([-18, -33]);
+  });
+});
