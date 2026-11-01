@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { setCategoryArchived } from '../categories/categories';
 import { fixtureData } from '../data/fixtures';
 import { MemoryCache } from './cache';
 import type { LedgerData } from './ledgerData';
@@ -229,6 +230,25 @@ describe('LedgerStore', () => {
       expect(store.getSnapshot().accounts[1]?.inverted).toBeFalsy();
       await store.setAccountInverted(2, true);
       expect(store.history.getState().redoLabel).toBeNull();
+    });
+
+    it('archives a category, keeps it across a reload, and undoes the archive', async () => {
+      const cache = new MemoryCache();
+      const { store, remote } = await open(fixtureData(), cache);
+      const list = await store.listCategories();
+      const name = list[0]!.name;
+      await store.saveCategories(setCategoryArchived(list, name, true));
+      const archived = (s: LedgerStore) =>
+        s.getSnapshot().categories.find((c) => c.name === name)?.archived;
+      expect(archived(store)).toBe(true);
+      await store.save();
+      expect(remote.data.categories.find((c) => c.name === name)?.archived).toBe(true);
+      expect(archived((await open(remote.data, cache)).store)).toBe(true);
+
+      store.history.undo();
+      expect(archived(store)).toBeUndefined();
+      store.history.redo();
+      expect(archived(store)).toBe(true);
     });
 
     it('tells subscribers when an undo changes the snapshot', async () => {

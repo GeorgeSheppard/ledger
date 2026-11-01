@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { Connected } from '../../storybook/providers';
 import { CategoriesPage } from './CategoriesPage';
 
@@ -53,6 +53,22 @@ export const Archived: Story = {
     await expect(
       within(canvas.getByRole('table', { name: 'Archived categories' })).getByText('Transport')
     ).toBeVisible();
+  },
+};
+
+/** Ctrl+Z puts an archived category back in the list; Ctrl+Shift+Z archives it again. */
+export const ArchiveUndo: Story = {
+  render: Default.render,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByText('Transport'));
+    await userEvent.click(await canvas.findByRole('button', { name: /^Archive/ }));
+    await canvas.findByText('Archived (1)');
+    await userEvent.keyboard('{Control>}z{/Control}');
+    await waitFor(() => expect(canvas.queryByText(/^Archived \(/)).toBeNull());
+    await expect(canvas.getByText('Transport')).toBeVisible();
+    await userEvent.keyboard('{Control>}{Shift>}z{/Shift}{/Control}');
+    await canvas.findByText('Archived (1)');
   },
 };
 

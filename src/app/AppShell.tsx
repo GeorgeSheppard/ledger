@@ -64,6 +64,8 @@ function SpreadsheetTools({ title, id, isFile }: { title: string; id: string; is
   const { undoLabel, redoLabel } = useHistoryState();
   const save = useSaveAction();
   useShortcut('nav.sheets', () => navigate(paths.sheets));
+  useShortcut('history.undo', () => history.undo());
+  useShortcut('history.redo', () => history.redo());
   const leave = () => {
     if (!isFile) return navigate(paths.connect);
     const unsaved = status.state === 'unsaved' || status.state === 'error';
