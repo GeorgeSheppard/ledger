@@ -29,15 +29,10 @@ export interface ImportPlan {
 
 const CATEGORY_COLORS = ['#4f7cff', '#2f9e6b', '#e8913a', '#8e6bd6', '#c2577f', '#3aa6b9'];
 
-/**
- * Matches category names case-insensitively to the existing list so `groceries` → `Groceries`.
- * An archived category is never assigned to new rows, so those rows come in uncategorised.
- */
+/** Matches category names case-insensitively to the existing list so `groceries` → `Groceries`. */
 function canonicalCategory(name: string, categories: readonly Category[]): string {
   const trimmed = name.trim();
-  const match = categories.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
-  if (match?.archived) return '';
-  return match?.name ?? trimmed;
+  return categories.find((c) => c.name.toLowerCase() === trimmed.toLowerCase())?.name ?? trimmed;
 }
 
 export function buildImportPlan(

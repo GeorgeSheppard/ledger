@@ -42,16 +42,6 @@ describe('buildImportPlan', () => {
     expect(plan.newCategories).toEqual(['Eating out']);
   });
 
-  it('imports rows of an archived category uncategorised, without recreating it', () => {
-    const archived = [{ name: 'Groceries', color: '#000000', archived: true }];
-    const plan = buildImportPlan(table, guessMapping(table), existing, archived);
-    expect(plan.toAdd.map((t) => [t.note, t.category])).toEqual([
-      ['Sainsburys', ''],
-      ['Pret', 'Eating out'],
-    ]);
-    expect(plan.newCategories).toEqual(['Eating out']);
-  });
-
   it('returns only the problems when the mapping is unusable', () => {
     const plan = buildImportPlan(table, { ...guessMapping(table), date: null }, existing, []);
     expect(plan.rows).toEqual([]);
