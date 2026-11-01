@@ -7,14 +7,14 @@ describe('reconcile', () => {
     { date: '2026-03-06', amount: -10, note: 'Lunch' },
   ];
 
-  it('matches on date, amount and note, ignoring case and spacing', () => {
+  it('matches on date and amount, ignoring the note', () => {
     expect(
       reconcile(
         [
           { date: '2026-03-05', amount: -2.5, note: '  coffee ' },
           { date: '2026-03-05', amount: -2.51, note: 'Coffee' },
           { date: '2026-03-07', amount: -10, note: 'Lunch' },
-          { date: '2026-03-06', amount: -10, note: 'Lunch' },
+          { date: '2026-03-06', amount: -10, note: 'CARD PAYMENT TO CAFE' },
         ],
         existing
       )

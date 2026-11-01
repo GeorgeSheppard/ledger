@@ -11,6 +11,17 @@ export function transactionKey({ date, amount, note }: Comparable): string {
   return `${date}|${Math.round(amount * 100)}|${note.trim().replace(/\s+/g, ' ').toLowerCase()}`;
 }
 
+/**
+ * How an import decides a row is already in the account: the same date and amount, whatever the
+ * note says (banks word the same payment differently between exports).
+ */
+export function importMatchKey({
+  date,
+  amount,
+}: Pick<TransactionInput, 'date' | 'amount'>): string {
+  return `${date}|${Math.round(amount * 100)}`;
+}
+
 /** Ids of every transaction that has at least one twin in the list (by `transactionKey`). */
 export function findDuplicateIds(transactions: readonly Transaction[]): Set<string> {
   const byKey = new Map<string, string[]>();
