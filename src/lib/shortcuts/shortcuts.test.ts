@@ -55,7 +55,7 @@ describe('SHORTCUTS', () => {
       expect(SHORTCUTS[id].keys).toBe('delete');
       expect('allowInInputs' in SHORTCUTS[id]).toBe(false); // never fires while typing
     }
-    expect(Object.values(SHORTCUTS).some((b) => b.keys === 'mod+backspace')).toBe(false);
+    expect(Object.values(SHORTCUTS).some((b) => (b.keys as string) === 'mod+backspace')).toBe(false);
   });
 
   const entries = Object.entries(SHORTCUTS) as [string, ShortcutBinding][];
