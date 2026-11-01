@@ -218,10 +218,14 @@ export class LedgerStore implements LedgerRepository {
     return structuredClone(this.snapshot.transactionsByAccount[accountId] ?? []);
   }
 
-  async addTransactions(accountId: number, inputs: TransactionInput[]): Promise<Transaction[]> {
+  async addTransactions(
+    accountId: number,
+    inputs: TransactionInput[],
+    label?: string
+  ): Promise<Transaction[]> {
     if (inputs.length === 0) return [];
     const { data, rows } = edit.addTransactions(this.current, accountId, inputs);
-    this.apply(data, `Add ${count(inputs.length, 'transaction')}`);
+    this.apply(data, label ?? `Add ${count(inputs.length, 'transaction')}`);
     const all = this.snapshot.transactionsByAccount[accountId] ?? [];
     return rows.map((row) => structuredClone(all[row - 2]!));
   }
