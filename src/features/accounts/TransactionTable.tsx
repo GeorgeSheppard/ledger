@@ -458,12 +458,12 @@ export function TransactionTable({
     await actions.saveCategories(addCategory(categories, name));
   };
 
-  const moveEditing = (delta: 1 | -1) => {
+  const moveEditing = (delta: 1 | -1, field: DraftField) => {
     if (mode.kind !== 'edit') return;
     const at = shown.findIndex((t) => t.id === mode.id);
     const next = shown[at + delta];
     if (at !== -1 && next) {
-      void open(next, 'category').then(() => setRevealKey((k) => k + 1));
+      void open(next, field).then(() => setRevealKey((k) => k + 1));
     }
   };
 
