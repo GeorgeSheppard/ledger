@@ -1,4 +1,5 @@
 import type { Transaction } from '../domain/types';
+import { isBalanceAdjustment } from '../transactions/adjustment';
 
 /**
  * Transactions that should not count as income or spending: money moved between the user's own
@@ -21,19 +22,19 @@ function cents(amount: number): number {
 /**
  * Pairs each outgoing transaction with an incoming one of the same size in a different account,
  * dated within a few days. Each transaction is used in at most one pair; the closest date wins.
- * Returns the ids of every paired transaction.
+ * Balance adjustments are never paired. Returns the ids of every paired transaction.
  */
 export function findTransfers(transactions: readonly Transaction[]): Set<string> {
   const incoming = new Map<number, Transaction[]>();
   for (const t of transactions) {
-    if (t.amount <= 0) continue;
+    if (t.amount <= 0 || isBalanceAdjustment(t)) continue;
     const key = cents(t.amount);
     incoming.set(key, [...(incoming.get(key) ?? []), t]);
   }
 
   const paired = new Set<string>();
   const outgoing = transactions
-    .filter((t) => t.amount < 0)
+    .filter((t) => t.amount < 0 && !isBalanceAdjustment(t))
     .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
 
   for (const out of outgoing) {
