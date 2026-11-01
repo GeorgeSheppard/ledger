@@ -311,13 +311,13 @@ Anthropic* Claude
 San Francisco
 −£18.00
 2. Sat 17 Oct£5,587.54
-   1. Yulia Chan
+   1. John Doe
 Dishoom
 −£33.00`;
     const parsed = parsePastedText(text, { today: '2026-10-25' });
     expect(parsed.table.rows).toEqual([
       ['2026-10-19', "Anthropic* Claude San Francisco (Int'l 2292185434)", '-18.00'],
-      ['2026-10-17', 'Dishoom (Yulia Chan)', '-33.00'],
+      ['2026-10-17', 'Dishoom (John Doe)', '-33.00'],
     ]);
     expect(parsed.warnings).toEqual([]);
   });
