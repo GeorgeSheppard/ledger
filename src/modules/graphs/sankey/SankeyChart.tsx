@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { FlowKind, FlowNode, MoneyFlow } from '../../../lib/paychecks/flow';
 import { layoutSankey, linkPath } from './layout';
+import { placeLabels, type PlacedLabel } from './labels';
 import { formatMoney } from '../shared/format';
 import { useElementWidth } from '../shared/useElementWidth';
 import { FALLBACK_COLOR, INCOME_COLOR, SPENDING_COLOR } from '../shared/theme';
@@ -8,6 +9,17 @@ import { FALLBACK_COLOR, INCOME_COLOR, SPENDING_COLOR } from '../shared/theme';
 const NODE_WIDTH = 12;
 const NODE_PADDING = 12;
 const MIN_LINK_OPACITY = 0.3;
+/** Narrower than this, the columns run top to bottom: there is height to spare, not width. */
+const VERTICAL_BELOW = 560;
+/** A vertical diagram's labels sit under their nodes, on up to this many rows of this height. */
+const LABEL_LANES = 3;
+const LANE_HEIGHT = 30;
+const LABEL_TOP = 6;
+/** Room between two columns, for the ribbons and the labels of the upper column. */
+const COLUMN_GAP = LABEL_TOP + LABEL_LANES * LANE_HEIGHT;
+/** Smallest tap target of a node in a vertical diagram. */
+const MIN_TAP = 28;
+const CHAR_WIDTH = 6.4;
 /** Thinnest clickable width of a ribbon into a category. */
 const MIN_PICK_WIDTH = 12;
 
@@ -41,23 +53,30 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
   const [frame, width] = useElementWidth<HTMLDivElement>();
   const [hover, setHover] = useState<Hover | null>(null);
 
+  const vertical = width < VERTICAL_BELOW;
+  const columns = new Set(flow.nodes.map((n) => n.column)).size;
   const tallestColumn = Math.max(
     ...[0, 1, 2, 3].map((c) => flow.nodes.filter((n) => n.column === c).length)
   );
-  const height = Math.min(560, Math.max(280, tallestColumn * 34 + 60));
-  // The last column's labels sit to the right of its nodes, so they need room beside the chart.
-  const labelRoom = width < 520 ? 96 : 140;
+  // Horizontal: the last column's labels sit to the right of its nodes, so they need room beside
+  // the chart. Vertical: labels go under the nodes, so each column needs room below it instead.
+  const labelRoom = vertical ? 0 : width < 520 ? 96 : 140;
   const plotWidth = Math.max(120, width - labelRoom);
+  const plotHeight = vertical
+    ? columns * NODE_WIDTH + Math.max(columns - 1, 0) * COLUMN_GAP
+    : Math.min(560, Math.max(280, tallestColumn * 34 + 60));
+  const height = vertical ? plotHeight + COLUMN_GAP : plotHeight;
 
   const layout = useMemo(
     () =>
       layoutSankey(flow.nodes, flow.links, {
         width: plotWidth,
-        height,
+        height: plotHeight,
+        orientation: vertical ? 'vertical' : 'horizontal',
         nodeWidth: NODE_WIDTH,
-        nodePadding: NODE_PADDING,
+        nodePadding: vertical ? 6 : NODE_PADDING,
       }),
-    [flow, plotWidth, height]
+    [flow, plotWidth, plotHeight, vertical]
   );
   const nodeById = useMemo(() => new Map(flow.nodes.map((n) => [n.id, n])), [flow.nodes]);
 
@@ -67,6 +86,22 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
     node.kind === 'category' && chosen.includes(node.category ?? node.label);
   const filtering = chosen.length > 0;
   const labelOf = (id: string) => nodeById.get(id)?.label ?? id;
+  // Where each node's label goes in a vertical diagram (nodes without one are left out).
+  const placedLabels = useMemo(() => {
+    const placed = new Map<string, PlacedLabel>();
+    if (!vertical) return placed;
+    for (const column of new Set(layout.nodes.map((n) => n.column))) {
+      const boxes = layout.nodes
+        .filter((n) => n.column === column)
+        .map((n) => {
+          const label = nodeById.get(n.id)?.label ?? n.id;
+          const chars = Math.max(label.length, formatMoney(n.value).length);
+          return { id: n.id, center: n.x + n.width / 2, width: chars * CHAR_WIDTH };
+        });
+      for (const label of placeLabels(boxes, plotWidth, LABEL_LANES)) placed.set(label.id, label);
+    }
+    return placed;
+  }, [vertical, layout.nodes, nodeById, plotWidth]);
 
   const share = (value: number, of: number) =>
     of > 0 ? ` (${Math.round((value / of) * 100)}%)` : '';
@@ -141,7 +176,7 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
             return (
               <g key={`${link.source}>${link.target}`}>
                 <path
-                  d={linkPath(link)}
+                  d={linkPath(link, vertical ? 'vertical' : 'horizontal')}
                   stroke={colorOfNode(target)}
                   strokeWidth={Math.max(link.width, 1)}
                   strokeOpacity={linkOpacity(i)}
@@ -154,7 +189,7 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
                 {pickable && (
                   // A thin ribbon is hard to hit, so it gets an invisible wider one on top.
                   <path
-                    d={linkPath(link)}
+                    d={linkPath(link, vertical ? 'vertical' : 'horizontal')}
                     stroke="transparent"
                     strokeWidth={Math.max(link.width, MIN_PICK_WIDTH)}
                     onMouseMove={track(`link:${i}`)}
@@ -175,6 +210,9 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
             (filtering && node.kind === 'category' && !selected);
           const lines = laid.height >= 28;
           const textY = laid.y + laid.height / 2;
+          const label = placedLabels.get(laid.id);
+          const amount = formatMoney(laid.value);
+          const labelY = (lane: number) => laid.y + laid.height + LABEL_TOP + lane * LANE_HEIGHT;
           return (
             <g
               key={laid.id}
@@ -198,18 +236,41 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
                 clickable ? 'cursor-pointer outline-none focus-visible:opacity-100' : undefined
               }
             >
-              {clickable && (
-                // Small nodes are hard to hit, so the whole row is the target: the node, its
-                // label, and half the gap above and below (which keeps neighbours from overlapping).
-                <rect
-                  x={laid.x}
-                  y={laid.y - NODE_PADDING / 2}
-                  width={laid.width + labelRoom}
-                  height={laid.height + NODE_PADDING}
-                  fill="transparent"
-                  onMouseMove={track(`node:${laid.id}`)}
-                />
-              )}
+              {clickable &&
+                (vertical ? (
+                  // A thin node is hard to tap, so it gets at least MIN_TAP across, and its label too.
+                  <>
+                    <rect
+                      x={laid.x + laid.width / 2 - Math.max(laid.width, MIN_TAP) / 2}
+                      y={laid.y - LABEL_TOP}
+                      width={Math.max(laid.width, MIN_TAP)}
+                      height={laid.height + LABEL_TOP * 2}
+                      fill="transparent"
+                      onMouseMove={track(`node:${laid.id}`)}
+                    />
+                    {label && (
+                      <rect
+                        x={label.x}
+                        y={labelY(label.lane) - 2}
+                        width={Math.max(node.label.length, amount.length) * CHAR_WIDTH}
+                        height={LANE_HEIGHT - 2}
+                        fill="transparent"
+                        onMouseMove={track(`node:${laid.id}`)}
+                      />
+                    )}
+                  </>
+                ) : (
+                  // Small nodes are hard to hit, so the whole row is the target: the node, its
+                  // label, and half the gap above and below (which keeps neighbours from overlapping).
+                  <rect
+                    x={laid.x}
+                    y={laid.y - NODE_PADDING / 2}
+                    width={laid.width + labelRoom}
+                    height={laid.height + NODE_PADDING}
+                    fill="transparent"
+                    onMouseMove={track(`node:${laid.id}`)}
+                  />
+                ))}
               <rect
                 x={laid.x}
                 y={laid.y}
@@ -221,30 +282,53 @@ export function SankeyChart({ flow, colorOf, chosen = [], onToggleCategory }: Sa
                 strokeWidth={selected ? 2 : 0}
                 onMouseMove={track(`node:${laid.id}`)}
               />
-              <text
-                x={laid.x + laid.width + 6}
-                y={textY}
-                dominantBaseline="central"
-                className={`pointer-events-none fill-fg text-xs${selected ? 'font-semibold' : ''}`}
-                style={{ paintOrder: 'stroke', stroke: 'var(--color-surface)', strokeWidth: 3 }}
-              >
-                <tspan
+              {vertical ? (
+                label && (
+                  <text
+                    x={label.x}
+                    y={labelY(label.lane)}
+                    dominantBaseline="hanging"
+                    className={`pointer-events-none fill-fg text-xs${selected ? 'font-semibold' : ''}`}
+                    style={{ paintOrder: 'stroke', stroke: 'var(--color-surface)', strokeWidth: 3 }}
+                  >
+                    <tspan x={label.x} className="font-medium">
+                      {node.label}
+                    </tspan>
+                    <tspan x={label.x} dy="1.25em" className="fill-muted tabular-nums">
+                      {amount}
+                    </tspan>
+                  </text>
+                )
+              ) : (
+                <text
                   x={laid.x + laid.width + 6}
-                  dy={lines ? '-0.6em' : 0}
-                  className="font-medium"
+                  y={textY}
+                  dominantBaseline="central"
+                  className={`pointer-events-none fill-fg text-xs${selected ? 'font-semibold' : ''}`}
+                  style={{ paintOrder: 'stroke', stroke: 'var(--color-surface)', strokeWidth: 3 }}
                 >
-                  {node.label}
-                </tspan>
-                {lines ? (
-                  <tspan x={laid.x + laid.width + 6} dy="1.2em" className="fill-muted tabular-nums">
-                    {formatMoney(laid.value)}
+                  <tspan
+                    x={laid.x + laid.width + 6}
+                    dy={lines ? '-0.6em' : 0}
+                    className="font-medium"
+                  >
+                    {node.label}
                   </tspan>
-                ) : (
-                  <tspan dx={6} className="fill-muted tabular-nums">
-                    {formatMoney(laid.value)}
-                  </tspan>
-                )}
-              </text>
+                  {lines ? (
+                    <tspan
+                      x={laid.x + laid.width + 6}
+                      dy="1.2em"
+                      className="fill-muted tabular-nums"
+                    >
+                      {amount}
+                    </tspan>
+                  ) : (
+                    <tspan dx={6} className="fill-muted tabular-nums">
+                      {amount}
+                    </tspan>
+                  )}
+                </text>
+              )}
             </g>
           );
         })}

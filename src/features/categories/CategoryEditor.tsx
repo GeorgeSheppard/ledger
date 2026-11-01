@@ -208,7 +208,12 @@ export function CategoryEditor({
           <ActionButton disabled={saving} onAction={() => onMigrate?.()}>
             Migrate
           </ActionButton>
-          <ActionButton variant="danger" disabled={saving} onAction={() => onDelete?.()}>
+          <ActionButton
+            shortcut="categories.delete"
+            variant="danger"
+            disabled={saving}
+            onAction={() => onDelete?.()}
+          >
             Delete
           </ActionButton>
         </div>

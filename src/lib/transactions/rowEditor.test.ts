@@ -29,9 +29,8 @@ describe('rowEditorReducer', () => {
     expect(reduce(state, { type: 'cancel' }).mode).toEqual({ kind: 'browse' });
   });
 
-  it('does nothing on edit or delete without a selection', () => {
+  it('does nothing on edit without a selection', () => {
     expect(reduce(initialRowEditorState, { type: 'edit' })).toBe(initialRowEditorState);
-    expect(reduce(initialRowEditorState, { type: 'confirm-delete' })).toBe(initialRowEditorState);
   });
 
   it('cancel clears the selection when already browsing', () => {
@@ -39,10 +38,11 @@ describe('rowEditorReducer', () => {
     expect(reduce(state, { type: 'cancel' }).selectedId).toBeNull();
   });
 
-  it('confirms deletes and finishes writes', () => {
-    let state = reduce({ selectedId: 'a', mode: { kind: 'browse' } }, { type: 'confirm-delete' });
-    expect(state.mode).toEqual({ kind: 'confirm-delete', id: 'a' });
-    state = reduce(state, { type: 'done', selectId: 'b' });
+  it('finishes writes', () => {
+    let state = reduce(
+      { selectedId: 'a', mode: { kind: 'edit', id: 'a' } },
+      { type: 'done', selectId: 'b' }
+    );
     expect(state).toEqual({ selectedId: 'b', mode: { kind: 'browse' } });
     state = reduce(reduce(state, { type: 'new' }), { type: 'done' });
     expect(state).toEqual({ selectedId: 'b', mode: { kind: 'browse' } });

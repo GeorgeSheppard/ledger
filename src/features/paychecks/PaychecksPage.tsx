@@ -19,7 +19,6 @@ import { ActionButton } from '../../ui/ActionButton';
 import { Card } from '../../ui/Card';
 import { Page } from '../../ui/Page';
 import { cn } from '../../ui/cn';
-import { DeleteConfirm } from '../accounts/DeleteConfirm';
 import { formatMoney } from '../../modules/graphs/shared/format';
 import { PaycheckEditor } from './PaycheckEditor';
 import { usePaychecks } from './usePaychecks';
@@ -114,14 +113,13 @@ export function PaychecksPage() {
     /** Whether this is a new entry rather than an edit of a saved one. */
     isNew: boolean;
   } | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   // Newest first, like a statement.
   const paychecks = useMemo(() => [...list.paychecks].reverse(), [list]);
   const current = paychecks.find((p) => p.id === selected);
-  const browsing = !editor && !confirmDelete;
+  const browsing = !editor;
 
   useEffect(() => {
     if (!selected) return;
@@ -165,7 +163,6 @@ export function PaychecksPage() {
     const neighbour = paychecks[index + 1] ?? paychecks[index - 1];
     void persist(removePaycheck(list, current.id), () => {
       setSelected(neighbour?.id ?? null);
-      setConfirmDelete(false);
     });
   };
 
@@ -173,8 +170,7 @@ export function PaychecksPage() {
   useShortcut('paychecks.down', () => step(1), browsing);
   useShortcut('paychecks.up', () => step(-1), browsing);
   useShortcut('paychecks.edit', () => edit(current), browsing && !!current);
-  useShortcut('paychecks.delete', () => setConfirmDelete(true), browsing && !!current);
-  useShortcut('paychecks.cancel', () => setConfirmDelete(false), confirmDelete);
+  useShortcut('paychecks.delete', onDelete, browsing && !!current);
 
   return (
     <Page
@@ -224,15 +220,6 @@ export function PaychecksPage() {
                   onSelect={() => browsing && setSelected(paycheck.id)}
                   onEdit={() => browsing && edit(paycheck)}
                 />
-                {confirmDelete && paycheck.id === selected && (
-                  <DeleteConfirm
-                    message={`Delete the paycheck from ${formatDay(paycheck.date)} ${yearOf(paycheck.date)}? The dashboard will no longer count it.`}
-                    deleteShortcut="paychecks.delete"
-                    cancelShortcut="paychecks.cancel"
-                    onConfirm={onDelete}
-                    onCancel={() => setConfirmDelete(false)}
-                  />
-                )}
               </div>
             ))}
           </div>

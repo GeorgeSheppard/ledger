@@ -104,7 +104,7 @@ export function DashboardPage() {
   return (
     <Page title="Dashboard">
       {/* Sticky, so the dates can be changed (and the view opened) from anywhere on the page. */}
-      <Card className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 p-3 shadow-md md:p-4">
+      <Card className="sticky top-[var(--ledger-bar-height,0px)] z-10 flex flex-wrap items-center justify-between gap-3 p-3 shadow-md md:p-4">
         <PeriodPicker
           period={period}
           today={today}

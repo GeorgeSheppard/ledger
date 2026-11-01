@@ -77,3 +77,29 @@ describe('layoutSankey', () => {
     expect(linkPath({ x0: 0, y0: 10, x1: 100, y1: 50 })).toBe('M0,10C50,10 50,50 100,50');
   });
 });
+
+describe('layoutSankey, vertical', () => {
+  const layout = layoutSankey(nodes, links, { ...options, orientation: 'vertical' });
+  const node = (id: string) => layout.nodes.find((n) => n.id === id)!;
+
+  it('runs the columns top to bottom, spreading each column across the width', () => {
+    expect(node('gross').y).toBe(0);
+    expect(node('rent').y).toBe(190);
+    for (const n of layout.nodes) {
+      expect(n.x).toBeGreaterThanOrEqual(-1e-9);
+      expect(n.x + n.width).toBeLessThanOrEqual(400 + 1e-9);
+    }
+  });
+
+  it('sizes nodes across the width by the money through them', () => {
+    expect(node('net').width / node('tax').width).toBeCloseTo(4);
+    expect(node('gross').height).toBe(10);
+  });
+
+  it('joins the bottom of a node to the top of the next', () => {
+    const toNet = layout.links.find((l) => l.target === 'net')!;
+    expect(toNet.y0).toBe(10);
+    expect(toNet.y1).toBe(node('net').y);
+    expect(linkPath(toNet, 'vertical')).toMatch(/^M[\d.]+,10C/);
+  });
+});

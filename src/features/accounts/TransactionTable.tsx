@@ -58,7 +58,6 @@ import type { MenuItem } from '../../ui/Menu';
 import { FLOATING_SELECTOR } from '../../ui/FloatingPanel';
 import { FunnelIcon, Popover } from '../../ui/Popover';
 import { BalanceAdjustmentDialog } from './BalanceAdjustmentDialog';
-import { DeleteConfirm } from './DeleteConfirm';
 import { TransactionEditor } from './TransactionEditor';
 import {
   AmountFilter,
@@ -105,6 +104,14 @@ const COLUMNS: { key: SortKey; label: string; align?: 'right' }[] = [
   { key: 'total', label: 'Total', align: 'right' },
 ];
 
+/** Height of what sticks above the list: the app's top bar (published by the AppShell), then our own toolbar and column headings. */
+function stickyHeight(): number {
+  const style = getComputedStyle(document.documentElement);
+  return ['--ledger-bar-height', '--ledger-toolbar-height', '--ledger-columns-height']
+    .map((name) => parseFloat(style.getPropertyValue(name)) || 0)
+    .reduce((sum, h) => sum + h, 0);
+}
+
 /**
  * The account's transactions, newest first and grouped by month until a column is sorted.
  * A click selects a row; clicking the row that is the only one selected (or double-clicking) edits
@@ -131,7 +138,6 @@ export function TransactionTable({
   const [mode, setMode] = useState<Mode>({ kind: 'browse' });
   const [editing, setEditing] = useState<Editing | null>(null);
   const [chosen, setSelection] = useState<Selection>(noSelection);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [openFilter, setOpenFilter] = useState<SortKey | null>(null);
   const [focusSearch, setFocusSearch] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -185,6 +191,31 @@ export function TransactionTable({
     [items, editingRow]
   );
   const listRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const columnsRef = useRef<HTMLDivElement>(null);
+  // The column headings stick under the toolbar, whose height varies (it wraps on phones), so both
+  // heights are published for the sticky offsets and for scrolling rows into view.
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    const watch: [HTMLElement | null, string][] = [
+      [toolbarRef.current, '--ledger-toolbar-height'],
+      [columnsRef.current, '--ledger-columns-height'],
+    ];
+    const observers = watch.flatMap(([element, name]) => {
+      if (!element) return [];
+      const publish = () =>
+        root.style.setProperty(name, `${element.getBoundingClientRect().height}px`);
+      publish();
+      const observer = new ResizeObserver(publish);
+      observer.observe(element);
+      return [observer];
+    });
+    return () => {
+      observers.forEach((o) => o.disconnect());
+      root.style.removeProperty('--ledger-toolbar-height');
+      root.style.removeProperty('--ledger-columns-height');
+    };
+  }, []);
   const [scrollMargin, setScrollMargin] = useState(0);
   useLayoutEffect(() => {
     setScrollMargin(listRef.current?.offsetTop ?? 0);
@@ -203,6 +234,8 @@ export function TransactionTable({
     },
     overscan: 8,
     scrollMargin,
+    // Rows scrolled into view stop below everything that sticks.
+    scrollPaddingStart: stickyHeight(),
     // The row being edited stays rendered even when scrolled out of the window, so it keeps focus.
     rangeExtractor: (range) => {
       const indexes = defaultRangeExtractor(range);
@@ -246,7 +279,6 @@ export function TransactionTable({
 
   const cancel = () => {
     if (isEditing) stopEditing();
-    else if (confirmingDelete) setConfirmingDelete(false);
     else setSelection(noSelection);
   };
 
@@ -309,7 +341,6 @@ export function TransactionTable({
   }, [editing === null, paused]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openNow = (transaction: Transaction, field: DraftField) => {
-    setConfirmingDelete(false);
     setSelection(selectOnly(transaction.id));
     setMode({ kind: 'edit', id: transaction.id });
     beginEditing(draftFromTransaction(transaction), field);
@@ -328,7 +359,6 @@ export function TransactionTable({
 
   const startNew = () => {
     if (mixed) return;
-    setConfirmingDelete(false);
     setMode({ kind: 'new' });
     beginEditing(emptyDraft(todayIso()), 'date');
   };
@@ -355,20 +385,19 @@ export function TransactionTable({
 
   const sortBy = (key: SortKey) => setSort((current) => nextSort(current, key));
 
-  const remove = async () => {
-    if (!confirmingDelete || selectedRows.length === 0 || saving) return;
+  const remove = async (rows: Transaction[] = selectedRows) => {
+    if (rows.length === 0 || saving) return;
     setSaving(true);
     setWriteError(null);
     try {
-      const only = selectedRows.length === 1 ? selectedRows[0] : undefined;
+      const only = rows.length === 1 ? rows[0] : undefined;
       const next = only ? selectionAfterDelete(transactions, only) : null;
       // Rows are numbered within their own account, so each account is deleted from separately.
       const rowsByAccount = new Map<number, number[]>();
-      for (const t of selectedRows)
+      for (const t of rows)
         rowsByAccount.set(t.accountId, [...(rowsByAccount.get(t.accountId) ?? []), t.row]);
-      for (const [accountId, rows] of rowsByAccount)
-        await actions.deleteTransactions(accountId, rows);
-      setConfirmingDelete(false);
+      for (const [accountId, accountRows] of rowsByAccount)
+        await actions.deleteTransactions(accountId, accountRows);
       // After deleting one row, keep going from the row that took its place.
       setSelection(selectOnly(next));
     } catch (error) {
@@ -376,12 +405,6 @@ export function TransactionTable({
     } finally {
       setSaving(false);
     }
-  };
-
-  const askToDelete = () => {
-    if (selectedRows.length === 0) return;
-    if (confirmingDelete) void remove();
-    else setConfirmingDelete(true);
   };
 
   const duplicateRow = async (transaction: Transaction) => {
@@ -445,7 +468,7 @@ export function TransactionTable({
       disabled: busy,
       onSelect: () => {
         setSelection(selectOnly(t.id));
-        setConfirmingDelete(true);
+        void remove([t]);
       },
     },
   ];
@@ -479,13 +502,12 @@ export function TransactionTable({
     browsing && shown.length > 0
   );
   useShortcut('transactions.edit', editSelected, browsing && selectedRows.length === 1);
+  useShortcut('transactions.cancel', cancel, browsing && selection.ids.length > 0);
   useShortcut(
-    'transactions.cancel',
-    cancel,
-    browsing && (selection.ids.length > 0 || confirmingDelete)
+    'transactions.deleteBackspace',
+    () => void remove(),
+    browsing && selectedRows.length > 0
   );
-  useShortcut('transactions.delete', askToDelete, browsing && selectedRows.length > 0);
-  useShortcut('transactions.deleteBackspace', askToDelete, browsing && selectedRows.length > 0);
   useShortcut(
     'transactions.search',
     () => {
@@ -634,7 +656,11 @@ export function TransactionTable({
       className="flex min-w-0 flex-col"
       aria-label={`${account?.name ?? 'All'} transactions`}
     >
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      {/* Stays in view below the app's top bar, so New and Delete are reachable while scrolled. */}
+      <div
+        ref={toolbarRef}
+        className="sticky top-[var(--ledger-bar-height,0px)] z-20 -mx-1 mb-3 flex flex-wrap items-center gap-2 bg-canvas px-1 py-2"
+      >
         {!mixed && (
           <ActionButton
             shortcut="transactions.new"
@@ -689,7 +715,7 @@ export function TransactionTable({
               hideHint
               variant="danger"
               disabled={!browsing || saving}
-              onAction={askToDelete}
+              onAction={() => void remove()}
             >
               {selectedRows.length > 1 ? `Delete ${selectedRows.length}` : 'Delete'}
             </ActionButton>
@@ -748,21 +774,6 @@ export function TransactionTable({
         </p>
       )}
 
-      {confirmingDelete && selectedRows.length > 0 && (
-        <DeleteConfirm
-          message={
-            selectedRows.length === 1
-              ? 'Delete this transaction? The row is removed from the sheet.'
-              : `Delete ${selectedRows.length} transactions? The rows are removed from the sheet.`
-          }
-          deleteShortcut="transactions.delete"
-          cancelShortcut="transactions.cancel"
-          busy={saving}
-          onConfirm={() => void remove()}
-          onCancel={() => setConfirmingDelete(false)}
-        />
-      )}
-
       {writeError && (
         <p className="mb-3 rounded-lg bg-negative/10 px-3 py-2 text-sm text-negative" role="alert">
           Could not save: {writeError}
@@ -772,8 +783,10 @@ export function TransactionTable({
       <div
         className={cn(
           TRANSACTION_GRID,
+          'sticky top-[calc(var(--ledger-bar-height,0px)+var(--ledger-toolbar-height,0px))] z-10 bg-canvas',
           'border-y-2 border-rule px-3 py-2 text-xs font-bold tracking-wide text-fg uppercase max-md:hidden'
         )}
+        ref={columnsRef}
         role="row"
       >
         {COLUMNS.map((column) => {
