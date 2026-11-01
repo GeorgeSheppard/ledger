@@ -85,7 +85,7 @@ export const SHORTCUTS = {
   },
   'transactions.cancel': {
     keys: 'escape',
-    description: 'Cancel editing',
+    description: 'Finish editing, keeping valid changes',
     scope: 'transactions',
     allowInInputs: true,
   },

@@ -2,7 +2,6 @@ import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import type { Category } from '../../lib/domain/types';
 import { formatAmount } from '../../lib/transactions/amount';
 import type { DraftErrors, DraftField, TransactionDraft } from '../../lib/transactions/draft';
-import { ActionButton } from '../../ui/ActionButton';
 import { cn } from '../../ui/cn';
 import { TextInput } from '../../ui/TextInput';
 import { CategoryPicker } from '../categories/CategoryPicker';
@@ -18,7 +17,6 @@ interface TransactionEditorProps {
   /** Every category, for colours and name checks. Defaults to `categories`. */
   allCategories?: Category[];
   isNew: boolean;
-  saving: boolean;
   /** Running total of the row being edited, shown for context. */
   total?: number;
   /** Which field gets focus. Changing `focusKey` re-applies it (e.g. after a failed save). */
@@ -26,7 +24,6 @@ interface TransactionEditorProps {
   focusKey: number;
   onChange(draft: TransactionDraft): void;
   onSave(): void;
-  onCancel(): void;
   onCreateCategory(name: string): Promise<void>;
   /** Up/Down in a cell: edit the same cell of the row above or below. */
   onMoveRow?(delta: 1 | -1, field: DraftField): void;
@@ -39,13 +36,11 @@ export function TransactionEditor({
   categories,
   allCategories,
   isNew,
-  saving,
   total,
   focusField,
   focusKey,
   onChange,
   onSave,
-  onCancel,
   onCreateCategory,
   onMoveRow,
 }: TransactionEditorProps) {
@@ -95,7 +90,10 @@ export function TransactionEditor({
       data-editor={isNew ? 'new' : 'edit'}
       aria-label={isNew ? 'New transaction' : 'Edit transaction'}
       onKeyDown={onKeyDown}
-      onSubmit={(event) => event.preventDefault()}
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave();
+      }}
     >
       <div className={cn(TRANSACTION_GRID, 'items-center px-3 py-2 max-md:grid-cols-2')}>
         <Cell field="date">
@@ -151,22 +149,8 @@ export function TransactionEditor({
         >
           {errorList.length
             ? errorList.join('. ')
-            : 'Negative amounts are money out, positive is money in.'}
+            : 'Negative amounts are money out, positive is money in. Changes save as you move on; Esc closes, Ctrl+Z undoes.'}
         </p>
-        <div className="flex gap-2">
-          <ActionButton shortcut="transactions.cancel" variant="ghost" onAction={onCancel}>
-            Cancel
-          </ActionButton>
-          <ActionButton
-            type="submit"
-            shortcut="transactions.save"
-            variant="primary"
-            disabled={saving}
-            onAction={onSave}
-          >
-            {saving ? 'Saving…' : isNew ? 'Add' : 'Save'}
-          </ActionButton>
-        </div>
       </div>
     </form>
   );

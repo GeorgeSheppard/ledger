@@ -498,6 +498,17 @@ export function TransactionTable({
     !paused
   );
 
+  // There are no Save/Cancel buttons: edits are live and Ctrl+Z reverts them. Escape closes the
+  // row, keeping the changes when they are valid and dropping them when they are not.
+  const finishEditing = () => {
+    if (!editing || saving) return;
+    if (isDraftDirty(editing.draft, editing.original) && validateDraft(editing.draft).ok)
+      void save();
+    else stopEditing();
+  };
+  useShortcut('transactions.cancel', finishEditing, isEditing && !paused);
+  useShortcut('transactions.save', () => void save(), isEditing && !paused);
+
   const editor = editing && (
     <TransactionEditor
       draft={editing.draft}
@@ -505,7 +516,6 @@ export function TransactionTable({
       categories={offeredCategories}
       allCategories={categories}
       isNew={mode.kind === 'new'}
-      saving={saving}
       total={
         editingRow && !mixed ? transactions.find((t) => t.id === editingRow)?.total : undefined
       }
@@ -513,7 +523,6 @@ export function TransactionTable({
       focusKey={editing.focusKey}
       onChange={(draft) => setEditing({ ...editing, draft })}
       onSave={() => void save()}
-      onCancel={cancel}
       onCreateCategory={createCategory}
       onMoveRow={mode.kind === 'edit' ? moveEditing : undefined}
     />
