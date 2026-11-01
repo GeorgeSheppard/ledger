@@ -23,7 +23,7 @@ export interface MonthGroup {
 /**
  * Splits already-ordered transactions into runs of the same month, for month headings. The
  * heading's money in and out sums `moneyOf(transaction)` (default: the amount); return 0 to leave a
- * row out, or flip the sign for an inverted account.
+ * row out.
  */
 export function groupByMonth(
   ordered: readonly Transaction[],

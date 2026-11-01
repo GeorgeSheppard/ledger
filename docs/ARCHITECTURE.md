@@ -210,30 +210,27 @@ viewport. `pnpm screenshots <story-id>` runs the play functions and exits 1 when
     missing row means active. Archived categories are hidden from category lists and pickers (and
     listed under "Archived" on the categories page, where they can be restored), but transactions
     keep the name, so graphs and filters still group by it.
-  - `account | Visa | inverted | TRUE`: the account (tab name) is a credit card or loan. Written only
-    for inverted accounts; a missing row means off.
   - Rows of an unknown type or setting are ignored, and the app rewrites the tab whole when
     categories or account settings change, so put hand notes elsewhere.
   - Old sheets have `_Categories` (`Name | Color`) instead. It is still read when there is no
     `Ledger_Metadata`; the next save of any change writes `Ledger_Metadata` and deletes `_Categories` in the same
     batch (the `.xlsx` writer does the same).
-- **Inverted accounts.** A credit card or loan is recorded the way its statement reads: purchases and
-  interest are positive, payments negative, so a card's CSV imports unchanged. Marking the account
-  inverted (the checkbox in its page header, `LedgerRepository.setAccountInverted`) makes Ledger flip
-  the sign of its amounts and running totals wherever it counts money (`src/lib/accounts/inverted.ts`):
-  the accounts list and its total, the account page's balance and in/out summary, net worth, the
-  balances graph, income and spending, and the Sankey. A purchase is money out and the balance owed
-  is a negative contribution to net worth; paying the card from a bank account pairs up with the
-  card's payment row as a transfer. The tab, its Total column and the transaction table stay as the
-  sheet has them.
+- **Credit cards and loans** are ordinary accounts with one rule for every account: positive is money
+  in, negative is money out. A purchase or interest charge is negative, a payment positive, and the
+  balance owed is a negative balance. There is no per-account sign setting, so nothing in the app
+  (filters, totals, graphs, the dashboard, balances, transfer matching, imports) treats a card
+  differently, and the sheet holds exactly what the app shows. Card statements usually write
+  purchases as positive, so when importing one the "flip signs" option in the mapping reverses them.
+  (Earlier versions had an `inverted` setting that kept card signs in the sheet and flipped them in
+  each feature; its rows in `Ledger_Metadata` are ignored.)
 - **Balance adjustments.** The "Balance adjustment" button next to "New transaction" sets an account to
   the balance the user reads off their bank (interest in savings and investment accounts is rarely
   known exactly). The user picks the account, a date (default today) and the actual balance; the
   dialog shows the balance on that date and the difference before saving. The result is one ordinary
   row (`Date | Category | Amount | Note`) with an empty category and the note `Balance adjustment`;
   nothing app-only is stored. Logic is in `lib/transactions/adjustment.ts`. The balance is taken
-  as of the chosen date (rows after it carry on from the new balance) and in money terms, so an
-  inverted account gets the opposite sign on its tab. The row counts as income when positive and as
+  as of the chosen date (rows after it carry on from the new balance). Amounts are already in
+  money terms, so cards need no special case: the difference is the amount. The row counts as income when positive and as
   spending when negative (interest is income), like any other row; it is never paired as a
   transfer. It is one Undo step ("Adjust balance").
 - `Paychecks` tab: a plain table, one row per payslip line, so Excel can pivot and chart it:

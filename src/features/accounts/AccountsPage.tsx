@@ -3,7 +3,6 @@ import { useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { paths } from '../../app/paths';
 import { findAccountByParam } from '../../lib/accounts/accounts';
-import { asMoney } from '../../lib/accounts/inverted';
 import { filtersFromParams } from '../../lib/transactions/filterParams';
 import { hasFilters } from '../../lib/transactions/filters';
 import { ActionButton } from '../../ui/ActionButton';
@@ -120,7 +119,7 @@ export function AccountsPage() {
       )}
       {transactions.status === 'ready' && (
         <>
-          <AccountSummary transactions={asMoney(account, transactions.data)} />
+          <AccountSummary transactions={transactions.data} />
           <TransactionTable
             key={`${account.id}?${params.toString()}`}
             account={account}

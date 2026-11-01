@@ -16,17 +16,14 @@ const rows = [
 
 describe('balanceOn', () => {
   it('sums rows up to and including the date', () => {
-    expect(balanceOn({ inverted: false }, rows, '2026-02-01')).toBe(800);
-    expect(balanceOn({ inverted: false }, rows, '2025-12-31')).toBe(0);
-  });
-  it('flips an inverted account into money terms', () => {
-    expect(balanceOn({ inverted: true }, rows, '2026-03-01')).toBe(-850);
+    expect(balanceOn(rows, '2026-02-01')).toBe(800);
+    expect(balanceOn(rows, '2025-12-31')).toBe(0);
   });
 });
 
 describe('planBalanceAdjustment', () => {
   it('adds the difference as a plain labelled row', () => {
-    const plan = planBalanceAdjustment({ inverted: false }, rows, '2026-03-01', 900.1);
+    const plan = planBalanceAdjustment(rows, '2026-03-01', 900.1);
     expect(plan?.difference).toBe(50.1);
     expect(plan?.input).toEqual({
       date: '2026-03-01',
@@ -36,23 +33,25 @@ describe('planBalanceAdjustment', () => {
     });
   });
   it('can be negative', () => {
-    expect(planBalanceAdjustment({ inverted: false }, rows, '2026-03-01', 800)?.input.amount).toBe(
-      -50
-    );
+    expect(planBalanceAdjustment(rows, '2026-03-01', 800)?.input.amount).toBe(-50);
   });
   it('uses the balance on the chosen date, not today', () => {
-    expect(planBalanceAdjustment({ inverted: false }, rows, '2026-01-15', 1010)?.difference).toBe(
-      10
-    );
+    expect(planBalanceAdjustment(rows, '2026-01-15', 1010)?.difference).toBe(10);
   });
   it('returns null when the balance already matches', () => {
-    expect(planBalanceAdjustment({ inverted: false }, rows, '2026-03-01', 850)).toBeNull();
+    expect(planBalanceAdjustment(rows, '2026-03-01', 850)).toBeNull();
   });
-  it('writes the sheet-side sign for an inverted account', () => {
-    // Owes 850; the bank says 900 owed, so money balance -900: difference -50, tab amount +50.
-    const plan = planBalanceAdjustment({ inverted: true }, rows, '2026-03-01', -900);
+  it('works for a card, whose balance owed is negative in money terms', () => {
+    // A card that owes 850 (money terms: -850). The bank says 900 is owed: difference -50.
+    const card = [
+      { date: '2026-01-01', amount: -1000 },
+      { date: '2026-02-01', amount: 200 },
+      { date: '2026-03-01', amount: -50 },
+    ];
+    const plan = planBalanceAdjustment(card, '2026-03-01', -900);
+    expect(plan?.current).toBe(-850);
     expect(plan?.difference).toBe(-50);
-    expect(plan?.input.amount).toBe(50);
+    expect(plan?.input.amount).toBe(-50);
   });
 });
 

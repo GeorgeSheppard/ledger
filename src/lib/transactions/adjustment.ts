@@ -1,4 +1,4 @@
-import type { Account, Transaction, TransactionInput } from '../domain/types';
+import type { Transaction, TransactionInput } from '../domain/types';
 import { roundCents } from './amount';
 
 /**
@@ -19,31 +19,27 @@ export function isBalanceAdjustment(transaction: Transaction): boolean {
 
 /**
  * What the account holds at the end of `date`: the sum of every row dated on or before it, in the
- * user's money (an inverted account such as a credit card has its sign flipped, as in the accounts
- * list).
+ * user's money. Amounts are already in money terms (cards included), so this is just the sum.
  */
 export function balanceOn(
-  account: Pick<Account, 'inverted'>,
   transactions: readonly Pick<Transaction, 'date' | 'amount'>[],
   date: string
 ): number {
   let sum = 0;
   for (const t of transactions) if (t.date <= date) sum += t.amount;
-  return roundCents(account.inverted ? -sum : sum);
+  return roundCents(sum);
 }
 
 /**
  * The row that makes the account's balance on `date` equal `target` (in the user's money), or null
- * when it already does. The amount is in the tab's own signs, so an inverted account gets the
- * opposite sign. Later rows are untouched and simply carry on from the new balance.
+ * when it already does. Later rows are untouched and simply carry on from the new balance.
  */
 export function planBalanceAdjustment(
-  account: Pick<Account, 'inverted'>,
   transactions: readonly Pick<Transaction, 'date' | 'amount'>[],
   date: string,
   target: number
 ): { current: number; difference: number; input: TransactionInput } | null {
-  const current = balanceOn(account, transactions, date);
+  const current = balanceOn(transactions, date);
   const difference = roundCents(target - current);
   if (difference === 0) return null;
   return {
@@ -52,7 +48,7 @@ export function planBalanceAdjustment(
     input: {
       date,
       category: '',
-      amount: account.inverted ? -difference : difference,
+      amount: difference,
       note: BALANCE_ADJUSTMENT_NOTE,
     },
   };

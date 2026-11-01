@@ -48,17 +48,16 @@ function Seed({
   return ready ? children : null;
 }
 
-/** A credit card tab as a card statement reads: purchases positive, the payment negative. */
+/** A credit card tab: purchases are money out (negative), the payment money in. */
 async function addCreditCard(repository: ReturnType<typeof useRepository>) {
   const card = await repository.createAccount(CREDIT_CARD_NAME);
   await repository.addTransactions(card.id, [
-    { date: '2026-08-04', category: 'Groceries', amount: 86.4, note: 'Supermarket' },
-    { date: '2026-08-19', category: 'Eating out', amount: 42.5, note: 'Dinner' },
-    { date: '2026-09-02', category: '', amount: -120, note: 'Payment, thank you' },
-    { date: '2026-09-09', category: 'Groceries', amount: 64.2, note: 'Supermarket' },
-    { date: '2026-09-21', category: 'Travel', amount: 210, note: 'Train tickets' },
+    { date: '2026-08-04', category: 'Groceries', amount: -86.4, note: 'Supermarket' },
+    { date: '2026-08-19', category: 'Eating out', amount: -42.5, note: 'Dinner' },
+    { date: '2026-09-02', category: '', amount: 120, note: 'Payment, thank you' },
+    { date: '2026-09-09', category: 'Groceries', amount: -64.2, note: 'Supermarket' },
+    { date: '2026-09-21', category: 'Travel', amount: -210, note: 'Train tickets' },
   ]);
-  await repository.setAccountInverted(card.id, true);
 }
 
 export const CREDIT_CARD_NAME = 'Credit card';
@@ -85,7 +84,7 @@ async function addBigAccount(repository: ReturnType<typeof useRepository>, count
 
 interface ConnectedProps {
   route?: string;
-  /** Adds an inverted "Credit card" account (purchases positive) to the demo spreadsheet. */
+  /** Adds a "Credit card" account to the demo spreadsheet. */
   creditCard?: boolean;
   /** Adds a "Big account" with this many transactions. */
   bigAccount?: number;

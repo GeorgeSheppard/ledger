@@ -126,11 +126,7 @@ export function parseSpreadsheet(
         title: tab.title,
         kind: 'settings',
         imported: true,
-        reason: `Ledger settings: ${plural(metadata.categories.length, 'category', 'categories')}${
-          metadata.invertedAccounts.length > 0
-            ? ` and ${plural(metadata.invertedAccounts.length, 'inverted account')}`
-            : ''
-        }.`,
+        reason: `Ledger settings: ${plural(metadata.categories.length, 'category', 'categories')}.`,
       });
     } else if (role === 'categories') {
       layout.categoriesSheetId = tab.sheetId;
@@ -190,7 +186,5 @@ export function parseSpreadsheet(
     legacyReport.imported = false;
     legacyReport.reason = `Not read: the ${METADATA_TAB} tab holds the categories now, so this older tab is ignored.`;
   }
-  const inverted = new Set(metadata?.invertedAccounts);
-  data.accounts = data.accounts.map((a) => (inverted.has(a.name) ? { ...a, inverted: true } : a));
   return { data, skippedTabs, tabReports, layout };
 }

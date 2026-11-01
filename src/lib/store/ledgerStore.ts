@@ -207,13 +207,6 @@ export class LedgerStore implements LedgerRepository {
     this.apply(edit.renameAccount(this.current, accountId, title), `Rename account to “${title}”`);
   }
 
-  async setAccountInverted(accountId: number, inverted: boolean): Promise<void> {
-    this.apply(
-      edit.setAccountInverted(this.current, accountId, inverted),
-      inverted ? 'Flip amount signs' : 'Stop flipping amount signs'
-    );
-  }
-
   async listTransactions(accountId: number): Promise<Transaction[]> {
     return structuredClone(this.snapshot.transactionsByAccount[accountId] ?? []);
   }

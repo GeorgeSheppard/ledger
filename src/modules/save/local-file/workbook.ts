@@ -110,7 +110,7 @@ export async function writeWorkbook(
   }
 
   // `Ledger_Metadata` replaces the old `_Categories` tab, which goes once its contents are moved over.
-  const entries = metadataEntries(data.categories, data.accounts);
+  const entries = metadataEntries(data.categories);
   const metadata = sheetFor(workbook, METADATA_TAB, METADATA_COLUMNS, [12, 24, 12, 12]);
   writeRows(metadata, entries.length, METADATA_COLUMNS.length, (row, cell) => {
     const entry = entries[row - 2];

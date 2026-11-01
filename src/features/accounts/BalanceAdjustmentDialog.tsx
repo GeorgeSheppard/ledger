@@ -44,7 +44,7 @@ export function BalanceAdjustmentDialog({
   const plan = useMemo(
     () =>
       account && target !== null && isIsoDate(date)
-        ? planBalanceAdjustment(account, transactionsByAccount[account.id] ?? [], date, target)
+        ? planBalanceAdjustment(transactionsByAccount[account.id] ?? [], date, target)
         : null,
     [account, target, date, transactionsByAccount]
   );

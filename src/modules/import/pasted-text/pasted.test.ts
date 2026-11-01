@@ -240,7 +240,7 @@ Privacy  Terms  Contact us`;
     const parsed = parsePastedText('12 Oct 2026 COFFEE 3.00\n13 Oct 2026 TEA 2.00', { today });
     expect(parsed.table.rows.map((r) => r[2])).toEqual(['-3.00', '-2.00']);
     expect(parsed.warnings).toEqual([
-      '2 amounts have no sign, so they are treated as money out. Use the invert option if that is the wrong way round.',
+      '2 amounts have no sign, so they are treated as money out. Use the flip signs option if that is the wrong way round.',
     ]);
   });
 

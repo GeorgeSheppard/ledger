@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Account, Category, IsoDate, TransactionInput } from '../domain/types';
+import type { Category, IsoDate, TransactionInput } from '../domain/types';
 import { ACCOUNT_COLUMNS } from '../domain/types';
 import { categorySchema } from '../domain/schemas';
 import type { JsonValue } from '../store/ledgerData';
@@ -167,10 +167,10 @@ export const METADATA_COLUMNS = ['Type', 'Name', 'Setting', 'Value'] as const;
 /**
  * One row of `Ledger_Metadata`: `category | Food | color | #4f7cff`, `category | Transfers | excluded | TRUE`,
  * `category | Gym | archived | TRUE`, `category | Rent | account | Current` (once per account the category is limited to; none means
- * global) or `account | Visa | inverted | TRUE`.
+ * global).
  */
 export interface MetadataEntry {
-  type: 'category' | 'account';
+  type: 'category';
   name: string;
   setting: string;
   value: string | boolean;
@@ -183,17 +183,15 @@ const flagSchema = z
 /**
  * `Ledger_Metadata` values (from row 2, columns A–D). Rows are checked one by one: a row of an unknown
  * type or setting, or one with a blank name, is skipped, so a hand edit never stops the sheet
- * loading. Account names are the tab names of the accounts that are inverted.
+ * loading.
  */
 export function parseMetadata(values: readonly (readonly unknown[])[]): {
   categories: Category[];
-  invertedAccounts: string[];
 } {
   const categories: Category[] = [];
   const excluded: string[] = [];
   const archived: string[] = [];
   const scoped: { name: string; account: string }[] = [];
-  const invertedAccounts: string[] = [];
   for (const cells of values) {
     const [type, name, setting] = [0, 1, 2].map((i) => textCell(cells[i]));
     if (!name) continue;
@@ -205,8 +203,6 @@ export function parseMetadata(values: readonly (readonly unknown[])[]): {
       archived.push(name);
     else if (type === 'category' && setting === 'account' && textCell(cells[3]))
       scoped.push({ name, account: textCell(cells[3]) });
-    else if (type === 'account' && setting === 'inverted' && flagSchema.parse(cells[3] ?? false))
-      invertedAccounts.push(name);
   }
   // Settings may come before or after the category's colour row, so they are applied at the end.
   // A category with only a setting row (no colour yet) still exists; the store gives it a colour.
@@ -225,14 +221,11 @@ export function parseMetadata(values: readonly (readonly unknown[])[]): {
     if (!known) categories.push((known = { name, color: '' }));
     if (!known.accounts?.includes(account)) known.accounts = [...(known.accounts ?? []), account];
   }
-  return { categories, invertedAccounts };
+  return { categories };
 }
 
-/** Everything `Ledger_Metadata` holds for these categories and accounts, in the order it is written. */
-export function metadataEntries(
-  categories: readonly Category[],
-  accounts: readonly Account[]
-): MetadataEntry[] {
+/** Everything `Ledger_Metadata` holds for these categories, in the order it is written. */
+export function metadataEntries(categories: readonly Category[]): MetadataEntry[] {
   return [
     ...categories.map((c): MetadataEntry => ({
       type: 'category',
@@ -264,14 +257,6 @@ export function metadataEntries(
         value: account,
       }))
     ),
-    ...accounts
-      .filter((a) => a.inverted)
-      .map((a): MetadataEntry => ({
-        type: 'account',
-        name: a.name,
-        setting: 'inverted',
-        value: true,
-      })),
   ];
 }
 

@@ -75,15 +75,14 @@ export function saveRequests(
   // `Ledger_Metadata` holds the categories and the per-account settings. A sheet that still has the old
   // `_Categories` tab is moved over on any save: the new tab is written and the old one deleted in
   // the same batch.
-  const entries = metadataEntries(next.categories, next.accounts);
+  const entries = metadataEntries(next.categories);
   const legacySheetId =
     layout.metadataSheetId === undefined && !sameData(base.data, next)
       ? layout.categoriesSheetId
       : undefined;
   if (
     legacySheetId !== undefined ||
-    JSON.stringify(metadataEntries(base.data.categories, base.data.accounts)) !==
-      JSON.stringify(entries)
+    JSON.stringify(metadataEntries(base.data.categories)) !== JSON.stringify(entries)
   ) {
     let sheetId = layout.metadataSheetId;
     if (sheetId === undefined) {
