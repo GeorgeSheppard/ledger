@@ -26,6 +26,8 @@ interface TransactionEditorProps {
   onSave(): void;
   onCancel(): void;
   onCreateCategory(name: string): Promise<void>;
+  /** Up/Down in the category cell: edit the same cell of the row above or below. */
+  onMoveRow?(delta: 1 | -1): void;
 }
 
 /** A transaction row turned into inputs. Enter or ⌘↵ saves, Escape cancels. */
@@ -43,6 +45,7 @@ export function TransactionEditor({
   onSave,
   onCancel,
   onCreateCategory,
+  onMoveRow,
 }: TransactionEditorProps) {
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -78,6 +81,7 @@ export function TransactionEditor({
             allCategories={allCategories}
             onChange={set('category')}
             onCreate={onCreateCategory}
+            onMoveRow={onMoveRow}
           />
         </Cell>
         <Cell field="note">
