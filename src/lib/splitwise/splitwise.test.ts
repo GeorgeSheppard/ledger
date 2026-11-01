@@ -7,39 +7,39 @@ Nov
 
 Food
 you paid
-£97.00you lent Anastasia
-£31.00
+£84.00you lent Priya
+£28.00
 October 2026View printable summary
 Oct
 25
 
-Disneyland Paris stuff 
-Anastasia W. paid
-£28.89Anastasia lent you
-£28.89
+Weekend cabin trip 
+Priya N. paid
+£41.20Priya lent you
+£41.20
 Oct
 22
 
 Food
 you paid
-£54.00you lent Anastasia
-£18.00
+£63.00you lent Priya
+£21.00
 Oct
 19
 
-Amazon order
+Online order
 you paid
-£29.99you lent Anastasia
-£29.99
+£35.50you lent Priya
+£35.50
 `;
 
 describe('parseSplitwise', () => {
   it('reads the user share of each expense', () => {
     const { expenses, warnings } = parseSplitwise(SAMPLE);
     expect(expenses).toEqual([
-      { date: '2026-11-01', description: 'Food', spending: 66 },
-      { date: '2026-10-25', description: 'Disneyland Paris stuff', spending: 28.89 },
-      { date: '2026-10-22', description: 'Food', spending: 36 },
+      { date: '2026-11-01', description: 'Food', spending: 56 },
+      { date: '2026-10-25', description: 'Weekend cabin trip', spending: 41.2 },
+      { date: '2026-10-22', description: 'Food', spending: 42 },
     ]);
     expect(warnings).toEqual([
       '1 Splitwise entry where you spent nothing (fully lent) was left out.',
@@ -79,7 +79,7 @@ May
 04
 
 Payment
-Anastasia W. paid
+Priya N. paid
 £20.00you received
 £20.00
 May
