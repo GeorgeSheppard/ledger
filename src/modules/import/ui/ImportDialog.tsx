@@ -121,7 +121,13 @@ export function ImportDialog({ account, transactions, categories, onClose }: Imp
                 {problem}
               </p>
             ))}
-            {plan && plan.problems.length === 0 && <ImportPreview plan={plan} />}
+            {plan && plan.problems.length === 0 && (
+              <ImportPreview
+                plan={plan}
+                categories={categories}
+                onCategoryChange={importer.setCategory}
+              />
+            )}
 
             <footer className="sticky bottom-0 -mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-line bg-canvas px-6 py-3">
               <p className="flex-1 text-sm text-muted">

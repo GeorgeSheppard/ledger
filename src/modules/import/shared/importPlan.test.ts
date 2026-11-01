@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Transaction } from '../../../lib/domain/types';
+import { buildCategoryIndex } from '../../../lib/categories/suggest';
 import { buildImportPlan, withNewCategories } from './importPlan';
 import { guessMapping, toTable } from './mapping';
 import { parseCsv } from '../../../lib/csv/parse';
@@ -54,5 +55,38 @@ describe('buildImportPlan', () => {
     expect(result).toHaveLength(2);
     expect(result[1]?.name).toBe('Eating out');
     expect(result[1]?.color).toMatch(/^#[0-9a-f]{6}$/);
+  });
+});
+
+describe('buildImportPlan category suggestions', () => {
+  const table = toTable(
+    parseCsv(
+      [
+        'Date,Description,Amount,Category',
+        '01/02/2026,Tesco,-5,',
+        '02/02/2026,Mystery,-6,',
+        '03/02/2026,Tesco,-7,Fun',
+      ].join('\n')
+    ),
+    true
+  );
+  const mapping = guessMapping(table);
+  const index = buildCategoryIndex([{ note: 'tesco ', category: 'Groceries', date: '2026-01-01' }]);
+  const cats = [{ name: 'Groceries', color: '#000000' }];
+
+  it('fills blank categories from past notes, leaves unseen ones blank, keeps the files own', () => {
+    const plan = buildImportPlan(table, mapping, [], cats, index);
+    expect(plan.rows.map((r) => [r.input?.category, r.categorySource])).toEqual([
+      ['Groceries', 'suggested'],
+      ['', 'none'],
+      ['Fun', 'file'],
+    ]);
+  });
+
+  it('lets an edit in the preview win over the guess', () => {
+    const first = buildImportPlan(table, mapping, [], cats, index).rows[0]!;
+    const plan = buildImportPlan(table, mapping, [], cats, index, { [first.line]: '' });
+    expect(plan.rows[0]?.input?.category).toBe('');
+    expect(plan.rows[0]?.categorySource).toBe('edited');
   });
 });
