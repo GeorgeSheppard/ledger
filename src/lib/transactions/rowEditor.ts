@@ -1,14 +1,10 @@
 /**
  * State for a keyboard-driven list where one row is selected and can be edited inline, a new row
- * can be added at the top, and deletion needs a confirmation. Shared by the transaction table and
+ * can be added at the top. Shared by the transaction table and
  * the categories page. Rows are identified by string ids so selection survives re-reads.
  */
 
-export type RowEditorMode =
-  | { kind: 'browse' }
-  | { kind: 'edit'; id: string }
-  | { kind: 'new' }
-  | { kind: 'confirm-delete'; id: string };
+export type RowEditorMode = { kind: 'browse' } | { kind: 'edit'; id: string } | { kind: 'new' };
 
 export interface RowEditorState {
   selectedId: string | null;
@@ -20,7 +16,6 @@ export type RowEditorAction =
   | { type: 'move'; delta: number; ids: readonly string[] }
   | { type: 'edit'; id?: string }
   | { type: 'new' }
-  | { type: 'confirm-delete'; id?: string }
   | { type: 'cancel' }
   /** A write finished: back to browsing with `selectId` selected (if given). */
   | { type: 'done'; selectId?: string | null };
@@ -56,11 +51,6 @@ export function rowEditorReducer(state: RowEditorState, action: RowEditorAction)
     case 'new':
       if (isEditing(state)) return state;
       return { ...state, mode: { kind: 'new' } };
-    case 'confirm-delete': {
-      const id = action.id ?? state.selectedId;
-      if (id === null || isEditing(state)) return state;
-      return { selectedId: id, mode: { kind: 'confirm-delete', id } };
-    }
     case 'cancel':
       return browsing ? { ...state, selectedId: null } : { ...state, mode: { kind: 'browse' } };
     case 'done':

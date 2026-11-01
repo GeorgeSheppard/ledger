@@ -163,7 +163,7 @@ export const SelectedRows: Story = {
   },
 };
 
-/** Confirming a delete of several rows. */
+/** Four rows selected and deleted at once (Ctrl+Z brings them back). */
 export const DeleteSelected: Story = {
   render: AccountRoute,
   play: async (context) => {
