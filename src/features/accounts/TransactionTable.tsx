@@ -49,6 +49,7 @@ import {
   type Selection,
 } from '../../lib/transactions/selection';
 import { cashFlowTotals, moneyOfRow } from '../../lib/transactions/summary';
+import { useLedger } from '../../state/ledgerData';
 import { useShortcut } from '../../state/shortcuts';
 import { ActionButton } from '../../ui/ActionButton';
 import { cn } from '../../ui/cn';
@@ -56,6 +57,7 @@ import { Kbd } from '../../ui/Kbd';
 import type { MenuItem } from '../../ui/Menu';
 import { FLOATING_SELECTOR } from '../../ui/FloatingPanel';
 import { FunnelIcon, Popover } from '../../ui/Popover';
+import { BalanceAdjustmentDialog } from './BalanceAdjustmentDialog';
 import { TransactionEditor } from './TransactionEditor';
 import {
   AmountFilter,
@@ -102,13 +104,12 @@ const COLUMNS: { key: SortKey; label: string; align?: 'right' }[] = [
   { key: 'total', label: 'Total', align: 'right' },
 ];
 
-/** Height of the app's sticky top bar, which the AppShell publishes (0 outside the shell). */
-function barHeight(): number {
-  return (
-    parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue('--ledger-bar-height')
-    ) || 0
-  );
+/** Height of what sticks above the list: the app's top bar (published by the AppShell), then our own toolbar and column headings. */
+function stickyHeight(): number {
+  const style = getComputedStyle(document.documentElement);
+  return ['--ledger-bar-height', '--ledger-toolbar-height', '--ledger-columns-height']
+    .map((name) => parseFloat(style.getPropertyValue(name)) || 0)
+    .reduce((sum, h) => sum + h, 0);
 }
 
 /**
@@ -132,6 +133,8 @@ export function TransactionTable({
   initialFilters,
 }: TransactionTableProps) {
   const actions = useAccountActions();
+  const { transactionsByAccount } = useLedger();
+  const [adjusting, setAdjusting] = useState(false);
   const [mode, setMode] = useState<Mode>({ kind: 'browse' });
   const [editing, setEditing] = useState<Editing | null>(null);
   const [chosen, setSelection] = useState<Selection>(noSelection);
@@ -174,8 +177,8 @@ export function TransactionTable({
   );
   const editingRow = mode.kind === 'edit' ? mode.id : null;
   const isEditing = mode.kind !== 'browse';
-  const busy = isEditing || saving || paused;
-  const browsing = !isEditing && !paused;
+  const busy = isEditing || saving || paused || adjusting;
+  const browsing = !isEditing && !paused && !adjusting;
 
   const mobile = useMediaQuery('(max-width: 767px)');
   const items = useMemo<ListItem[]>(
@@ -191,6 +194,31 @@ export function TransactionTable({
     [items, editingRow]
   );
   const listRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const columnsRef = useRef<HTMLDivElement>(null);
+  // The column headings stick under the toolbar, whose height varies (it wraps on phones), so both
+  // heights are published for the sticky offsets and for scrolling rows into view.
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    const watch: [HTMLElement | null, string][] = [
+      [toolbarRef.current, '--ledger-toolbar-height'],
+      [columnsRef.current, '--ledger-columns-height'],
+    ];
+    const observers = watch.flatMap(([element, name]) => {
+      if (!element) return [];
+      const publish = () =>
+        root.style.setProperty(name, `${element.getBoundingClientRect().height}px`);
+      publish();
+      const observer = new ResizeObserver(publish);
+      observer.observe(element);
+      return [observer];
+    });
+    return () => {
+      observers.forEach((o) => o.disconnect());
+      root.style.removeProperty('--ledger-toolbar-height');
+      root.style.removeProperty('--ledger-columns-height');
+    };
+  }, []);
   const [scrollMargin, setScrollMargin] = useState(0);
   useLayoutEffect(() => {
     setScrollMargin(listRef.current?.offsetTop ?? 0);
@@ -209,8 +237,8 @@ export function TransactionTable({
     },
     overscan: 8,
     scrollMargin,
-    // Rows scrolled into view stop below the sticky top bar.
-    scrollPaddingStart: barHeight(),
+    // Rows scrolled into view stop below everything that sticks.
+    scrollPaddingStart: stickyHeight(),
     // The row being edited stays rendered even when scrolled out of the window, so it keeps focus.
     rangeExtractor: (range) => {
       const indexes = defaultRangeExtractor(range);
@@ -335,7 +363,7 @@ export function TransactionTable({
   const startNew = () => {
     if (mixed) return;
     setMode({ kind: 'new' });
-    beginEditing(emptyDraft(todayIso()), 'category');
+    beginEditing(emptyDraft(todayIso()), 'date');
   };
 
   const editSelected = () => {
@@ -467,7 +495,6 @@ export function TransactionTable({
   );
   useShortcut('transactions.edit', editSelected, browsing && selectedRows.length === 1);
   useShortcut('transactions.cancel', cancel, browsing && selection.ids.length > 0);
-  useShortcut('transactions.deleteKey', () => void remove(), browsing && selectedRows.length > 0);
   useShortcut(
     'transactions.deleteBackspace',
     () => void remove(),
@@ -483,7 +510,7 @@ export function TransactionTable({
         setFocusSearch(true);
       }
     },
-    !paused
+    !paused && !adjusting
   );
 
   const editor = editing && (
@@ -612,7 +639,10 @@ export function TransactionTable({
       aria-label={`${account?.name ?? 'All'} transactions`}
     >
       {/* Stays in view below the app's top bar, so New and Delete are reachable while scrolled. */}
-      <div className="sticky top-[var(--ledger-bar-height,0px)] z-20 -mx-1 mb-3 flex flex-wrap items-center gap-2 bg-canvas px-1 py-2">
+      <div
+        ref={toolbarRef}
+        className="sticky top-[var(--ledger-bar-height,0px)] z-20 -mx-1 mb-3 flex flex-wrap items-center gap-2 bg-canvas px-1 py-2"
+      >
         {!mixed && (
           <ActionButton
             shortcut="transactions.new"
@@ -624,6 +654,14 @@ export function TransactionTable({
             New transaction
           </ActionButton>
         )}
+        <ActionButton
+          variant="secondary"
+          disabled={busy || accounts.length === 0}
+          title="Set an account to the balance it really has, e.g. after interest"
+          onAction={() => setAdjusting(true)}
+        >
+          Balance adjustment
+        </ActionButton>
         <ActionButton
           className="md:hidden"
           variant={panelOpen ? 'primary' : 'secondary'}
@@ -667,6 +705,15 @@ export function TransactionTable({
           </span>
         )}
       </div>
+
+      {adjusting && (
+        <BalanceAdjustmentDialog
+          accounts={accounts}
+          transactionsByAccount={transactionsByAccount}
+          initialAccountId={account?.id}
+          onClose={() => setAdjusting(false)}
+        />
+      )}
 
       {panelOpen && !wide && (
         <TransactionFilterPanel
@@ -719,8 +766,10 @@ export function TransactionTable({
       <div
         className={cn(
           TRANSACTION_GRID,
+          'sticky top-[calc(var(--ledger-bar-height,0px)+var(--ledger-toolbar-height,0px))] z-10 bg-canvas',
           'border-y-2 border-rule px-3 py-2 text-xs font-bold tracking-wide text-fg uppercase max-md:hidden'
         )}
+        ref={columnsRef}
         role="row"
       >
         {COLUMNS.map((column) => {

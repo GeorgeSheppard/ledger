@@ -33,6 +33,23 @@ export const AccountPage: Story = {
   ),
 };
 
+/** The balance adjustment dialog on an account, with the difference worked out before saving. */
+export const BalanceAdjustment: Story = {
+  render: () => (
+    <Connected shell route="/accounts/1">
+      <Routes>
+        <Route path="/accounts/:accountId" element={<AccountsPage />} />
+      </Routes>
+    </Connected>
+  ),
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await body.findByRole('button', { name: /balance adjustment/i }));
+    await userEvent.type(await body.findByLabelText('Actual balance'), '12345.67');
+    await waitFor(() => expect(body.getByText(/will add/i)).toBeVisible());
+  },
+};
+
 /** Opened from the Total row of the accounts overview: every account, unfiltered. */
 export const AllTransactions: Story = {
   render: () => (

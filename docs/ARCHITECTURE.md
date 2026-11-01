@@ -226,6 +226,16 @@ viewport. `pnpm screenshots <story-id>` runs the play functions and exits 1 when
   is a negative contribution to net worth; paying the card from a bank account pairs up with the
   card's payment row as a transfer. The tab, its Total column and the transaction table stay as the
   sheet has them.
+- **Balance adjustments.** The "Balance adjustment" button next to "New transaction" sets an account to
+  the balance the user reads off their bank (interest in savings and investment accounts is rarely
+  known exactly). The user picks the account, a date (default today) and the actual balance; the
+  dialog shows the balance on that date and the difference before saving. The result is one ordinary
+  row (`Date | Category | Amount | Note`) with an empty category and the note `Balance adjustment`;
+  nothing app-only is stored. Logic is in `lib/transactions/adjustment.ts`. The balance is taken
+  as of the chosen date (rows after it carry on from the new balance) and in money terms, so an
+  inverted account gets the opposite sign on its tab. The row counts as income when positive and as
+  spending when negative (interest is income), like any other row; it is never paired as a
+  transfer. It is one Undo step ("Adjust balance").
 - `Paychecks` tab: a plain table, one row per payslip line, so Excel can pivot and chart it:
   `Date | Tax code | Type | Name | Amount`. One payslip per date: its lines share the date, and
   `Tax code` (kept with the paycheck, never used in any sum, repeated on each line) is optional.

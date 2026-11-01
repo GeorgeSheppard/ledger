@@ -1,8 +1,10 @@
+import { useCallback, useId, useState } from 'react';
 import { paths } from '../../app/paths';
 import { ACCOUNT_COLUMNS } from '../../lib/domain/types';
 import type { TabReport } from '../../lib/store/ledgerData';
 import { Badge } from '../../ui/Badge';
 import { Card } from '../../ui/Card';
+import { FloatingPanel } from '../../ui/FloatingPanel';
 import { Page } from '../../ui/Page';
 import { useLedger } from '../../state/ledgerData';
 import { Link } from 'react-router';
@@ -15,19 +17,54 @@ const KIND_LABELS: Record<TabReport['kind'], string> = {
   reserved: 'Reserved',
 };
 
+/** One tab: its name and status. The reason shows in a larger panel on hover, focus or tap. */
 function TabRow({ tab }: { tab: TabReport }) {
+  const [anchor, setAnchor] = useState<HTMLLIElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const dismiss = useCallback(() => setOpen(false), []);
   return (
-    <li className="flex flex-col gap-1 px-4 py-3 md:grid md:grid-cols-[minmax(0,1fr)_110px_110px_minmax(0,2fr)] md:items-start md:gap-3">
-      <span className="truncate font-semibold" title={tab.title}>
-        {tab.title}
+    <li
+      ref={setAnchor}
+      tabIndex={0}
+      aria-describedby={open ? id : undefined}
+      className="flex cursor-default items-center justify-between gap-3 px-4 py-3 outline-none hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+      onPointerEnter={(event) => event.pointerType === 'mouse' && setOpen(true)}
+      onPointerLeave={(event) => event.pointerType === 'mouse' && setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
+      onClick={() => setOpen(true)}
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape' || !open) return;
+        event.nativeEvent.stopPropagation();
+        setOpen(false);
+      }}
+    >
+      <span className="min-w-0">
+        <span className="block truncate font-semibold" title={tab.title}>
+          {tab.title}
+        </span>
+        <span className="text-sm text-muted">{KIND_LABELS[tab.kind]}</span>
       </span>
-      <span className="text-sm text-muted">{KIND_LABELS[tab.kind]}</span>
-      <span>
-        <Badge tone={tab.imported ? 'positive' : 'negative'}>
-          {tab.imported ? 'Imported' : 'Not imported'}
-        </Badge>
-      </span>
-      <span className="text-sm text-muted">{tab.reason}</span>
+      <Badge tone={tab.imported ? 'positive' : 'negative'}>
+        {tab.imported ? 'Imported' : 'Not imported'}
+      </Badge>
+      {open && (
+        <FloatingPanel
+          anchor={anchor}
+          onDismiss={dismiss}
+          placement="bottom-start"
+          dismissOnScroll={false}
+          id={id}
+          role="tooltip"
+          className="max-w-md p-4 text-sm"
+        >
+          <div className="mb-1 font-semibold">
+            {tab.imported ? 'Why this tab was imported' : 'Why this tab was not imported'}
+          </div>
+          <p className="text-muted">{tab.reason}</p>
+        </FloatingPanel>
+      )}
     </li>
   );
 }
@@ -44,7 +81,7 @@ export function SheetReportPage() {
       title="How tabs were read"
       description={
         tabReports.length > 0
-          ? `${imported} of ${tabReports.length} tabs imported when the spreadsheet was loaded.`
+          ? `${imported} of ${tabReports.length} tabs imported when the spreadsheet was loaded. Hover, focus or tap a row to see why.`
           : undefined
       }
     >
