@@ -449,7 +449,7 @@ export function parsePastedText(text: string, options: PasteOptions = {}): Paste
     warnings.push(
       `${sources.assumed} amount${sources.assumed === 1 ? ' has' : 's have'} no sign, so ${
         sources.assumed === 1 ? 'it is' : 'they are'
-      } treated as money out. Use the flip signs option if that is the wrong way round.`
+      } treated as money out. Tick Invert amounts if that is the wrong way round.`
     );
   }
   if (unused > 0) {

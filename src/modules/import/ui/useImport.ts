@@ -63,13 +63,15 @@ export function useImport(accountId: number, existing: Transaction[], categories
 
   /** Reads `input` with any importer. Sets `error` and clears the screen when nothing was read. */
   const load = useCallback(
-    (importer: Importer, input: ImportInput, options?: ImportOptions) => {
+    (importer: Importer, input: ImportInput, options?: ImportOptions, keepInvert = false) => {
       setError(null);
       try {
         const next = importer.parse(input, options);
         setParsed(next);
         setSource({ importer, input });
-        setMapping(next.mapping);
+        setMapping((prev) =>
+          keepInvert && prev ? { ...next.mapping, invertAmounts: prev.invertAmounts } : next.mapping
+        );
         setOverrides({});
       } catch (e) {
         clear();
@@ -97,7 +99,7 @@ export function useImport(accountId: number, existing: Transaction[], categories
   /** Reads text pasted from a bank's website. `dayFirst` overrides the detected date order. */
   const loadText = useCallback(
     (text: string, dayFirst?: boolean) =>
-      load(pastedTextImporter, { name: 'Pasted text', text }, { dayFirst }),
+      load(pastedTextImporter, { name: 'Pasted text', text }, { dayFirst }, dayFirst !== undefined),
     [load]
   );
 
@@ -107,7 +109,10 @@ export function useImport(accountId: number, existing: Transaction[], categories
       if (!parsed) return;
       const table = toTable(parsed.grid, hasHeader);
       setParsed({ ...parsed, table });
-      setMapping(guessMapping(table));
+      setMapping((prev) => ({
+        ...guessMapping(table),
+        invertAmounts: prev?.invertAmounts ?? false,
+      }));
       setOverrides({});
     },
     [parsed]

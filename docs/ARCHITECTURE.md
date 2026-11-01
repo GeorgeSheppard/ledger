@@ -220,7 +220,8 @@ viewport. `pnpm screenshots <story-id>` runs the play functions and exits 1 when
   balance owed is a negative balance. There is no per-account sign setting, so nothing in the app
   (filters, totals, graphs, the dashboard, balances, transfer matching, imports) treats a card
   differently, and the sheet holds exactly what the app shows. Card statements usually write
-  purchases as positive, so when importing one the "flip signs" option in the mapping reverses them.
+  purchases as positive, so the import dialog has an "Invert amounts" toggle above the preview
+  (CSV, pasted text and Splitwise alike) that flips every incoming amount and shows the new rows' money in and out live.
   (Earlier versions had an `inverted` setting that kept card signs in the sheet and flipped them in
   each feature; its rows in `Ledger_Metadata` are ignored.)
 - **Balance adjustments.** The "Balance adjustment" button next to "New transaction" sets an account to

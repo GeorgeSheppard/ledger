@@ -37,9 +37,6 @@ export function MappingEditor({
 }: MappingEditorProps) {
   const firstField = useRef<HTMLSelectElement>(null);
   useShortcut('import.mapping', () => firstField.current?.focus());
-  useShortcut('import.invert', () =>
-    onMappingChange({ ...mapping, invertAmounts: !mapping.invertAmounts })
-  );
 
   const sample = table.rows[0] ?? [];
   const setField = (field: MappedField, value: string) => {
@@ -108,16 +105,6 @@ export function MappingEditor({
             onChange={(e) => onHasHeaderChange(e.target.checked)}
           />
           First row is a header
-        </label>
-        <label className="inline-flex items-center gap-2">
-          <input
-            type="checkbox"
-            className="accent-accent"
-            checked={mapping.invertAmounts}
-            onChange={(e) => onMappingChange({ ...mapping, invertAmounts: e.target.checked })}
-          />
-          Spending is positive in this file (flip signs)
-          <Kbd shortcut="import.invert" className="text-muted" />
         </label>
       </div>
     </Card>
