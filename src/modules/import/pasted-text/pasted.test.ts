@@ -329,6 +329,8 @@ Anthropic
 Sat 17 Oct£5,587.54
 Dishoom
 33.00`;
-    expect(parsePastedText(text, { today: '2026-10-25' }).table.rows.map((r) => Number(r[2]))).toEqual([-18, -33]);
+    expect(
+      parsePastedText(text, { today: '2026-10-25' }).table.rows.map((r) => Number(r[2]))
+    ).toEqual([-18, -33]);
   });
 });
